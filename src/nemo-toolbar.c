@@ -37,6 +37,7 @@
 struct _NemoToolbarPriv {
 	GtkToolbar *toolbar;
 	GtkToolbar *secondary_toolbar;
+    GtkToolbar *location_toolbar;
 
 	GtkActionGroup *action_group;
 	GtkUIManager *ui_manager;
@@ -157,7 +158,7 @@ nemo_toolbar_constructed (GObject *obj)
 	NemoToolbar *self = NEMO_TOOLBAR (obj);
 	GtkToolItem *item;
 	GtkBox *hbox;
-	GtkToolbar *toolbar, *secondary_toolbar;
+	GtkToolbar *toolbar, *secondary_toolbar, *location_toolbar;
 	GtkWidget *search;
 	GtkStyleContext *context;
 
@@ -178,16 +179,24 @@ nemo_toolbar_constructed (GObject *obj)
 	
 	secondary_toolbar = GTK_TOOLBAR (gtk_ui_manager_get_widget (self->priv->ui_manager, "/SecondaryToolbar"));
 	self->priv->secondary_toolbar = secondary_toolbar;
+
+    location_toolbar = GTK_TOOLBAR (gtk_ui_manager_get_widget (self->priv->ui_manager, "/LocationToolbar"));
+    self->priv->location_toolbar = location_toolbar;
 		
 	gtk_toolbar_set_icon_size (GTK_TOOLBAR (toolbar), GTK_ICON_SIZE_BUTTON);
 	gtk_toolbar_set_icon_size (GTK_TOOLBAR (secondary_toolbar), GTK_ICON_SIZE_MENU);
+    gtk_toolbar_set_icon_size (GTK_TOOLBAR (location_toolbar), GTK_ICON_SIZE_BUTTON);
 
 	context = gtk_widget_get_style_context (GTK_WIDGET(toolbar));
 	gtk_style_context_add_class (context, GTK_STYLE_CLASS_PRIMARY_TOOLBAR);
 	
 	context = gtk_widget_get_style_context (GTK_WIDGET(secondary_toolbar));
 	gtk_style_context_add_class (context, GTK_STYLE_CLASS_PRIMARY_TOOLBAR);
-	
+
+    context = gtk_widget_get_style_context (GTK_WIDGET(location_toolbar));
+    gtk_style_context_add_class (context, GTK_STYLE_CLASS_PRIMARY_TOOLBAR);
+    
+
 	//search = gtk_ui_manager_get_widget (self->priv->ui_manager, "/Toolbar/Search");
 	//gtk_style_context_add_class (gtk_widget_get_style_context (search), GTK_STYLE_CLASS_RAISED);
 	//gtk_widget_set_name (search, "nemo-search-button");
@@ -204,6 +213,13 @@ nemo_toolbar_constructed (GObject *obj)
 	gtk_box_pack_start (GTK_BOX (self), GTK_WIDGET(hbox), TRUE, TRUE, 0);
 	gtk_widget_show_all (GTK_WIDGET(hbox));
 
+    gtk_box_pack_start (GTK_BOX (self), GTK_WIDGET(self->priv->location_toolbar), TRUE, TRUE, 0);
+    gtk_widget_show_all (GTK_WIDGET (self->priv->location_toolbar));
+
+
+
+
+
 	hbox = GTK_BOX(gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0));
 	gtk_widget_show (GTK_WIDGET(hbox));
 
@@ -219,7 +235,9 @@ nemo_toolbar_constructed (GObject *obj)
 	gtk_tool_item_set_expand (item, TRUE);
 	gtk_container_add (GTK_CONTAINER (item), GTK_WIDGET(hbox));
 	/* append to the end of the toolbar so navigation buttons are at the beginning */
-	gtk_toolbar_insert (GTK_TOOLBAR (self->priv->toolbar), item, 8);
+
+    gtk_toolbar_insert (GTK_TOOLBAR (self->priv->location_toolbar), item, -1);
+
 	gtk_widget_show (GTK_WIDGET (item));
 
     setup_root_info_bar (self);

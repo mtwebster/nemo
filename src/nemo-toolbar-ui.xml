@@ -7,7 +7,6 @@
 	<separator name="AfterNavigation" />        
         <toolitem name="Home" action="Home"/>
         <toolitem name="Computer" action="Computer"/>
-	<separator name="BeforeLocation" />	
 </toolbar>
 <toolbar name="SecondaryToolbar">		
 	<toolitem name="Edit Location" action="Edit Location"/>
@@ -15,5 +14,8 @@
         <toolitem name="Icon View" action="IconView"/>
         <toolitem name="List View" action="ListView"/>
         <toolitem name="Compact View" action="CompactView"/>    
+</toolbar>
+<toolbar name="LocationToolbar">
+    <separator name="BeforeLocation" />
 </toolbar>
 </ui>

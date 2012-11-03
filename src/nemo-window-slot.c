@@ -107,13 +107,6 @@ nemo_window_slot_ensure_search_bar (NemoWindowSlot *slot)
     remember_focus_widget (slot);
     nemo_window_slot_set_show_search_bar (NEMO_WINDOW_SLOT (slot), TRUE);
 
-    if (!g_settings_get_boolean (nemo_window_state,
-                     NEMO_WINDOW_STATE_START_WITH_TOOLBAR)) {
-        nemo_toolbar_set_show_main_bar (NEMO_TOOLBAR (slot->pane->tool_bar), FALSE);
-        gtk_widget_show (slot->pane->tool_bar);
-        nemo_search_bar_clear (NEMO_SEARCH_BAR (slot->search_bar));
-    }
-
     nemo_search_bar_grab_focus (NEMO_SEARCH_BAR (slot->search_bar));
 }
 
@@ -420,6 +413,14 @@ nemo_window_slot_dispose (GObject *object)
 		g_source_remove (slot->loading_timeout_id);
 		slot->loading_timeout_id = 0;
 	}
+
+    if (slot->search_bar) {
+        widget = GTK_WIDGET (slot->search_bar);
+        gtk_widget_destroy (widget);
+        slot->search_bar = NULL;
+    }
+
+    unset_focus_widget (slot);
 
 	nemo_window_slot_set_viewed_file (slot, NULL);
 	/* TODO? why do we unref here? the file is NULL.

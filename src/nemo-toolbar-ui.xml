@@ -16,6 +16,5 @@
         <toolitem name="Compact View" action="CompactView"/>    
 </toolbar>
 <toolbar name="LocationToolbar">
-    <separator name="BeforeLocation" />
 </toolbar>
 </ui>

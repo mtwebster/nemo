@@ -162,7 +162,6 @@ nemo_window_pane_hide_temporary_bars (NemoWindowPane *pane)
 	NemoDirectory *directory;
 
 	slot = pane->active_slot;
-
 	if (pane->temporary_navigation_bar) {
 		directory = nemo_directory_get (slot->location);
 
@@ -1003,28 +1002,35 @@ nemo_window_pane_grab_focus (NemoWindowPane *pane)
 void
 nemo_window_pane_ensure_location_bar (NemoWindowPane *pane)
 {
-    gboolean fl_active, visible, always;
-    always = !g_settings_get_boolean (nemo_window_state,
+    gboolean location_active, use_temp_toolbars, always_use_location;
+    use_temp_toolbars = !g_settings_get_boolean (nemo_window_state,
                      NEMO_WINDOW_STATE_START_WITH_TOOLBAR);
-    visible = gtk_widget_get_visible(pane->location_bar);
-
-    if (always) {
-        gtk_widget_show (pane->tool_bar);
-        pane->temporary_navigation_bar = TRUE;
-    }
-
-    fl_active = nemo_toolbar_get_show_location_entry (NEMO_TOOLBAR (pane->tool_bar));
-
-    if ((!visible && !fl_active) || (visible && pane->last_focus_widget == NULL))  {
+    always_use_location = g_settings_get_boolean (nemo_preferences,
+                     NEMO_PREFERENCES_SHOW_LOCATION_ENTRY);
+    location_active = nemo_toolbar_get_show_location_entry (NEMO_TOOLBAR (pane->tool_bar));
+    if (!location_active || !gtk_widget_get_visible (GTK_WIDGET (pane->tool_bar)))  {
         remember_focus_widget (pane);
+        if (use_temp_toolbars) {
+            nemo_toolbar_set_show_main_bar (NEMO_TOOLBAR (pane->tool_bar), TRUE);
+            pane->temporary_navigation_bar = TRUE;
+        }
+        gtk_widget_show (pane->tool_bar);
+        gtk_widget_show (pane->location_tool_bar);
         nemo_toolbar_set_show_location_entry (NEMO_TOOLBAR (pane->tool_bar), TRUE);
         nemo_location_bar_activate (NEMO_LOCATION_BAR (pane->location_bar));
-        gtk_widget_show (pane->tool_bar);
     } else {
-        restore_focus_widget (pane);
-        nemo_toolbar_set_show_location_entry (NEMO_TOOLBAR (pane->tool_bar), FALSE);
-        gtk_widget_hide (pane->tool_bar);
-        gtk_widget_hide (pane->location_tool_bar);
+        if (always_use_location) {
+            if (use_temp_toolbars && pane->temporary_navigation_bar) {
+                restore_focus_widget (pane);
+                nemo_window_pane_hide_temporary_bars (pane);
+            } else {
+                remember_focus_widget (pane);
+                nemo_location_bar_activate (NEMO_LOCATION_BAR (pane->location_bar));
+            }
+        } else {
+            restore_focus_widget (pane);
+            nemo_toolbar_set_show_location_entry (NEMO_TOOLBAR (pane->tool_bar), FALSE);
+        }
     }
 }
 

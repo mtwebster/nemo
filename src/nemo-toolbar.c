@@ -108,7 +108,7 @@ toolbar_update_appearance (NemoToolbar *self)
 	if ( icon_toolbar == FALSE ) { gtk_widget_hide (widgetitem); }
 	else {gtk_widget_show (GTK_WIDGET(widgetitem));}
 
-	widgetitem = gtk_ui_manager_get_widget (self->priv->ui_manager, "/SecondaryToolbar/Edit Location");
+	widgetitem = gtk_ui_manager_get_widget (self->priv->ui_manager, "/LocationToolbar/Edit Location");
 	icon_toolbar = g_settings_get_boolean (nemo_preferences, NEMO_PREFERENCES_SHOW_EDIT_ICON_TOOLBAR);
 	if ( icon_toolbar == FALSE ) { gtk_widget_hide (widgetitem); }
 	else {gtk_widget_show (GTK_WIDGET(widgetitem));}
@@ -218,9 +218,8 @@ nemo_toolbar_constructed (GObject *obj)
 	item = gtk_tool_item_new ();
 	gtk_tool_item_set_expand (item, TRUE);
 	gtk_container_add (GTK_CONTAINER (item), GTK_WIDGET(hbox));
-	/* append to the end of the toolbar so navigation buttons are at the beginning */
 
-    gtk_toolbar_insert (GTK_TOOLBAR (self->priv->location_toolbar), item, -1);
+    gtk_toolbar_insert (GTK_TOOLBAR (self->priv->location_toolbar), item, 0);
 
 	gtk_widget_show (GTK_WIDGET (item));
 

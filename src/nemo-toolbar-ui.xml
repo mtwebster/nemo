@@ -8,13 +8,14 @@
         <toolitem name="Home" action="Home"/>
         <toolitem name="Computer" action="Computer"/>
 </toolbar>
-<toolbar name="SecondaryToolbar">		
-	<toolitem name="Edit Location" action="Edit Location"/>
+<toolbar name="SecondaryToolbar">
         <toolitem name="Search" action="Search"/>
         <toolitem name="Icon View" action="IconView"/>
         <toolitem name="List View" action="ListView"/>
         <toolitem name="Compact View" action="CompactView"/>    
 </toolbar>
 <toolbar name="LocationToolbar">
+        <placeholder name="LocationPathBar" />
+        <toolitem name="Edit Location" action="Edit Location"/>
 </toolbar>
 </ui>

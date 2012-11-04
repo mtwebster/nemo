@@ -83,14 +83,14 @@ toolbar_update_appearance (NemoToolbar *self)
 	gboolean icon_toolbar;
 
 	gboolean show_location_entry;
-
     nemo_toolbar_update_root_state (self);
 
 	show_location_entry = self->priv->show_location_entry ||
 		g_settings_get_boolean (nemo_preferences, NEMO_PREFERENCES_SHOW_LOCATION_ENTRY);
-
 	gtk_widget_set_visible (GTK_WIDGET(self->priv->toolbar),
 				self->priv->show_main_bar);
+    gtk_widget_set_visible (GTK_WIDGET(self->priv->location_toolbar),
+                self->priv->show_main_bar);
 
 	gtk_widget_set_visible (self->priv->location_bar,
 				show_location_entry);
@@ -205,13 +205,6 @@ nemo_toolbar_constructed (GObject *obj)
 
 	gtk_box_pack_start (GTK_BOX (self), GTK_WIDGET(hbox), TRUE, TRUE, 0);
 	gtk_widget_show_all (GTK_WIDGET(hbox));
-
-    gtk_box_pack_start (GTK_BOX (self), GTK_WIDGET(self->priv->location_toolbar), TRUE, TRUE, 0);
-    gtk_widget_show_all (GTK_WIDGET (self->priv->location_toolbar));
-
-
-
-
 
 	hbox = GTK_BOX(gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0));
 	gtk_widget_show (GTK_WIDGET(hbox));
@@ -418,4 +411,8 @@ nemo_toolbar_set_show_location_entry (NemoToolbar *self,
 	}
 }
 
-
+GtkWidget *
+nemo_toolbar_get_location_toolbar (NemoToolbar *self)
+{
+    return self->priv->location_toolbar;
+}

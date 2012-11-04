@@ -66,6 +66,7 @@ struct _NemoWindowPane {
 	GtkWidget *location_bar;
 	GtkWidget *path_bar;
 	GtkWidget *tool_bar;
+    GtkWidget *location_tool_bar;
 
 	gboolean temporary_navigation_bar;
 

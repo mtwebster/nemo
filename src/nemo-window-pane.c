@@ -173,8 +173,10 @@ nemo_window_pane_hide_temporary_bars (NemoWindowPane *pane)
 		 */
 		if (NEMO_IS_SEARCH_DIRECTORY (directory)) {
 			nemo_toolbar_set_show_main_bar (NEMO_TOOLBAR (pane->tool_bar), FALSE);
+            gtk_widget_hide (pane->location_tool_bar);
 		} else {
 			gtk_widget_hide (pane->tool_bar);
+            gtk_widget_hide (pane->location_tool_bar);
 		}
 
 		nemo_directory_unref (directory);
@@ -708,6 +710,7 @@ nemo_window_pane_constructed (GObject *obj)
 	action_group = nemo_window_create_toolbar_action_group (window);
 	pane->toolbar_action_group = action_group;
 	pane->tool_bar = nemo_toolbar_new (action_group);
+    pane->location_tool_bar = nemo_toolbar_get_location_toolbar(NEMO_TOOLBAR (pane->tool_bar));
 	pane->action_group = action_group;
 
 	g_signal_connect (pane->action_group, "pre-activate",
@@ -717,6 +720,10 @@ nemo_window_pane_constructed (GObject *obj)
 	gtk_box_pack_start (GTK_BOX (window->details->toolbar_holder),
 			    pane->tool_bar,
 			    TRUE, TRUE, 0);
+
+    gtk_box_pack_start (GTK_BOX (window->details->location_toolbar_holder),
+                pane->location_tool_bar,
+                TRUE, TRUE, 0);
 
 	/* start as non-active */
 	nemo_window_pane_set_active (pane, FALSE);
@@ -728,6 +735,14 @@ nemo_window_pane_constructed (GObject *obj)
 				      G_SETTINGS_BIND_GET,
 				      nemo_window_disable_chrome_mapping, NULL,
 				      window, NULL);
+
+    g_settings_bind_with_mapping (nemo_window_state,
+                      NEMO_WINDOW_STATE_START_WITH_TOOLBAR,
+                      pane->location_tool_bar,
+                      "visible",
+                      G_SETTINGS_BIND_GET,
+                      nemo_window_disable_chrome_mapping, NULL,
+                      window, NULL);
 
 	/* connect to the pathbar signals */
 	pane->path_bar = nemo_toolbar_get_path_bar (NEMO_TOOLBAR (pane->tool_bar));
@@ -800,6 +815,7 @@ nemo_window_pane_constructed (GObject *obj)
 	 */
 	if (NEMO_IS_DESKTOP_WINDOW(window)) {
 		gtk_widget_hide (GTK_WIDGET (window->details->toolbar_holder));
+        gtk_widget_hide (GTK_WIDGET (window->details->location_toolbar_holder));
 	}
 
 	/* we can unref the size group now */
@@ -991,7 +1007,6 @@ nemo_window_pane_ensure_location_bar (NemoWindowPane *pane)
     always = !g_settings_get_boolean (nemo_window_state,
                      NEMO_WINDOW_STATE_START_WITH_TOOLBAR);
     visible = gtk_widget_get_visible(pane->location_bar);
-    nemo_toolbar_set_show_main_bar (NEMO_TOOLBAR (pane->tool_bar), TRUE);
 
     if (always) {
         gtk_widget_show (pane->tool_bar);
@@ -1004,9 +1019,12 @@ nemo_window_pane_ensure_location_bar (NemoWindowPane *pane)
         remember_focus_widget (pane);
         nemo_toolbar_set_show_location_entry (NEMO_TOOLBAR (pane->tool_bar), TRUE);
         nemo_location_bar_activate (NEMO_LOCATION_BAR (pane->location_bar));
+        gtk_widget_show (pane->tool_bar);
     } else {
         restore_focus_widget (pane);
         nemo_toolbar_set_show_location_entry (NEMO_TOOLBAR (pane->tool_bar), FALSE);
+        gtk_widget_hide (pane->tool_bar);
+        gtk_widget_hide (pane->location_tool_bar);
     }
 }
 

@@ -89,8 +89,6 @@ toolbar_update_appearance (NemoToolbar *self)
 		g_settings_get_boolean (nemo_preferences, NEMO_PREFERENCES_SHOW_LOCATION_ENTRY);
 	gtk_widget_set_visible (GTK_WIDGET(self->priv->toolbar),
 				self->priv->show_main_bar);
-  //  gtk_widget_set_visible (GTK_WIDGET(self->priv->location_toolbar),
-  //              self->priv->show_main_bar);
 
 	gtk_widget_set_visible (self->priv->location_bar,
 				show_location_entry);

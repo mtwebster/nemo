@@ -184,8 +184,7 @@ action_show_hide_search_callback (GtkAction *action,
                   gpointer user_data)
 {
     NemoWindowSlot *slot = NEMO_WINDOW_SLOT (user_data);
-
-    NemoWindow *window = slot->pane->window;
+    NemoWindow *window = NEMO_WINDOW (slot->pane->window);
 
     if (slot != nemo_window_get_active_slot (window)) {
         return;
@@ -386,6 +385,12 @@ nemo_window_slot_dispose (GObject *object)
 	GtkWidget *widget;
 
 	slot = NEMO_WINDOW_SLOT (object);
+
+    GtkActionGroup *group = GTK_ACTION_GROUP (slot->pane->action_group);
+    GtkAction *action;
+    action = gtk_action_group_get_action (group, NEMO_ACTION_SEARCH);
+    g_signal_handlers_disconnect_by_func (action,
+                          action_show_hide_search_callback, slot);
 
 	nemo_window_slot_clear_forward_list (slot);
 	nemo_window_slot_clear_back_list (slot);

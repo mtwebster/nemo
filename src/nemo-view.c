@@ -2703,6 +2703,18 @@ nemo_view_destroy (GtkWidget *object)
 
 	view = NEMO_VIEW (object);
 
+    g_signal_handlers_disconnect_by_func (nemo_preferences,
+                          schedule_update_menus_callback, view);
+    g_signal_handlers_disconnect_by_func (nemo_preferences,
+                          click_policy_changed_callback, view);
+    g_signal_handlers_disconnect_by_func (nemo_preferences,
+                          sort_directories_first_changed_callback, view);
+    g_signal_handlers_disconnect_by_func (nemo_window_state,
+                          nemo_view_display_selection_info, view);
+
+    g_signal_handlers_disconnect_by_func (gnome_lockdown_preferences,
+                          schedule_update_menus, view);
+
 	disconnect_model_handlers (view);
 
 	nemo_view_unmerge_menus (view);
@@ -2765,18 +2777,6 @@ nemo_view_finalize (GObject *object)
 	NemoView *view;
 
 	view = NEMO_VIEW (object);
-
-	g_signal_handlers_disconnect_by_func (nemo_preferences,
-					      schedule_update_menus_callback, view);
-	g_signal_handlers_disconnect_by_func (nemo_preferences,
-					      click_policy_changed_callback, view);
-	g_signal_handlers_disconnect_by_func (nemo_preferences,
-					      sort_directories_first_changed_callback, view);
-	g_signal_handlers_disconnect_by_func (nemo_window_state,
-					      nemo_view_display_selection_info, view);
-
-	g_signal_handlers_disconnect_by_func (gnome_lockdown_preferences,
-					      schedule_update_menus, view);
 
 	unschedule_pop_up_location_context_menu (view);
 	if (view->details->location_popup_event != NULL) {

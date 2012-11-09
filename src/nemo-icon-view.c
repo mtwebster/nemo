@@ -186,34 +186,6 @@ static void                 nemo_icon_view_clear                  (NemoView     
 
 G_DEFINE_TYPE (NemoIconView, nemo_icon_view, NEMO_TYPE_VIEW);
 
-static void
-nemo_icon_view_destroy (GtkWidget *object)
-{
-	NemoIconView *icon_view;
-
-	icon_view = NEMO_ICON_VIEW (object);
-
-	nemo_icon_view_clear (NEMO_VIEW (object));
-
-        if (icon_view->details->react_to_icon_change_idle_id != 0) {
-                g_source_remove (icon_view->details->react_to_icon_change_idle_id);
-		icon_view->details->react_to_icon_change_idle_id = 0;
-        }
-
-	if (icon_view->details->clipboard_handler_id != 0) {
-		g_signal_handler_disconnect (nemo_clipboard_monitor_get (),
-					     icon_view->details->clipboard_handler_id);
-		icon_view->details->clipboard_handler_id = 0;
-	}
-
-	if (icon_view->details->icons_not_positioned) {
-		nemo_file_list_free (icon_view->details->icons_not_positioned);
-		icon_view->details->icons_not_positioned = NULL;
-	}
-
-	GTK_WIDGET_CLASS (nemo_icon_view_parent_class)->destroy (object);
-}
-
 static NemoIconContainer *
 get_icon_container (NemoIconView *icon_view)
 {
@@ -2417,6 +2389,61 @@ nemo_icon_view_set_property (GObject         *object,
 }
 
 static void
+nemo_icon_view_destroy (GtkWidget *object)
+{
+    NemoIconView *icon_view;
+
+    icon_view = NEMO_ICON_VIEW (object);
+
+    g_signal_handlers_disconnect_by_func (nemo_preferences,
+                          default_sort_order_changed_callback,
+                          icon_view);
+    g_signal_handlers_disconnect_by_func (nemo_preferences,
+                          default_sort_in_reverse_order_changed_callback,
+                          icon_view);
+    g_signal_handlers_disconnect_by_func (nemo_preferences,
+                          image_display_policy_changed_callback,
+                          icon_view);
+
+    g_signal_handlers_disconnect_by_func (nemo_icon_view_preferences,
+                          default_zoom_level_changed_callback,
+                          icon_view);
+    g_signal_handlers_disconnect_by_func (nemo_icon_view_preferences,
+                          labels_beside_icons_changed_callback,
+                          icon_view);
+    g_signal_handlers_disconnect_by_func (nemo_icon_view_preferences,
+                          text_attribute_names_changed_callback,
+                          icon_view);
+
+    g_signal_handlers_disconnect_by_func (nemo_compact_view_preferences,
+                          default_zoom_level_changed_callback,
+                          icon_view);
+    g_signal_handlers_disconnect_by_func (nemo_compact_view_preferences,
+                          all_columns_same_width_changed_callback,
+                          icon_view);
+
+    nemo_icon_view_clear (NEMO_VIEW (object));
+
+        if (icon_view->details->react_to_icon_change_idle_id != 0) {
+                g_source_remove (icon_view->details->react_to_icon_change_idle_id);
+        icon_view->details->react_to_icon_change_idle_id = 0;
+        }
+
+    if (icon_view->details->clipboard_handler_id != 0) {
+        g_signal_handler_disconnect (nemo_clipboard_monitor_get (),
+                         icon_view->details->clipboard_handler_id);
+        icon_view->details->clipboard_handler_id = 0;
+    }
+
+    if (icon_view->details->icons_not_positioned) {
+        nemo_file_list_free (icon_view->details->icons_not_positioned);
+        icon_view->details->icons_not_positioned = NULL;
+    }
+
+    GTK_WIDGET_CLASS (nemo_icon_view_parent_class)->destroy (object);
+}
+
+static void
 nemo_icon_view_finalize (GObject *object)
 {
 	NemoIconView *icon_view;
@@ -2424,33 +2451,6 @@ nemo_icon_view_finalize (GObject *object)
 	icon_view = NEMO_ICON_VIEW (object);
 
 	g_free (icon_view->details);
-
-	g_signal_handlers_disconnect_by_func (nemo_preferences,
-					      default_sort_order_changed_callback,
-					      icon_view);
-	g_signal_handlers_disconnect_by_func (nemo_preferences,
-					      default_sort_in_reverse_order_changed_callback,
-					      icon_view);
-	g_signal_handlers_disconnect_by_func (nemo_preferences,
-					      image_display_policy_changed_callback,
-					      icon_view);
-
-	g_signal_handlers_disconnect_by_func (nemo_icon_view_preferences,
-					      default_zoom_level_changed_callback,
-					      icon_view);
-	g_signal_handlers_disconnect_by_func (nemo_icon_view_preferences,
-					      labels_beside_icons_changed_callback,
-					      icon_view);
-	g_signal_handlers_disconnect_by_func (nemo_icon_view_preferences,
-					      text_attribute_names_changed_callback,
-					      icon_view);
-
-	g_signal_handlers_disconnect_by_func (nemo_compact_view_preferences,
-					      default_zoom_level_changed_callback,
-					      icon_view);
-	g_signal_handlers_disconnect_by_func (nemo_compact_view_preferences,
-					      all_columns_same_width_changed_callback,
-					      icon_view);
 
 	G_OBJECT_CLASS (nemo_icon_view_parent_class)->finalize (object);
 }

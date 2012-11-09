@@ -3036,6 +3036,19 @@ nemo_list_view_dispose (GObject *object)
 
 	list_view = NEMO_LIST_VIEW (object);
 
+    g_signal_handlers_disconnect_by_func (nemo_preferences,
+                          default_sort_order_changed_callback,
+                          list_view);
+    g_signal_handlers_disconnect_by_func (nemo_list_view_preferences,
+                          default_zoom_level_changed_callback,
+                          list_view);
+    g_signal_handlers_disconnect_by_func (nemo_list_view_preferences,
+                          default_visible_columns_changed_callback,
+                          list_view);
+    g_signal_handlers_disconnect_by_func (nemo_list_view_preferences,
+                          default_column_order_changed_callback,
+                          list_view);
+
 	if (list_view->details->model) {
 		stop_cell_editing (list_view);
 		g_object_unref (list_view->details->model);
@@ -3093,19 +3106,6 @@ nemo_list_view_finalize (GObject *object)
 	}
 
 	g_free (list_view->details);
-
-	g_signal_handlers_disconnect_by_func (nemo_preferences,
-					      default_sort_order_changed_callback,
-					      list_view);
-	g_signal_handlers_disconnect_by_func (nemo_list_view_preferences,
-					      default_zoom_level_changed_callback,
-					      list_view);
-	g_signal_handlers_disconnect_by_func (nemo_list_view_preferences,
-					      default_visible_columns_changed_callback,
-					      list_view);
-	g_signal_handlers_disconnect_by_func (nemo_list_view_preferences,
-					      default_column_order_changed_callback,
-					      list_view);
 
 	G_OBJECT_CLASS (nemo_list_view_parent_class)->finalize (object);
 }

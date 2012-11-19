@@ -106,6 +106,9 @@ struct NemoWindowDetails
         gboolean disable_chrome;
 
         guint sidebar_width_handler_id;
+
+        GtkComboBoxText *sidebar_selector;
+        guint sidebar_selector_signal_id;
 };
 
 /* window geometry */

@@ -407,14 +407,33 @@ sidebar_id_is_valid (const gchar *sidebar_id)
 		g_strcmp0 (sidebar_id, NEMO_WINDOW_SIDEBAR_TREE) == 0);
 }
 
+#define SIDEBAR_SELECTOR_ID_PLACES "places"
+#define SIDEBAR_SELECTOR_ID_TREE "tree"
+
+static void
+sidebar_selector_changed_callback (GtkComboBoxText *combo)
+{
+    const gchar *active_id = gtk_combo_box_get_active_id (GTK_COMBO_BOX (combo));
+    if (g_strcmp0 (active_id, SIDEBAR_SELECTOR_ID_PLACES) == 0) {
+        g_settings_set_string (nemo_window_state,
+                       NEMO_WINDOW_STATE_SIDE_PANE_VIEW,
+                       NEMO_WINDOW_SIDEBAR_PLACES);
+    } else if (g_strcmp0 (active_id, SIDEBAR_SELECTOR_ID_TREE) == 0) {
+        g_settings_set_string (nemo_window_state,
+                       NEMO_WINDOW_STATE_SIDE_PANE_VIEW,
+                       NEMO_WINDOW_SIDEBAR_TREE);
+    }
+}
+
 static void
 nemo_window_set_up_sidebar (NemoWindow *window)
 {
 	GtkWidget *sidebar;
+    GtkComboBoxText *sidebar_selector;
 
 	DEBUG ("Setting up sidebar id %s", window->details->sidebar_id);
 
-	window->details->sidebar = gtk_box_new (GTK_ORIENTATION_VERTICAL, 6);
+	window->details->sidebar = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
 	gtk_style_context_add_class (gtk_widget_get_style_context (window->details->sidebar),
 				     GTK_STYLE_CLASS_SIDEBAR);
 
@@ -428,14 +447,25 @@ nemo_window_set_up_sidebar (NemoWindow *window)
 			  G_CALLBACK (side_pane_size_allocate_callback),
 			  window);
 
+    sidebar_selector = GTK_COMBO_BOX_TEXT (gtk_combo_box_text_new ());
+    gtk_combo_box_text_append (GTK_COMBO_BOX_TEXT (sidebar_selector), SIDEBAR_SELECTOR_ID_PLACES, _("Places"));
+    gtk_combo_box_text_append (GTK_COMBO_BOX_TEXT (sidebar_selector), SIDEBAR_SELECTOR_ID_TREE, _("Tree"));
+    gtk_box_pack_start (GTK_BOX (window->details->sidebar), GTK_WIDGET (sidebar_selector), FALSE, FALSE, 1);
+    gtk_widget_show (GTK_WIDGET (sidebar_selector));
+
 	if (g_strcmp0 (window->details->sidebar_id, NEMO_WINDOW_SIDEBAR_PLACES) == 0) {
 		sidebar = nemo_places_sidebar_new (window);
+        gtk_combo_box_set_active_id (GTK_COMBO_BOX (sidebar_selector), SIDEBAR_SELECTOR_ID_PLACES);
 	} else if (g_strcmp0 (window->details->sidebar_id, NEMO_WINDOW_SIDEBAR_TREE) == 0) {
 		sidebar = nemo_tree_sidebar_new (window);
+        gtk_combo_box_set_active_id (GTK_COMBO_BOX (sidebar_selector), SIDEBAR_SELECTOR_ID_TREE);
 	} else {
 		g_assert_not_reached ();
 	}
 
+    window->details->sidebar_selector = sidebar_selector;
+    window->details->sidebar_selector_signal_id = g_signal_connect( GTK_COMBO_BOX (sidebar_selector), "changed",
+                                                                    G_CALLBACK (sidebar_selector_changed_callback), NULL);
 	gtk_box_pack_start (GTK_BOX (window->details->sidebar), sidebar, TRUE, TRUE, 0);
 	gtk_widget_show (sidebar);
 	gtk_widget_show (GTK_WIDGET (window->details->sidebar));
@@ -445,6 +475,12 @@ static void
 nemo_window_tear_down_sidebar (NemoWindow *window)
 {
 	DEBUG ("Destroying sidebar");
+    if (window->details->sidebar_selector_signal_id > 0) {
+        g_signal_handler_disconnect (GTK_COMBO_BOX (window->details->sidebar_selector),
+                                      window->details->sidebar_selector_signal_id);
+        window->details->sidebar_selector = NULL;
+        window->details->sidebar_selector_signal_id = 0;
+    }
 
 	if (window->details->sidebar != NULL) {
 		gtk_widget_destroy (GTK_WIDGET (window->details->sidebar));

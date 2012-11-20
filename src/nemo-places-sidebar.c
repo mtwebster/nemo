@@ -340,6 +340,74 @@ check_heading_for_section (NemoPlacesSidebar *sidebar,
 	}
 }
 
+char **
+get_emblem_names_to_exclude (NemoFile *file)
+{
+    char **excludes;
+    int i;
+
+    g_assert (NEMO_IS_FILE (file));
+
+    excludes = g_new (char *, 3);
+
+    i = 0;
+    excludes[i++] = g_strdup (NEMO_FILE_EMBLEM_NAME_TRASH);
+
+    if (!nemo_file_can_write (file)) {
+        excludes[i++] = g_strdup (NEMO_FILE_EMBLEM_NAME_CANT_WRITE);
+    }
+
+    excludes[i++] = NULL;
+
+    return excludes;
+}
+
+GIcon *
+try_get_emblemed_icon (NemoFile *file)
+{
+    char **emblems_to_ignore;
+    GList *emblem_icons, *l;
+    NemoIconInfo *icon_info;
+    GEmblem *emblem;
+    GdkPixbuf *pixbuf;
+    GIcon *emblemed_icon;
+    guint icon_size;
+    NemoFileIconFlags flags = NEMO_FILE_ICON_FLAGS_NONE;
+
+    emblems_to_ignore = get_emblem_names_to_exclude (NEMO_FILE (file));
+    emblem_icons = nemo_file_get_emblem_icons (file, emblems_to_ignore);
+    g_strfreev (emblems_to_ignore);
+
+    icon_size = nemo_get_icon_size_for_stock_size (GTK_ICON_SIZE_MENU);
+    icon_info = nemo_file_get_icon (file, icon_size, flags);
+
+    if (emblem_icons != NULL) {
+        l = emblem_icons;
+        emblem = g_emblem_new (l->data);
+        pixbuf = nemo_icon_info_get_pixbuf (icon_info);
+        emblemed_icon = g_emblemed_icon_new (G_ICON (pixbuf), emblem);
+        g_object_unref (emblem);
+
+        for (l = l->next; l != NULL; l = l->next) {
+            emblem = g_emblem_new (l->data);
+            g_emblemed_icon_add_emblem (G_EMBLEMED_ICON (emblemed_icon),
+                            emblem);
+            g_object_unref (emblem);
+        }
+        g_clear_object (&icon_info);
+        icon_info = nemo_icon_info_lookup (emblemed_icon, icon_size);
+
+        g_object_unref (pixbuf);
+        g_object_unref (emblemed_icon);
+    }
+
+    if (emblem_icons != NULL) {
+        g_list_free_full (emblem_icons, g_object_unref);
+    }
+
+    return icon_info;
+}
+
 static void
 add_place (NemoPlacesSidebar *sidebar,
 	   PlaceType place_type,
@@ -351,12 +419,12 @@ add_place (NemoPlacesSidebar *sidebar,
 	   GVolume *volume,
 	   GMount *mount,
 	   const int index,
-	   const char *tooltip)
+	   const char *tooltip,
+       NemoIconInfo *icon_info)
 {
 	GdkPixbuf            *pixbuf;
 	GtkTreeIter           iter;
 	GdkPixbuf	     *eject;
-	NemoIconInfo *icon_info;
 	int icon_size;
 	gboolean show_eject, show_unmount;
 	gboolean show_eject_button;
@@ -364,7 +432,10 @@ add_place (NemoPlacesSidebar *sidebar,
 	check_heading_for_section (sidebar, section_type);
 
 	icon_size = nemo_get_icon_size_for_stock_size (GTK_ICON_SIZE_MENU);
-	icon_info = nemo_icon_info_lookup (icon, icon_size);
+
+    if (icon_info == NULL) {
+	   icon_info = nemo_icon_info_lookup (icon, icon_size);
+    }
 
 	pixbuf = nemo_icon_info_get_pixbuf_at_size (icon_info, icon_size);
 	g_object_unref (icon_info);
@@ -487,6 +558,7 @@ update_places (NemoPlacesSidebar *sidebar)
 	char *tooltip;
 	GList *network_mounts, *network_volumes;
 	NemoFile *file;
+    NemoIconInfo *emblem_info;
 
 	DEBUG ("Updating places sidebar");
 
@@ -528,10 +600,15 @@ update_places (NemoPlacesSidebar *sidebar)
 		//	nemo_file_unref (file);
 		//	continue;
 		//}
-		nemo_file_unref (file);
 
 		bookmark_name = nemo_bookmark_get_name (bookmark);
-		icon = nemo_bookmark_get_icon (bookmark);
+
+        emblem_info = try_get_emblemed_icon (file);
+
+        icon = nemo_bookmark_get_icon (bookmark);
+
+        nemo_file_unref (file);
+
 		mount_uri = nemo_bookmark_get_uri (bookmark);
 		tooltip = g_file_get_parse_name (root);
 
@@ -539,7 +616,7 @@ update_places (NemoPlacesSidebar *sidebar)
 			   SECTION_BOOKMARKS,
 			   bookmark_name, icon, mount_uri,
 			   NULL, NULL, NULL, index,
-			   tooltip);
+			   tooltip, emblem_info);
 		g_object_unref (root);
 		g_object_unref (icon);
 		g_free (mount_uri);
@@ -558,7 +635,7 @@ update_places (NemoPlacesSidebar *sidebar)
 		   SECTION_COMPUTER,
 		   _("Home"), icon,
 		   mount_uri, NULL, NULL, NULL, 0,
-		   _("Open your personal folder"));
+		   _("Open your personal folder"), NULL);
 	g_object_unref (icon);
 	g_free (mount_uri);
 
@@ -571,14 +648,11 @@ update_places (NemoPlacesSidebar *sidebar)
 			   SECTION_COMPUTER,
 			   _("Desktop"), icon,
 			   mount_uri, NULL, NULL, NULL, 0,
-			   _("Open the contents of your desktop in a folder"));
+			   _("Open the contents of your desktop in a folder"), NULL);
 		g_object_unref (icon);
 		g_free (mount_uri);
 		g_free (desktop_path);
 	}
-
-	
-	
 
 	/* add mounts that has no volume (/etc/mtab mounts, ftp, sftp,...) */
 	mounts = g_volume_monitor_get_mounts (volume_monitor);
@@ -610,7 +684,7 @@ update_places (NemoPlacesSidebar *sidebar)
 		add_place (sidebar, PLACES_MOUNTED_VOLUME,
 			   SECTION_COMPUTER,
 			   name, icon, mount_uri,
-			   NULL, NULL, mount, 0, tooltip);
+			   NULL, NULL, mount, 0, tooltip, NULL);
 		g_object_unref (root);
 		g_object_unref (mount);
 		g_object_unref (icon);
@@ -627,7 +701,7 @@ update_places (NemoPlacesSidebar *sidebar)
 		   SECTION_COMPUTER,
 		   _("File System"), icon,
 		   mount_uri, NULL, NULL, NULL, 0,
-		   _("Open the contents of the File System"));
+		   _("Open the contents of the File System"), NULL);
 	g_object_unref (icon);
 
 	mount_uri = "trash:///"; /* No need to strdup */
@@ -636,7 +710,7 @@ update_places (NemoPlacesSidebar *sidebar)
 		   SECTION_COMPUTER,
 		   _("Trash"), icon, mount_uri,
 		   NULL, NULL, NULL, 0,
-		   _("Open the trash"));
+		   _("Open the trash"), NULL);
 	g_object_unref (icon);
 	
 	/* first go through all connected drives */
@@ -670,7 +744,7 @@ update_places (NemoPlacesSidebar *sidebar)
 					add_place (sidebar, PLACES_MOUNTED_VOLUME,
 						   SECTION_DEVICES,
 						   name, icon, mount_uri,
-						   drive, volume, mount, 0, tooltip);
+						   drive, volume, mount, 0, tooltip, NULL);
 					g_object_unref (root);
 					g_object_unref (mount);
 					g_object_unref (icon);
@@ -693,7 +767,7 @@ update_places (NemoPlacesSidebar *sidebar)
 					add_place (sidebar, PLACES_MOUNTED_VOLUME,
 						   SECTION_DEVICES,
 						   name, icon, NULL,
-						   drive, volume, NULL, 0, tooltip);
+						   drive, volume, NULL, 0, tooltip, NULL);
 					g_object_unref (icon);
 					g_free (name);
 					g_free (tooltip);
@@ -718,7 +792,7 @@ update_places (NemoPlacesSidebar *sidebar)
 				add_place (sidebar, PLACES_BUILT_IN,
 					   SECTION_DEVICES,
 					   name, icon, NULL,
-					   drive, NULL, NULL, 0, tooltip);
+					   drive, NULL, NULL, 0, tooltip, NULL);
 				g_object_unref (icon);
 				g_free (tooltip);
 				g_free (name);
@@ -759,7 +833,7 @@ update_places (NemoPlacesSidebar *sidebar)
 			add_place (sidebar, PLACES_MOUNTED_VOLUME,
 				   SECTION_DEVICES,
 				   name, icon, mount_uri,
-				   NULL, volume, mount, 0, tooltip);
+				   NULL, volume, mount, 0, tooltip, NULL);
 			g_object_unref (mount);
 			g_object_unref (icon);
 			g_free (name);
@@ -772,7 +846,7 @@ update_places (NemoPlacesSidebar *sidebar)
 			add_place (sidebar, PLACES_MOUNTED_VOLUME,
 				   SECTION_DEVICES,
 				   name, icon, NULL,
-				   NULL, volume, NULL, 0, name);
+				   NULL, volume, NULL, 0, name, NULL);
 			g_object_unref (icon);
 			g_free (name);
 		}
@@ -800,7 +874,7 @@ update_places (NemoPlacesSidebar *sidebar)
 			add_place (sidebar, PLACES_MOUNTED_VOLUME,
 				   SECTION_NETWORK,
 				   name, icon, NULL,
-				   NULL, volume, NULL, 0, tooltip);
+				   NULL, volume, NULL, 0, tooltip, NULL);
 			g_object_unref (icon);
 			g_free (name);
 			g_free (tooltip);
@@ -820,7 +894,7 @@ update_places (NemoPlacesSidebar *sidebar)
 		add_place (sidebar, PLACES_MOUNTED_VOLUME,
 			   SECTION_NETWORK,
 			   name, icon, mount_uri,
-			   NULL, NULL, mount, 0, tooltip);
+			   NULL, NULL, mount, 0, tooltip, NULL);
 		g_object_unref (root);
 		g_object_unref (icon);
 		g_free (name);
@@ -837,7 +911,7 @@ update_places (NemoPlacesSidebar *sidebar)
 		   SECTION_NETWORK,
 		   _("Network"), icon,
 		   mount_uri, NULL, NULL, NULL, 0,
-		   _("Browse the contents of the network"));
+		   _("Browse the contents of the network"), NULL);
 	g_object_unref (icon);
 
 	/* restore selection */

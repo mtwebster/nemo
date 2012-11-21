@@ -155,7 +155,7 @@ bookmark_file_changed_callback (NemoFile *file,
 		bookmark->details->location = g_object_ref (location);
 
 		g_object_notify_by_pspec (G_OBJECT (bookmark), properties[PROP_LOCATION]);
-		g_signal_emit (bookmark, signals[CONTENTS_CHANGED], 0);
+		
 	}
 
 	g_object_unref (location);
@@ -181,7 +181,22 @@ bookmark_file_changed_callback (NemoFile *file,
 		nemo_bookmark_update_icon (bookmark);
 		bookmark_set_name_from_ready_file (bookmark, file);
 	}
+    g_signal_emit (bookmark, signals[CONTENTS_CHANGED], 0);
 }
+
+
+
+static void
+directory_changed_callback (GFileMonitor *monitor, NemoBookmark *bookmark)
+{
+    g_printerr ("dir changed callback\n");
+    if (NEMO_IS_BOOKMARK (bookmark))
+        bookmark_file_changed_callback (bookmark->details->file, bookmark);
+}
+
+
+
+
 
 static void
 nemo_bookmark_set_icon_to_default (NemoBookmark *bookmark)
@@ -257,6 +272,12 @@ nemo_bookmark_connect_file (NemoBookmark *bookmark)
 
 		g_signal_connect_object (bookmark->details->file, "changed",
 					 G_CALLBACK (bookmark_file_changed_callback), bookmark, 0);
+        GFileMonitor *monitor = g_file_monitor_directory (bookmark->details->location, G_FILE_MONITOR_NONE, NULL, NULL);
+        if (monitor != NULL) {
+            g_signal_connect_object (monitor, "changed", G_CALLBACK (directory_changed_callback), bookmark, 0);
+        } else {
+            g_printerr ("was null\n");
+        }
 	}
 
 	/* Set icon based on available information. */

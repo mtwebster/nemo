@@ -48,6 +48,7 @@
 #include "nemo-window-manage-views.h"
 #include "nemo-window-private.h"
 #include "nemo-window-slot.h"
+#include "nemo-bookmark-list.h"
 
 #include <libnemo-private/nemo-dbus-manager.h>
 #include <libnemo-private/nemo-desktop-link-monitor.h>
@@ -1186,6 +1187,9 @@ nemo_application_startup (GApplication *app)
 	 * if there are problems.
 	 */
 	//check_required_directories (self);
+
+    global_bookmarks = nemo_bookmark_list_new ();
+
 	init_desktop (self);
 
 	do_upgrades_once (self);

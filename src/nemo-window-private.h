@@ -53,7 +53,6 @@ struct NemoWindowDetails
         GtkActionGroup *bookmarks_action_group;
         GtkActionGroup *toolbar_action_group;
         guint bookmarks_merge_id;
-        NemoBookmarkList *bookmark_list;
 
 	NemoWindowShowHiddenFilesMode show_hidden_files_mode;
 

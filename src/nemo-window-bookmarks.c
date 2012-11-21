@@ -61,7 +61,7 @@ remove_bookmarks_for_uri_if_yes (GtkDialog *dialog, int response, gpointer callb
 
 	if (response == GTK_RESPONSE_YES) {
 		uri = g_object_get_data (G_OBJECT (dialog), "uri");
-		nemo_bookmark_list_delete_items_with_uri (window->details->bookmark_list, uri);
+		nemo_bookmark_list_delete_items_with_uri (global_bookmarks, uri);
 	}
 
 	gtk_widget_destroy (GTK_WIDGET (dialog));
@@ -108,7 +108,7 @@ get_or_create_bookmarks_window (NemoWindow *window)
 	undo_manager_source = G_OBJECT (window);
 
 	if (bookmarks_window == NULL) {
-		bookmarks_window = create_bookmarks_window (window->details->bookmark_list,
+		bookmarks_window = create_bookmarks_window (global_bookmarks,
 		                                            undo_manager_source);
 	} else {
 		edit_bookmarks_dialog_set_signals (undo_manager_source);
@@ -360,11 +360,7 @@ update_bookmarks (NemoWindow *window)
 	g_assert (window->details->bookmarks_merge_id == 0);
 	g_assert (window->details->bookmarks_action_group == NULL);
 
-	if (window->details->bookmark_list == NULL) {
-		window->details->bookmark_list = nemo_bookmark_list_new ();
-	}
-
-	bookmarks = window->details->bookmark_list;
+	bookmarks = global_bookmarks;
 
 	ui_manager = nemo_window_get_ui_manager (NEMO_WINDOW (window));
 	
@@ -423,7 +419,7 @@ nemo_window_initialize_bookmarks_menu (NemoWindow *window)
 	refresh_bookmarks_menu (window);
 
 	/* Recreate dynamic part of menu if bookmark list changes */
-	g_signal_connect_object (window->details->bookmark_list, "changed",
+	g_signal_connect_object (global_bookmarks, "changed",
 				 G_CALLBACK (refresh_bookmarks_menu),
 				 window, G_CONNECT_SWAPPED);
 }

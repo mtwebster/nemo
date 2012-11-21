@@ -66,7 +66,6 @@ typedef struct {
 	char 	           *uri;
 	GtkListStore       *store;
 	NemoWindow *window;
-	NemoBookmarkList *bookmarks;
 	GVolumeMonitor *volume_monitor;
 
 	gboolean devices_header_added;
@@ -583,10 +582,10 @@ update_places (NemoPlacesSidebar *sidebar)
 	volume_monitor = sidebar->volume_monitor;	
 	
 	/* add bookmarks */
-	bookmark_count = nemo_bookmark_list_length (sidebar->bookmarks);
+	bookmark_count = nemo_bookmark_list_length (global_bookmarks);
 
 	for (index = 0; index < bookmark_count; ++index) {
-		bookmark = nemo_bookmark_list_item_at (sidebar->bookmarks, index);
+		bookmark = nemo_bookmark_list_item_at (global_bookmarks, index);
 
 		if (nemo_bookmark_uri_known_not_to_exist (bookmark)) {
 			continue;
@@ -1371,8 +1370,8 @@ bookmarks_drop_uris (NemoPlacesSidebar *sidebar,
 
 		bookmark = nemo_bookmark_new (location, NULL, NULL);
 
-		if (!nemo_bookmark_list_contains (sidebar->bookmarks, bookmark)) {
-			nemo_bookmark_list_insert_item (sidebar->bookmarks, bookmark, position++);
+		if (!nemo_bookmark_list_contains (global_bookmarks, bookmark)) {
+			nemo_bookmark_list_insert_item (global_bookmarks, bookmark, position++);
 		}
 
 		g_object_unref (location);
@@ -1456,11 +1455,11 @@ reorder_bookmarks (NemoPlacesSidebar *sidebar,
 
 	if (type != PLACES_BOOKMARK ||
 	    old_position < 0 ||
-	    old_position >= nemo_bookmark_list_length (sidebar->bookmarks)) {
+	    old_position >= nemo_bookmark_list_length (global_bookmarks)) {
 		return;
 	}
 
-	nemo_bookmark_list_move_item (sidebar->bookmarks, old_position,
+	nemo_bookmark_list_move_item (global_bookmarks, old_position,
 					  new_position);
 }
 
@@ -1534,7 +1533,7 @@ drag_data_received_callback (GtkWidget *widget,
 
         if (section_type == SECTION_COMPUTER && place_type == PLACES_HEADING &&
                                         tree_pos == GTK_TREE_VIEW_DROP_BEFORE) {
-            position = nemo_bookmark_list_length(sidebar->bookmarks);
+            position = nemo_bookmark_list_length(global_bookmarks);
         }
 
 		if (tree_pos == GTK_TREE_VIEW_DROP_AFTER && place_type != PLACES_HEADING) {
@@ -2026,8 +2025,8 @@ add_bookmark (NemoPlacesSidebar *sidebar)
 		location = g_file_new_for_uri (uri);
 		bookmark = nemo_bookmark_new (location, NULL, NULL);
 
-		if (!nemo_bookmark_list_contains (sidebar->bookmarks, bookmark)) {
-			nemo_bookmark_list_append (sidebar->bookmarks, bookmark);
+		if (!nemo_bookmark_list_contains (global_bookmarks, bookmark)) {
+			nemo_bookmark_list_append (global_bookmarks, bookmark);
 		}
 
 		g_object_unref (location);
@@ -2106,7 +2105,7 @@ remove_selected_bookmarks (NemoPlacesSidebar *sidebar)
 			    PLACES_SIDEBAR_COLUMN_INDEX, &index,
 			    -1);
 
-	nemo_bookmark_list_delete_item_at (sidebar->bookmarks, index);
+	nemo_bookmark_list_delete_item_at (global_bookmarks, index);
 }
 
 static void
@@ -3104,7 +3103,7 @@ bookmarks_edited (GtkCellRenderer       *cell,
 		            PLACES_SIDEBAR_COLUMN_INDEX, &index,
 		            -1);
 	gtk_tree_path_free (path);
-	bookmark = nemo_bookmark_list_item_at (sidebar->bookmarks, index);
+	bookmark = nemo_bookmark_list_item_at (global_bookmarks, index);
 
 	if (bookmark != NULL) {
 		nemo_bookmark_set_custom_name (bookmark, new_text);
@@ -3490,13 +3489,12 @@ nemo_places_sidebar_dispose (GObject *object)
 	}
 
 	if (sidebar->bookmarks_changed_id != 0) {
-		g_signal_handler_disconnect (sidebar->bookmarks,
+		g_signal_handler_disconnect (global_bookmarks,
 					     sidebar->bookmarks_changed_id);
 		sidebar->bookmarks_changed_id = 0;
 	}
 
 	g_clear_object (&sidebar->store);
-	g_clear_object (&sidebar->bookmarks);
 
 	eel_remove_weak_pointer (&(sidebar->go_to_after_mount_slot));
 
@@ -3557,11 +3555,10 @@ nemo_places_sidebar_set_parent_window (NemoPlacesSidebar *sidebar,
 
 	slot = nemo_window_get_active_slot (window);
 
-	sidebar->bookmarks = nemo_bookmark_list_new ();
 	sidebar->uri = nemo_window_slot_get_current_uri (slot);
 
 	sidebar->bookmarks_changed_id =
-		g_signal_connect_swapped (sidebar->bookmarks, "changed",
+		g_signal_connect_swapped (global_bookmarks, "changed",
 					  G_CALLBACK (update_places),
 					  sidebar);
 

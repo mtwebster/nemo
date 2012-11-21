@@ -30,6 +30,7 @@
 
 #include <libnemo-private/nemo-undo-manager.h>
 
+#include "nemo-bookmark-list.h"
 #include "nemo-window.h"
 
 #define NEMO_DESKTOP_ICON_VIEW_IID	"OAFIID:Nemo_File_Manager_Desktop_Icon_View"
@@ -80,5 +81,7 @@ void nemo_application_open_location (NemoApplication *application,
 					 const char *startup_id);
 
 void nemo_application_close_all_windows (NemoApplication *self);
+
+NemoBookmarkList *global_bookmarks;
 
 #endif /* __NEMO_APPLICATION_H__ */

@@ -171,7 +171,6 @@ struct NemoViewDetails
 	NemoDirectory *model;
 	NemoFile *directory_as_file;
 	NemoFile *location_popup_directory_as_file;
-	NemoBookmarkList *bookmarks;
 	GdkEventButton *location_popup_event;
 	GtkActionGroup *dir_action_group;
 	guint dir_merge_id;
@@ -2652,11 +2651,8 @@ nemo_view_init (NemoView *view)
 	atk_object_set_name (atk_object, _("Content View"));
 	atk_object_set_description (atk_object, _("View of the current folder"));
 
-
-    view->details->bookmarks = nemo_bookmark_list_new ();
-
     view->details->bookmarks_changed_id =
-        g_signal_connect_swapped (view->details->bookmarks, "changed",
+        g_signal_connect_swapped (global_bookmarks, "changed",
                       G_CALLBACK (schedule_update_menus),
                       view);
 }
@@ -2709,11 +2705,10 @@ nemo_view_destroy (GtkWidget *object)
 	disconnect_model_handlers (view);
 
     if (view->details->bookmarks_changed_id != 0) {
-        g_signal_handler_disconnect (view->details->bookmarks,
+        g_signal_handler_disconnect (global_bookmarks,
                          view->details->bookmarks_changed_id);
         view->details->bookmarks_changed_id = 0;
     }
-    g_clear_object (&view->details->bookmarks);
 
 	nemo_view_unmerge_menus (view);
 	
@@ -4856,9 +4851,9 @@ reset_move_copy_to_menu (NemoView *view)
                       &view->details->copy_move_action_groups[i]);
     }
 
-    bookmark_count = nemo_bookmark_list_length (view->details->bookmarks);
+    bookmark_count = nemo_bookmark_list_length (global_bookmarks);
     for (index = 0; index < bookmark_count; ++index) {
-        bookmark = nemo_bookmark_list_item_at (view->details->bookmarks, index);
+        bookmark = nemo_bookmark_list_item_at (global_bookmarks, index);
 
         if (nemo_bookmark_uri_known_not_to_exist (bookmark)) {
             continue;

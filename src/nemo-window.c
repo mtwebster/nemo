@@ -732,7 +732,7 @@ nemo_window_finalize (GObject *object)
 					      side_pane_id_changed, window);
 
 	g_clear_object (&window->details->nav_state);
-	g_clear_object (&window->details->bookmark_list);
+
 	g_clear_object (&window->details->ui_manager);
 
 	g_free (window->details->sidebar_id);

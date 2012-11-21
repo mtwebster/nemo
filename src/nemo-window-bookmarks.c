@@ -33,6 +33,7 @@
 #include "nemo-bookmarks-window.h"
 #include "nemo-window-bookmarks.h"
 #include "nemo-window-private.h"
+#include "nemo-application.h"
 #include <libnemo-private/nemo-undo-manager.h>
 #include <libnemo-private/nemo-ui-utilities.h>
 #include <eel/eel-debug.h>
@@ -147,7 +148,7 @@ nemo_window_add_bookmark_for_current_location (NemoWindow *window)
 
 	slot = nemo_window_get_active_slot (window);
 	bookmark = slot->current_location_bookmark;
-	list = window->details->bookmark_list;
+	list = global_bookmarks;
 
 	if (!nemo_bookmark_list_contains (list, bookmark)) {
 		nemo_bookmark_list_append (list, bookmark); 

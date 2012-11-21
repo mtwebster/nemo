@@ -39,6 +39,7 @@
 #include "nemo-previewer.h"
 #include "nemo-properties-window.h"
 #include "nemo-bookmark-list.h"
+#include "nemo-application.h"
 
 
 #include <gdk/gdkx.h>

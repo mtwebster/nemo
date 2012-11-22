@@ -326,9 +326,15 @@ progress_info_changed_cb (NemoProgressInfo *info,
 			double progress = nemo_progress_info_get_progress(first_info);
 			if (progress > 0) {
 				int iprogress = progress * 100;				
+                g_object_set (self->priv->progress_window,
+                                "progress", iprogress,
+                                NULL);
 				gtk_window_set_title (GTK_WINDOW (self->priv->progress_window), g_strdup_printf (_("%d%% %s"), iprogress, nemo_progress_info_get_status(first_info)));
 			}			
 			else {
+                g_object_set (self->priv->progress_window,
+                                "progress", 0,
+                                NULL);
 				gtk_window_set_title (GTK_WINDOW (self->priv->progress_window), nemo_progress_info_get_status(first_info));	
 			}			
 	} 

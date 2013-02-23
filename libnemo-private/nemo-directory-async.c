@@ -829,6 +829,14 @@ show_hidden_files_changed_callback (gpointer callback_data)
 }
 
 static gboolean
+file_info_get_is_local_trash (GFileInfo *info)
+{
+    gchar *user_trash_dir = g_strdup_printf (".Trash-%d", getuid ());
+    return g_strcmp0 (g_file_info_get_name (info), user_trash_dir) == 0;
+}
+
+
+static gboolean
 should_skip_file (NemoDirectory *directory, GFileInfo *info)
 {
 	static gboolean show_hidden_files_changed_callback_installed = FALSE;
@@ -845,6 +853,9 @@ should_skip_file (NemoDirectory *directory, GFileInfo *info)
 		/* Peek for the first time */
 		show_hidden_files_changed_callback (NULL);
 	}
+
+    if (file_info_get_is_local_trash (info))
+        return FALSE;
 
 	if (!show_hidden_files &&
 	    (g_file_info_get_is_hidden (info) ||

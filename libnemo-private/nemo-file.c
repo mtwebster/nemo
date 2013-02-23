@@ -2086,13 +2086,6 @@ update_links_if_target (NemoFile *target_file)
 }
 
 static gboolean
-file_info_get_is_local_trash (GFileInfo *info)
-{
-    gchar *user_trash_dir = g_strdup_printf (".Trash-%d", getuid ());
-    return g_strcmp0 (g_file_info_get_name (info), user_trash_dir) == 0;
-}
-
-static gboolean
 update_info_internal (NemoFile *file,
 		      GFileInfo *info,
 		      gboolean update_name)
@@ -2189,7 +2182,7 @@ update_info_internal (NemoFile *file,
 	}
 	file->details->is_symlink = is_symlink;
 
-	is_hidden = (g_file_info_get_is_hidden (info) && !file_info_get_is_local_trash (info)) || g_file_info_get_is_backup (info);
+	is_hidden = (g_file_info_get_is_hidden (info) && !nemo_file_info_get_is_local_trash (info)) || g_file_info_get_is_backup (info);
 	if (file->details->is_hidden != is_hidden) {
 		changed = TRUE;
 	}
@@ -8294,3 +8287,10 @@ nemo_self_check_file (void)
 }
 
 #endif /* !NEMO_OMIT_SELF_CHECK */
+
+gboolean
+nemo_file_info_get_is_local_trash (GFileInfo *info)
+{
+    gchar *user_trash_dir = g_strdup_printf (".Trash-%d", getuid ());
+    return g_strcmp0 (g_file_info_get_name (info), user_trash_dir) == 0;
+}

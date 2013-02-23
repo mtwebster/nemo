@@ -29,6 +29,7 @@
 #include "nemo-file-attributes.h"
 #include "nemo-file-private.h"
 #include "nemo-file-utilities.h"
+#include "nemo-file.h"
 #include "nemo-signaller.h"
 #include "nemo-global-preferences.h"
 #include "nemo-link.h"
@@ -828,13 +829,6 @@ show_hidden_files_changed_callback (gpointer callback_data)
 	show_hidden_files = g_settings_get_boolean (nemo_preferences, NEMO_PREFERENCES_SHOW_HIDDEN_FILES);
 }
 
-static gboolean
-file_info_get_is_local_trash (GFileInfo *info)
-{
-    gchar *user_trash_dir = g_strdup_printf (".Trash-%d", getuid ());
-    return g_strcmp0 (g_file_info_get_name (info), user_trash_dir) == 0;
-}
-
 
 static gboolean
 should_skip_file (NemoDirectory *directory, GFileInfo *info)
@@ -854,7 +848,7 @@ should_skip_file (NemoDirectory *directory, GFileInfo *info)
 		show_hidden_files_changed_callback (NULL);
 	}
 
-    if (file_info_get_is_local_trash (info))
+    if (nemo_file_info_get_is_local_trash (info))
         return FALSE;
 
 	if (!show_hidden_files &&

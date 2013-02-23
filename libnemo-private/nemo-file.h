@@ -464,6 +464,7 @@ void                    nemo_file_list_call_when_ready              (GList      
 									 gpointer                        callback_data);
 void                    nemo_file_list_cancel_call_when_ready       (NemoFileListHandle         *handle);
 
+gboolean         nemo_file_info_get_is_local_trash           (GFileInfo *info);
 /* Debugging */
 void                    nemo_file_dump                              (NemoFile                   *file);
 

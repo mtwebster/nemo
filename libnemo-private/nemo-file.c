@@ -2163,7 +2163,6 @@ update_info_internal (NemoFile *file,
 		} else {
 			old_activation_uri = file->details->activation_uri;
 			file->details->activation_uri = g_strdup (activation_uri);
-			
 			if (old_activation_uri) {
 				if (strcmp (old_activation_uri,
 					    file->details->activation_uri) != 0) {
@@ -2175,7 +2174,7 @@ update_info_internal (NemoFile *file,
 			}
 		}
 	}
-	
+
 	is_symlink = g_file_info_get_is_symlink (info);
 	if (file->details->is_symlink != is_symlink) {
 		changed = TRUE;
@@ -3824,6 +3823,18 @@ nemo_file_get_activation_uri (NemoFile *file)
 	}
 	
 	return nemo_file_get_uri (file);
+}
+
+void
+nemo_file_set_activation_uri (NemoFile *file, const gchar *uri)
+{
+    g_return_if_fail (NEMO_IS_FILE (file));
+
+    if (uri == NULL)
+        return;
+
+    file->details->activation_uri = g_strdup (uri);
+    file->details->got_custom_activation_uri = TRUE;
 }
 
 GFile *

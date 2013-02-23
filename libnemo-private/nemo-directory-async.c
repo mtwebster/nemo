@@ -38,6 +38,7 @@
 #include <libxml/parser.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <glib/gi18n.h>
 
 /* turn this on to see messages about each load_directory call: */
 #if 0
@@ -943,6 +944,10 @@ dequeue_pending_idle_callback (gpointer callback_data)
 		} else {
 			/* new file, create a nemo file object and add it to the list */
 			file = nemo_file_new_from_info (directory, file_info);
+            if (nemo_file_info_get_is_local_trash (file_info)) {
+                nemo_file_set_activation_uri (file, "trash:///");
+                nemo_file_set_display_name (file, _("Trash"), _("Trash"), TRUE);
+            }
 			nemo_directory_add_file (directory, file);			
 			file->details->is_added = TRUE;
 			added_files = g_list_prepend (added_files, file);
@@ -3553,7 +3558,6 @@ link_info_done (NemoDirectory *directory,
 		gboolean is_foreign)
 {
 	gboolean is_trusted;
-	
 	file->details->link_info_is_up_to_date = TRUE;
 
 	is_trusted = is_link_trusted (file, is_launcher);
@@ -3566,7 +3570,7 @@ link_info_done (NemoDirectory *directory,
 	
 	file->details->got_link_info = TRUE;
 	g_clear_object (&file->details->custom_icon);
-
+    g_printerr ("link %s\n", uri);
 	if (uri) {
 		g_free (file->details->activation_uri);
 		file->details->activation_uri = NULL;

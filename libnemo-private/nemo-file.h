@@ -427,6 +427,7 @@ gboolean                nemo_file_is_foreign_link                   (NemoFile   
 gboolean                nemo_file_is_trusted_link                   (NemoFile                   *file);
 gboolean                nemo_file_has_activation_uri                (NemoFile                   *file);
 char *                  nemo_file_get_activation_uri                (NemoFile                   *file);
+void                    nemo_file_set_activation_uri                (NemoFile *file, const gchar *uri);
 GFile *                 nemo_file_get_activation_location           (NemoFile                   *file);
 
 char *                  nemo_file_get_drop_target_uri               (NemoFile                   *file);

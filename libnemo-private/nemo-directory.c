@@ -539,7 +539,8 @@ nemo_directory_is_in_trash (NemoDirectory *directory)
 		return FALSE;
 	}
 
-	return g_file_has_uri_scheme (directory->details->location, "trash");
+	return g_file_has_uri_scheme (directory->details->location, "trash") ||
+           g_strcmp0 (g_file_get_basename (directory->details->location), nemo_file_get_local_trash_name ()) == 0;
 }
 
 gboolean

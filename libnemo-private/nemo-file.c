@@ -8294,3 +8294,9 @@ nemo_file_info_get_is_local_trash (GFileInfo *info)
     gchar *user_trash_dir = g_strdup_printf (".Trash-%d", getuid ());
     return g_strcmp0 (g_file_info_get_name (info), user_trash_dir) == 0;
 }
+
+gchar *
+nemo_file_get_local_trash_name (void)
+{
+    return g_strdup_printf (".Trash-%d", getuid ());
+}

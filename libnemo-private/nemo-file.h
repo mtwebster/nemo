@@ -465,6 +465,7 @@ void                    nemo_file_list_call_when_ready              (GList      
 void                    nemo_file_list_cancel_call_when_ready       (NemoFileListHandle         *handle);
 
 gboolean         nemo_file_info_get_is_local_trash           (GFileInfo *info);
+gchar *          nemo_file_get_local_trash_name (void);
 /* Debugging */
 void                    nemo_file_dump                              (NemoFile                   *file);
 

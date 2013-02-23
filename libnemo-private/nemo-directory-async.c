@@ -3570,7 +3570,6 @@ link_info_done (NemoDirectory *directory,
 	
 	file->details->got_link_info = TRUE;
 	g_clear_object (&file->details->custom_icon);
-    g_printerr ("link %s\n", uri);
 	if (uri) {
 		g_free (file->details->activation_uri);
 		file->details->activation_uri = NULL;

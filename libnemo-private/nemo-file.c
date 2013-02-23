@@ -2141,11 +2141,12 @@ update_info_internal (NemoFile *file,
 	}
 	file->details->got_file_info = TRUE;
 
-	changed |= nemo_file_set_display_name (file,
-						  g_file_info_get_display_name (info),
-						  g_file_info_get_edit_name (info),
-						  FALSE);
-	
+    if (!nemo_file_info_get_is_local_trash (info)) {
+    	changed |= nemo_file_set_display_name (file,
+    						  g_file_info_get_display_name (info),
+    						  g_file_info_get_edit_name (info),
+    						  FALSE);
+    }
 	file_type = g_file_info_get_file_type (info);
 	if (file->details->type != file_type) {
 		changed = TRUE;

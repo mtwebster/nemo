@@ -945,7 +945,7 @@ dequeue_pending_idle_callback (gpointer callback_data)
 			/* new file, create a nemo file object and add it to the list */
 			file = nemo_file_new_from_info (directory, file_info);
             if (nemo_file_info_get_is_local_trash (file_info)) {
-                nemo_file_set_activation_uri (file, "trash:///");
+                nemo_file_set_activation_uri (file, "ltrash://");
                 nemo_file_set_display_name (file, _("Trash"), _("Trash"), TRUE);
             }
 			nemo_directory_add_file (directory, file);			

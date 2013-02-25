@@ -719,6 +719,7 @@ static void
 nemo_local_trash_directory_init (NemoLocalTrashDirectory *search)
 {
 	search->details = g_new0 (NemoLocalTrashDirectoryDetails, 1);
+    g_printerr ("init isdishfsfishdihf\n");
 }
 
 static void

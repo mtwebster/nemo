@@ -218,6 +218,7 @@ nemo_local_trash_directory_file_init (NemoLocalTrashDirectoryFile *search_file)
 	file->details->directory_count_is_up_to_date = TRUE;
 
 	nemo_file_set_display_name (file, _("Trash"), NULL, TRUE);
+    g_printerr ("hehehehehehehehe\n");
 }
 
 static void

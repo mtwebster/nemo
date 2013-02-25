@@ -330,7 +330,9 @@ nemo_empty_view_supports_uri (const char *uri,
 	if (g_str_has_prefix (uri, EEL_SEARCH_URI)) {
 		return TRUE;
 	}
-
+    if (g_str_has_prefix (uri, "ltrash:")) {
+        return TRUE;
+    }
 	return FALSE;
 }
 

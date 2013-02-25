@@ -750,7 +750,7 @@ nemo_local_trash_directory_generate_new_uri (void)
 	static int counter = 0;
 	char *uri;
 
-	uri = g_strdup_printf (EEL_SEARCH_URI"//%d/", counter++);
+	uri = g_strdup_printf ("ltrash://%d/", counter++);
 
 	return uri;
 }

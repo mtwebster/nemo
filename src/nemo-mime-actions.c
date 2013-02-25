@@ -1461,7 +1461,6 @@ application_unhandled_uri (ActivateParameters *parameters, char *uri)
 
 out:
         /* show an unhelpful dialog */
-    g_printerr ("unhelpful\n");
         show_unhandled_type_error (parameters_install);
 }
 

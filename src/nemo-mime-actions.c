@@ -1368,7 +1368,6 @@ pk_proxy_appeared_cb (GObject *source,
 		g_warning ("Couldn't call Modify on the PackageKit interface: %s",
 			   error->message);
 		g_error_free (error);
-
 		/* show an unhelpful dialog */
 		show_unhandled_type_error (parameters_install);
 		/* The callback wasn't started, so we have to free the parameters */
@@ -1462,6 +1461,7 @@ application_unhandled_uri (ActivateParameters *parameters, char *uri)
 
 out:
         /* show an unhelpful dialog */
+    g_printerr ("unhelpful\n");
         show_unhandled_type_error (parameters_install);
 }
 

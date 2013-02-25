@@ -32,7 +32,7 @@
 #include "nemo-file-private.h"
 #include "nemo-file-utilities.h"
 #include <eel/eel-glib-extensions.h>
-#include "nemo-search-directory.h"
+#include "nemo-local-trash-directory.h"
 #include <gtk/gtk.h>
 #include <glib/gi18n.h>
 #include <string.h>

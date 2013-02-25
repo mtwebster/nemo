@@ -507,7 +507,8 @@ nemo_directory_new (GFile *location)
 		directory = NEMO_DIRECTORY (g_object_new (NEMO_TYPE_SEARCH_DIRECTORY, NULL));
 	} else if (g_str_has_suffix (uri, NEMO_SAVED_SEARCH_EXTENSION)) {
 		directory = NEMO_DIRECTORY (nemo_search_directory_new_from_saved_search (uri));
-    } else if (g_str_has_prefix (uri, "ltrash://")) {
+    } else if (g_str_has_prefix (uri, "ltrash")) {
+        g_printerr ("what\n");
         directory = NEMO_DIRECTORY (g_object_new (NEMO_TYPE_LOCAL_TRASH_DIRECTORY, NULL));
     } else {
 		directory = NEMO_DIRECTORY (g_object_new (NEMO_TYPE_VFS_DIRECTORY, NULL));

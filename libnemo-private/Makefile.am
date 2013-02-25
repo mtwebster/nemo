@@ -138,6 +138,10 @@ libnemo_private_la_SOURCES = \
 	nemo-lib-self-check-functions.h \
 	nemo-link.c \
 	nemo-link.h \
+	nemo-local-trash-directory.c \
+	nemo-local-trash-directory.h \
+	nemo-local-trash-directory-file.c \
+	nemo-local-trash-directory-file.h \
 	nemo-merged-directory.c \
 	nemo-merged-directory.h \
 	nemo-metadata.h \

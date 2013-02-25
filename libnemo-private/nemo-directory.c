@@ -30,6 +30,7 @@
 #include "nemo-file-private.h"
 #include "nemo-file-utilities.h"
 #include "nemo-search-directory.h"
+#include "nemo-local-trash-directory.h"
 #include "nemo-global-preferences.h"
 #include "nemo-lib-self-check-functions.h"
 #include "nemo-metadata.h"
@@ -507,7 +508,7 @@ nemo_directory_new (GFile *location)
 	} else if (g_str_has_suffix (uri, NEMO_SAVED_SEARCH_EXTENSION)) {
 		directory = NEMO_DIRECTORY (nemo_search_directory_new_from_saved_search (uri));
     } else if (g_str_has_prefix (uri, "ltrash://")) {
-        directory = NEMO_DIRECTORY (g_object_new (NEMO_TYPE_SEARCH_DIRECTORY, NULL));
+        directory = NEMO_DIRECTORY (g_object_new (NEMO_TYPE_LOCAL_TRASH_DIRECTORY, NULL));
     } else {
 		directory = NEMO_DIRECTORY (g_object_new (NEMO_TYPE_VFS_DIRECTORY, NULL));
 	}

@@ -21,8 +21,8 @@
 */
 
 #include <config.h>
-#include "nemo-search-directory.h"
-#include "nemo-search-directory-file.h"
+#include "nemo-local-trash-directory.h"
+#include "nemo-local-trash-directory-file.h"
 
 #include "nemo-directory-private.h"
 #include "nemo-file.h"
@@ -180,7 +180,7 @@ search_monitor_add (NemoDirectory *directory,
 	NemoLocalTrashDirectory *search;
 	NemoFile *file;
 
-	search = NEMO_SEARCH_DIRECTORY (directory);
+	search = NEMO_LOCAL_TRASH_DIRECTORY (directory);
 
 	monitor = g_new0 (SearchMonitor, 1);
 	monitor->monitor_hidden_files = monitor_hidden_files;
@@ -232,7 +232,7 @@ search_monitor_remove (NemoDirectory *directory,
 	SearchMonitor *monitor;
 	GList *list;
 
-	search = NEMO_SEARCH_DIRECTORY (directory);
+	search = NEMO_LOCAL_TRASH_DIRECTORY (directory);
 
 	for (list = search->details->monitor_list; list != NULL; list = list->next) {
 		monitor = list->data;
@@ -383,7 +383,7 @@ search_call_when_ready (NemoDirectory *directory,
 	NemoLocalTrashDirectory *search;
 	SearchCallback *search_callback;
 
-	search = NEMO_SEARCH_DIRECTORY (directory);
+	search = NEMO_LOCAL_TRASH_DIRECTORY (directory);
 
 	search_callback = search_callback_find (search, callback, callback_data);
 	if (search_callback == NULL) {
@@ -435,7 +435,7 @@ search_cancel_callback (NemoDirectory *directory,
 	NemoLocalTrashDirectory *search;
 	SearchCallback *search_callback;
 
-	search = NEMO_SEARCH_DIRECTORY (directory);
+	search = NEMO_LOCAL_TRASH_DIRECTORY (directory);
 	search_callback = search_callback_find (search, callback, callback_data);
 	
 	if (search_callback) {
@@ -587,7 +587,7 @@ search_force_reload (NemoDirectory *directory)
 {
 	NemoLocalTrashDirectory *search;
 
-	search = NEMO_SEARCH_DIRECTORY (directory);
+	search = NEMO_LOCAL_TRASH_DIRECTORY (directory);
 
 	if (!search->details->query) {
 		return;
@@ -614,7 +614,7 @@ search_are_all_files_seen (NemoDirectory *directory)
 {
 	NemoLocalTrashDirectory *search;
 
-	search = NEMO_SEARCH_DIRECTORY (directory);
+	search = NEMO_LOCAL_TRASH_DIRECTORY (directory);
 
 	return (!search->details->query ||
 		search->details->search_finished);
@@ -626,7 +626,7 @@ search_contains_file (NemoDirectory *directory,
 {
 	NemoLocalTrashDirectory *search;
 
-	search = NEMO_SEARCH_DIRECTORY (directory);
+	search = NEMO_LOCAL_TRASH_DIRECTORY (directory);
 
 	/* FIXME: Maybe put the files in a hash */
 	return (g_list_find (search->details->files, file) != NULL);
@@ -637,7 +637,7 @@ search_get_file_list (NemoDirectory *directory)
 {
 	NemoLocalTrashDirectory *search;
 
-	search = NEMO_SEARCH_DIRECTORY (directory);
+	search = NEMO_LOCAL_TRASH_DIRECTORY (directory);
 
 	return nemo_file_list_copy (search->details->files);
 }
@@ -655,7 +655,7 @@ search_dispose (GObject *object)
 	NemoLocalTrashDirectory *search;
 	GList *list;
 
-	search = NEMO_SEARCH_DIRECTORY (object);
+	search = NEMO_LOCAL_TRASH_DIRECTORY (object);
 	
 	/* Remove search monitors */
 	if (search->details->monitor_list) {
@@ -706,7 +706,7 @@ search_finalize (GObject *object)
 {
 	NemoLocalTrashDirectory *search;
 
-	search = NEMO_SEARCH_DIRECTORY (object);
+	search = NEMO_LOCAL_TRASH_DIRECTORY (object);
 
 	g_free (search->details->saved_search_uri);
 	
@@ -780,7 +780,7 @@ nemo_local_trash_directory_set_query (NemoLocalTrashDirectory *search,
 	dir = NEMO_DIRECTORY (search);
 	as_file = dir->details->as_file;
 	if (as_file != NULL) {
-		nemo_local_trash_directory_file_update_display_name (NEMO_SEARCH_DIRECTORY_FILE (as_file));
+		nemo_local_trash_directory_file_update_display_name (NEMO_LOCAL_TRASH_DIRECTORY_FILE (as_file));
 	}
 }
 
@@ -801,7 +801,7 @@ nemo_local_trash_directory_new_from_saved_search (const char *uri)
 	NemoQuery *query;
 	char *file;
 	
-	search = NEMO_SEARCH_DIRECTORY (g_object_new (NEMO_TYPE_SEARCH_DIRECTORY, NULL));
+	search = NEMO_LOCAL_TRASH_DIRECTORY (g_object_new (NEMO_TYPE_LOCAL_TRASH_DIRECTORY, NULL));
 
 	search->details->saved_search_uri = g_strdup (uri);
 	

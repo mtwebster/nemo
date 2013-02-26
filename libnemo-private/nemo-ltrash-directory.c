@@ -50,15 +50,31 @@ ltrash_call_when_ready (NemoDirectory *directory,
 		     gpointer callback_data)
 {
 	g_assert (NEMO_IS_LTRASH_DIRECTORY (directory));
-g_printerr ("call when\n");
-	nemo_directory_call_when_ready_internal
-		(directory,
-		 NULL,
-		 file_attributes,
-		 wait_for_file_list,
-		 callback,
-		 NULL,
-		 callback_data);
+// g_printerr ("call when\n");
+// 	nemo_directory_call_when_ready_internal
+// 		(directory,
+// 		 NULL,
+// 		 file_attributes,
+// 		 wait_for_file_list,
+// 		 callback,
+// 		 NULL,
+// 		 callback_data);
+    g_printerr ("now\n");
+
+    NemoDirectory *trash_dir = nemo_directory_get_by_uri ("trash:///");
+    GList *list = nemo_directory_get_file_list (NEMO_DIRECTORY (trash_dir));
+ //   GList *keep = NULL;
+    GList *i;
+    for (i = list; i != NULL; i=i->next) {
+        GFile *orig = nemo_file_get_trash_original_file (NEMO_FILE (i->data));
+        g_printerr ("oprig path=%s\n", g_file_get_path (orig));
+        if (g_strstr_len(g_file_get_path (orig), -1, "cinnamon-control-center") != NULL) {
+            nemo_directory_add_file (directory, i->data);
+            g_printerr ("added\n");
+        }
+    }
+    g_printerr ("done\n");
+
 }
 
 static void
@@ -96,8 +112,7 @@ ltrash_file_monitor_add (NemoDirectory *directory,
         g_printerr ("cancel\n");
 
 
-    GList *list = nemo_directory_get_file_list (NEMO_DIRECTORY (directory));
-    gchar *parent_dir = 
+
 }
 
 static void
@@ -120,6 +135,8 @@ ltrash_force_reload (NemoDirectory *directory)
 	all_attributes = nemo_file_get_all_attributes ();
 	nemo_directory_force_reload_internal (directory,
 						  all_attributes);
+
+
 }
 
 static gboolean
@@ -128,6 +145,8 @@ ltrash_are_all_files_seen (NemoDirectory *directory)
 	g_assert (NEMO_IS_LTRASH_DIRECTORY (directory));
 	
 	return directory->details->directory_loaded;
+
+
 }
 
 static gboolean

@@ -42,8 +42,8 @@
 #include "nemo-module.h"
 #include "nemo-search-directory.h"
 #include "nemo-search-directory-file.h"
-#include "nemo-local-trash-directory-file.h"
-#include "nemo-local-trash-directory.h"
+//#include "nemo-local-trash-directory-file.h"
+//#include "nemo-local-trash-directory.h"
 #include "nemo-thumbnails.h"
 #include "nemo-vfs-file.h"
 #include "nemo-file-undo-operations.h"
@@ -520,8 +520,8 @@ nemo_file_new_from_filename (NemoDirectory *directory,
 			 * that references a file like this. (See #349840) */
 			file = NEMO_FILE (g_object_new (NEMO_TYPE_VFS_FILE, NULL));
 		}
-    } else if (NEMO_IS_LOCAL_TRASH_DIRECTORY (directory)) {
-        file = NEMO_FILE (g_object_new (NEMO_TYPE_LOCAL_TRASH_DIRECTORY_FILE, NULL));
+    } else if (NEMO_IS_LTRASH_DIRECTORY (directory)) {
+        file = NEMO_FILE (g_object_new (NEMO_TYPE_VFS_FILE, NULL));
 	} else if (g_str_has_suffix (filename, NEMO_SAVED_SEARCH_EXTENSION)) {
 		file = NEMO_FILE (g_object_new (NEMO_TYPE_SAVED_SEARCH_FILE, NULL));
 	} else {

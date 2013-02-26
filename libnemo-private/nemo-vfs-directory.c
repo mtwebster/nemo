@@ -34,7 +34,7 @@ G_DEFINE_TYPE (NemoVFSDirectory, nemo_vfs_directory, NEMO_TYPE_DIRECTORY);
 static void
 nemo_vfs_directory_init (NemoVFSDirectory *directory)
 {
-
+    g_printerr ("hey now vfs init\n");
 }
 
 static gboolean

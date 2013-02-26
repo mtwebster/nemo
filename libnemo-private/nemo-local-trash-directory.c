@@ -720,6 +720,12 @@ nemo_local_trash_directory_init (NemoLocalTrashDirectory *search)
 {
 	search->details = g_new0 (NemoLocalTrashDirectoryDetails, 1);
     g_printerr ("init isdishfsfishdihf\n");
+
+    NemoQuery *q = nemo_query_new();
+    nemo_query_set_text (q, "rapid");
+    nemo_query_set_location (q, "trash:///");
+
+    nemo_local_trash_directory_set_query (search, q);
 }
 
 static void
@@ -744,18 +750,6 @@ nemo_local_trash_directory_class_init (NemoLocalTrashDirectoryClass *class)
 	directory_class->get_file_list = search_get_file_list;
 	directory_class->is_editable = search_is_editable;
 }
-
-char *
-nemo_local_trash_directory_generate_new_uri (void)
-{
-	static int counter = 0;
-	char *uri;
-
-	uri = g_strdup_printf ("ltrash://%d/", counter++);
-
-	return uri;
-}
-
 
 void
 nemo_local_trash_directory_set_query (NemoLocalTrashDirectory *search,
@@ -783,83 +777,4 @@ nemo_local_trash_directory_set_query (NemoLocalTrashDirectory *search,
 	if (as_file != NULL) {
 		nemo_local_trash_directory_file_update_display_name (NEMO_LOCAL_TRASH_DIRECTORY_FILE (as_file));
 	}
-}
-
-NemoQuery *
-nemo_local_trash_directory_get_query (NemoLocalTrashDirectory *search)
-{
-	if (search->details->query != NULL) {
-		return g_object_ref (search->details->query);
-	}
-					   
-	return NULL;
-}
-
-NemoLocalTrashDirectory *
-nemo_local_trash_directory_new_from_saved_search (const char *uri)
-{
-	NemoLocalTrashDirectory *search;
-	NemoQuery *query;
-	char *file;
-	
-	search = NEMO_LOCAL_TRASH_DIRECTORY (g_object_new (NEMO_TYPE_LOCAL_TRASH_DIRECTORY, NULL));
-
-	search->details->saved_search_uri = g_strdup (uri);
-	
-	file = g_filename_from_uri (uri, NULL, NULL);
-	if (file != NULL) {
-		query = nemo_query_load (file);
-		if (query != NULL) {
-			nemo_local_trash_directory_set_query (search, query);
-			g_object_unref (query);
-		}
-		g_free (file);
-	} else {
-		g_warning ("Non-local saved searches not supported");
-	}
-
-	search->details->modified = FALSE;
-	return search;
-}
-
-gboolean
-nemo_local_trash_directory_is_saved_search (NemoLocalTrashDirectory *search)
-{
-	return search->details->saved_search_uri != NULL;
-}
-
-gboolean
-nemo_local_trash_directory_is_modified (NemoLocalTrashDirectory *search)
-{
-	return search->details->modified;
-}
-
-void
-nemo_local_trash_directory_save_to_file (NemoLocalTrashDirectory *search,
-					const char              *save_file_uri)
-{
-	char *file;
-	
-	file = g_filename_from_uri (save_file_uri, NULL, NULL);
-	if (file == NULL) {
-		return;
-	}
-
-	if (search->details->query != NULL) {
-		nemo_query_save (search->details->query, file);
-	}
-	
-	g_free (file);
-}
-
-void
-nemo_local_trash_directory_save_search (NemoLocalTrashDirectory *search)
-{
-	if (search->details->saved_search_uri == NULL) {
-		return;
-	}
-
-	nemo_local_trash_directory_save_to_file (search,
-						search->details->saved_search_uri);
-	search->details->modified = FALSE;
 }

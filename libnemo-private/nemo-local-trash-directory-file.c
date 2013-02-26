@@ -174,7 +174,7 @@ nemo_local_trash_directory_file_update_display_name (NemoLocalTrashDirectoryFile
 	file = NEMO_FILE (search_file);
 	if (file->details->directory) {
 		search_dir = NEMO_LOCAL_TRASH_DIRECTORY (file->details->directory);
-		query = nemo_local_trash_directory_get_query (search_dir);
+		//query = nemo_local_trash_directory_get_query (search_dir);
 	
 		if (query != NULL) {
 			display_name = nemo_query_to_readable_string (query);

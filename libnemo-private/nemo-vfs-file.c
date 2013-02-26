@@ -683,7 +683,6 @@ vfs_file_poll_for_media (NemoFile *file)
 static void
 nemo_vfs_file_init (NemoVFSFile *file)
 {
-    g_printerr ("hey hey file init\n");
 }
 
 static void

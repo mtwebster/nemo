@@ -29,7 +29,7 @@ G_DEFINE_TYPE (NemoLTrashDirectory, nemo_ltrash_directory, NEMO_TYPE_VFS_DIRECTO
 static void
 nemo_ltrash_directory_init (NemoLTrashDirectory *directory)
 {
-    g_printerr ("hey now trash init\n");
+
 }
 
 static gboolean
@@ -50,7 +50,7 @@ ltrash_call_when_ready (NemoDirectory *directory,
 		     gpointer callback_data)
 {
 	g_assert (NEMO_IS_LTRASH_DIRECTORY (directory));
-
+g_printerr ("call when\n");
 	nemo_directory_call_when_ready_internal
 		(directory,
 		 NULL,
@@ -93,6 +93,11 @@ ltrash_file_monitor_add (NemoDirectory *directory,
 		 monitor_hidden_files,
 		 file_attributes,
 		 callback, callback_data);
+        g_printerr ("cancel\n");
+
+
+    GList *list = nemo_directory_get_file_list (NEMO_DIRECTORY (directory));
+    gchar *parent_dir = 
 }
 
 static void
@@ -137,7 +142,7 @@ ltrash_is_not_empty (NemoDirectory *directory)
 static void
 nemo_ltrash_directory_class_init (NemoLTrashDirectoryClass *klass)
 {
-	NemoDirectoryClass *directory_class = NEMO_VFS_DIRECTORY_CLASS (klass);
+	NemoDirectoryClass *directory_class = NEMO_DIRECTORY_CLASS (klass);
 
 	directory_class->contains_file = ltrash_contains_file;
 	directory_class->call_when_ready = ltrash_call_when_ready;

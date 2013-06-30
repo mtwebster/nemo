@@ -65,6 +65,10 @@
 /* Timeout to check the desktop directory for updates */
 #define RESCAN_TIMEOUT 4
 
+#define CINNAMON_DBUS_NAME "org.Cinnamon"
+#define CINNAMON_DBUS_IFACE "org.Cinnamon"
+#define CINNAMON_DBUS_PATH "/org/Cinnamon"
+
 struct NemoDesktopIconViewDetails
 {
 	GdkWindow *root_window;
@@ -77,7 +81,18 @@ struct NemoDesktopIconViewDetails
 	guint reload_desktop_timeout;
 	gboolean pending_rescan;
 
+    gint swipe_x_start;
+    gint swipe_y_start;
+
 	NemoDesktopBackground *background;
+};
+
+enum {
+    SWIPE_NONE = 0,
+    SWIPE_LEFT,
+    SWIPE_RIGHT,
+    SWIPE_UP,
+    SWIPE_DOWN
 };
 
 static void     default_zoom_level_changed                        (gpointer                user_data);
@@ -323,6 +338,37 @@ nemo_desktop_icon_view_class_init (NemoDesktopIconViewClass *class)
 	g_type_class_add_private (class, sizeof (NemoDesktopIconViewDetails));
 }
 
+#define NULL_DIRECTION_SLOP 50
+#define SWIPE_THRESHOLD 200
+
+static guint
+get_swipe_direction (NemoDesktopIconView *desktop_icon_view, gint x, gint y)
+{
+    gint orig_x = desktop_icon_view->details->swipe_x_start;
+    gint orig_y = desktop_icon_view->details->swipe_y_start;
+
+    gint dx = x - orig_x;
+    gint dy = y - orig_y;
+
+g_printerr ("dx %d, dy %d\n", dx, dy);
+    if (ABS (dx) > SWIPE_THRESHOLD && ABS (dy) < NULL_DIRECTION_SLOP)
+    {
+        if (dx > 0)
+            return SWIPE_RIGHT;
+        else
+            return SWIPE_LEFT;
+    }
+    else if (ABS (dy) > SWIPE_THRESHOLD && ABS (dx) < NULL_DIRECTION_SLOP)
+    {
+        if (dy > 0)
+            return SWIPE_DOWN;
+        else
+            return SWIPE_UP;
+    }
+    else
+        return SWIPE_NONE;
+}
+
 static void
 nemo_desktop_icon_view_handle_middle_click (NemoIconContainer *icon_container,
 						GdkEventButton *event,
@@ -391,6 +437,138 @@ nemo_desktop_icon_view_handle_middle_click (NemoIconContainer *icon_container,
 	/* Send it to the root window, the window manager will handle it. */
 	XSendEvent (GDK_DISPLAY_XDISPLAY (gdk_display_get_default ()), GDK_ROOT_WINDOW (), True,
 		    ButtonPressMask, (XEvent *) &x_event);
+
+    desktop_icon_view->details->swipe_x_start = event->x_root;
+    desktop_icon_view->details->swipe_y_start = event->y_root;
+}
+
+static void
+nemo_desktop_icon_view_handle_middle_release (NemoIconContainer *icon_container,
+                        GdkEventButton *event,
+                        NemoDesktopIconView *desktop_icon_view)
+{
+    XButtonEvent x_event;
+    GdkDevice *keyboard = NULL, *pointer = NULL, *cur;
+    GdkDeviceManager *manager;
+    GList *list, *l;
+
+    manager = gdk_display_get_device_manager (gtk_widget_get_display (GTK_WIDGET (icon_container)));
+    list = gdk_device_manager_list_devices (manager, GDK_DEVICE_TYPE_MASTER);
+
+    for (l = list; l != NULL; l = l->next) {
+        cur = l->data;
+
+        if (pointer == NULL && (gdk_device_get_source (cur) == GDK_SOURCE_MOUSE)) {
+            pointer = cur;
+        }
+
+        if (keyboard == NULL && (gdk_device_get_source (cur) == GDK_SOURCE_KEYBOARD)) {
+            keyboard = cur;
+        }
+
+        if (pointer != NULL && keyboard != NULL) {
+            break;
+        }
+    }
+
+    g_list_free (list);
+
+    /* During a mouse click we have the pointer and keyboard grab.
+     * We will send a fake event to the root window which will cause it
+     * to try to get the grab so we need to let go ourselves.
+     */
+
+    if (pointer != NULL) {
+        gdk_device_ungrab (pointer, GDK_CURRENT_TIME);
+    }
+
+    
+    if (keyboard != NULL) {
+        gdk_device_ungrab (keyboard, GDK_CURRENT_TIME);
+    }
+
+    /* Stop the event because we don't want anyone else dealing with it. */ 
+    gdk_flush ();
+    g_signal_stop_emission_by_name (icon_container, "middle_release");
+
+    guint swipe_dir = get_swipe_direction (desktop_icon_view, event->x_root, event->y_root);
+
+    GError *error = NULL;
+
+    GDBusConnection *connection = g_bus_get_sync (G_BUS_TYPE_SESSION,
+                                                             NULL, NULL);
+
+    if (error != NULL) {
+      g_printerr ("Unable to initialize DBus connection: %s", error->message);
+      g_error_free (error);
+      return;
+    }
+
+    switch (swipe_dir)
+    {
+        case SWIPE_LEFT:
+            g_dbus_connection_call (connection,
+                                    CINNAMON_DBUS_NAME,
+                                    CINNAMON_DBUS_PATH,
+                                    CINNAMON_DBUS_IFACE,
+                                    "switchWorkspaceRight",
+                                    NULL,
+                                    NULL,
+                                    G_DBUS_CALL_FLAGS_NONE,
+                                    -1,
+                                    NULL,
+                                    NULL,
+                                    NULL);
+            break;
+        case SWIPE_RIGHT:
+            g_dbus_connection_call (connection,
+                                    CINNAMON_DBUS_NAME,
+                                    CINNAMON_DBUS_PATH,
+                                    CINNAMON_DBUS_IFACE,
+                                    "switchWorkspaceLeft",
+                                    NULL,
+                                    NULL,
+                                    G_DBUS_CALL_FLAGS_NONE,
+                                    -1,
+                                    NULL,
+                                    NULL,
+                                    NULL);
+            break;
+        case SWIPE_UP:
+            g_dbus_connection_call (connection,
+                                    CINNAMON_DBUS_NAME,
+                                    CINNAMON_DBUS_PATH,
+                                    CINNAMON_DBUS_IFACE,
+                                    "switchWorkspaceDown",
+                                    NULL,
+                                    NULL,
+                                    G_DBUS_CALL_FLAGS_NONE,
+                                    -1,
+                                    NULL,
+                                    NULL,
+                                    NULL);
+            break;
+        case SWIPE_DOWN:
+            g_dbus_connection_call (connection,
+                                    CINNAMON_DBUS_NAME,
+                                    CINNAMON_DBUS_PATH,
+                                    CINNAMON_DBUS_IFACE,
+                                    "switchWorkspaceUp",
+                                    NULL,
+                                    NULL,
+                                    G_DBUS_CALL_FLAGS_NONE,
+                                    -1,
+                                    NULL,
+                                    NULL,
+                                    NULL);
+            break;
+        default:
+            break;
+    }
+
+    if (connection != NULL)  {
+           g_object_unref (connection);
+    }
 }
 
 static void
@@ -528,6 +706,9 @@ delayed_init (NemoDesktopIconView *desktop_icon_view)
 				     desktop_icon_view->details->delayed_init_signal);
 
 	desktop_icon_view->details->delayed_init_signal = 0;
+
+    desktop_icon_view->details->swipe_y_start = 0;
+    desktop_icon_view->details->swipe_x_start = 0;
 }
 
 static void
@@ -629,6 +810,8 @@ nemo_desktop_icon_view_init (NemoDesktopIconView *desktop_icon_view)
 
 	g_signal_connect_object (icon_container, "middle_click",
 				 G_CALLBACK (nemo_desktop_icon_view_handle_middle_click), desktop_icon_view, 0);
+    g_signal_connect_object (icon_container, "middle_release",
+                 G_CALLBACK (nemo_desktop_icon_view_handle_middle_release), desktop_icon_view, 0);
 	g_signal_connect_object (desktop_icon_view, "realize",
 				 G_CALLBACK (realized_callback), desktop_icon_view, 0);
 	g_signal_connect_object (desktop_icon_view, "unrealize",

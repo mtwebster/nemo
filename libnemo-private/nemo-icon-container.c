@@ -238,6 +238,7 @@ enum {
 	CONTEXT_CLICK_BACKGROUND,
 	CONTEXT_CLICK_SELECTION,
 	MIDDLE_CLICK,
+    MIDDLE_RELEASE,
 	GET_CONTAINER_URI,
 	GET_ICON_URI,
 	GET_ICON_DROP_TARGET_URI,
@@ -4711,6 +4712,11 @@ button_release_event (GtkWidget *widget,
 		return TRUE;
 	}
 
+    if (event->button == MIDDLE_BUTTON) {
+        g_signal_emit (widget, signals[MIDDLE_RELEASE], 0, event);
+        return TRUE;
+    }
+
 	return GTK_WIDGET_CLASS (nemo_icon_container_parent_class)->button_release_event (widget, event);
 }
 
@@ -5744,6 +5750,16 @@ nemo_icon_container_class_init (NemoIconContainerClass *class)
 		                g_cclosure_marshal_VOID__POINTER,
 		                G_TYPE_NONE, 1,
 				G_TYPE_POINTER);
+    signals[MIDDLE_RELEASE]
+        = g_signal_new ("middle_release",
+                        G_TYPE_FROM_CLASS (class),
+                        G_SIGNAL_RUN_LAST,
+                        G_STRUCT_OFFSET (NemoIconContainerClass,
+                         middle_release),
+                        NULL, NULL,
+                        g_cclosure_marshal_VOID__POINTER,
+                        G_TYPE_NONE, 1,
+                G_TYPE_POINTER);
 	signals[ICON_POSITION_CHANGED]
 		= g_signal_new ("icon_position_changed",
 		                G_TYPE_FROM_CLASS (class),

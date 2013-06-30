@@ -87,6 +87,8 @@ typedef struct {
 						   GdkEventButton *event);
 	void         (* middle_click) 		  (NemoIconContainer *container,
 						   GdkEventButton *event);
+    void         (* middle_release)         (NemoIconContainer *container,
+                           GdkEventButton *event);
 
 	/* Operations on icons. */
 	void         (* activate)	  	  (NemoIconContainer *container,

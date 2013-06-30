@@ -350,7 +350,6 @@ get_swipe_direction (NemoDesktopIconView *desktop_icon_view, gint x, gint y)
     gint dx = x - orig_x;
     gint dy = y - orig_y;
 
-g_printerr ("dx %d, dy %d\n", dx, dy);
     if (ABS (dx) > SWIPE_THRESHOLD && ABS (dy) < NULL_DIRECTION_SLOP)
     {
         if (dx > 0)

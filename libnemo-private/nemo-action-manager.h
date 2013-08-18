@@ -40,14 +40,17 @@ typedef struct _NemoActionManagerClass NemoActionManagerClass;
 
 struct _NemoActionManager {
     GObject parent;
-
+    GList *actions;
+    GList *actions_directory_list;
 };
 
 struct _NemoActionManagerClass {
-    GObject parent_class;
+    GObjectClass parent_class;
+    void (* changed) (NemoActionManager *action_manager);
 };
 
 GType         nemo_action_get_type             (void);
 NemoActionManager   *nemo_action_new           (const gchar *name, const gchar *path);
+GList *       nemo_action_manager_list_actions (NemoActionManager *action_manager);
 
 #endif /* NEMO_ACTION_MANAGER_H */

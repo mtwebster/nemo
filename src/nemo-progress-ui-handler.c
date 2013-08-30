@@ -281,6 +281,9 @@ handle_new_progress_info (NemoProgressUIHandler *self,
 		progress_ui_handler_add_to_window (self, info);
 		progress_ui_handler_update_status_icon (self);
 	}
+
+    if (self->priv->active_infos > 1)
+        nemo_progress_info_pause (info);
 }
 
 typedef struct {

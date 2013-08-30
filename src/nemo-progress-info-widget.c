@@ -34,6 +34,7 @@ struct _NemoProgressInfoWidgetPriv {
 	GtkWidget *status; /* GtkLabel */
 	GtkWidget *details; /* GtkLabel */
 	GtkWidget *progress_bar;
+    GtkWidget *pause_button_image;
 };
 
 enum {
@@ -91,6 +92,28 @@ cancel_clicked (GtkWidget *button,
 }
 
 static void
+pause_clicked (GtkWidget *button,
+        NemoProgressInfoWidget *self)
+{
+    if (nemo_progress_info_get_is_paused (self->priv->info)) {
+        gtk_image_set_from_stock (GTK_IMAGE (self->priv->pause_button_image), GTK_STOCK_MEDIA_PAUSE, GTK_ICON_SIZE_BUTTON);
+        nemo_progress_info_resume (self->priv->info);
+    } else {
+        gtk_image_set_from_stock (GTK_IMAGE (self->priv->pause_button_image), GTK_STOCK_MEDIA_PLAY, GTK_ICON_SIZE_BUTTON);
+        nemo_progress_info_pause (self->priv->info);
+    }
+}
+
+static void
+paused_or_resumed (NemoProgressInfoWidget *self) {
+    if (nemo_progress_info_get_is_paused (self->priv->info)) {
+        gtk_image_set_from_stock (GTK_IMAGE (self->priv->pause_button_image), GTK_STOCK_MEDIA_PLAY, GTK_ICON_SIZE_BUTTON);
+    } else {
+        gtk_image_set_from_stock (GTK_IMAGE (self->priv->pause_button_image), GTK_STOCK_MEDIA_PAUSE, GTK_ICON_SIZE_BUTTON);
+    }
+}
+
+static void
 nemo_progress_info_widget_constructed (GObject *obj)
 {
 	GtkWidget *label, *progress_bar, *hbox, *box, *button, *image;
@@ -135,6 +158,17 @@ nemo_progress_info_widget_constructed (GObject *obj)
 	g_signal_connect (button, "clicked",
 			  G_CALLBACK (cancel_clicked), self);
 
+    image = gtk_image_new_from_stock (GTK_STOCK_MEDIA_PAUSE, GTK_ICON_SIZE_BUTTON);
+    self->priv->pause_button_image = image;
+    button = gtk_button_new ();
+    gtk_container_add (GTK_CONTAINER (button), image);
+    gtk_box_pack_start (GTK_BOX (hbox),
+                button,
+                FALSE, FALSE,
+                0);
+    g_signal_connect (button, "clicked",
+              G_CALLBACK (pause_clicked), self);
+
 	gtk_box_pack_start (GTK_BOX (self),
 			    hbox,
 			    FALSE,FALSE,
@@ -163,6 +197,9 @@ nemo_progress_info_widget_constructed (GObject *obj)
 	g_signal_connect_swapped (self->priv->info,
 				  "finished",
 				  G_CALLBACK (info_finished), self);
+    g_signal_connect_swapped (self->priv->info,
+                  "paused-or-resumed",
+                  G_CALLBACK (paused_or_resumed), self);
 }
 
 static void

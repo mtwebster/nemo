@@ -36,6 +36,7 @@ enum {
   PROGRESS_CHANGED,
   STARTED,
   FINISHED,
+  PAUSED_OR_RESUMED,
   LAST_SIGNAL
 };
 
@@ -64,6 +65,7 @@ struct _NemoProgressInfo
 	gboolean finish_at_idle;
 	gboolean changed_at_idle;
 	gboolean progress_at_idle;
+    gboolean pause_or_resume_at_idle;
 };
 
 struct _NemoProgressInfoClass
@@ -154,7 +156,14 @@ nemo_progress_info_class_init (NemoProgressInfoClass *klass)
 			      NULL, NULL,
 			      g_cclosure_marshal_VOID__VOID,
 			      G_TYPE_NONE, 0);
-	
+	signals[PAUSED_OR_RESUMED] =
+        g_signal_new ("paused-or-resumed",
+                  NEMO_TYPE_PROGRESS_INFO,
+                  G_SIGNAL_RUN_LAST,
+                  0,
+                  NULL, NULL,
+                  g_cclosure_marshal_VOID__VOID,
+                  G_TYPE_NONE, 0);
 }
 
 static void
@@ -307,6 +316,7 @@ idle_callback (gpointer data)
 	gboolean finish_at_idle;
 	gboolean changed_at_idle;
 	gboolean progress_at_idle;
+    gboolean pause_or_resume_at_idle;
 	GSource *source;
 
 	source = g_main_current_source ();
@@ -338,11 +348,13 @@ idle_callback (gpointer data)
 	finish_at_idle = info->finish_at_idle;
 	changed_at_idle = info->changed_at_idle;
 	progress_at_idle = info->progress_at_idle;
+    pause_or_resume_at_idle = info->pause_or_resume_at_idle;
 	
 	info->start_at_idle = FALSE;
 	info->finish_at_idle = FALSE;
 	info->changed_at_idle = FALSE;
 	info->progress_at_idle = FALSE;
+    info->pause_or_resume_at_idle = FALSE;
 	
 	G_UNLOCK (progress_info);
 	
@@ -369,7 +381,13 @@ idle_callback (gpointer data)
 			       signals[FINISHED],
 			       0);
 	}
-	
+
+    if (pause_or_resume_at_idle) {
+        g_signal_emit (info,
+                   signals[PAUSED_OR_RESUMED],
+                   0);
+    }
+
 	g_object_unref (info);
 	
 	return FALSE;
@@ -405,6 +423,9 @@ nemo_progress_info_pause (NemoProgressInfo *info)
 
 	if (!info->paused) {
 		info->paused = TRUE;
+
+        info->pause_or_resume_at_idle = TRUE;
+        queue_idle (info, TRUE);
 	}
 
 	G_UNLOCK (progress_info);
@@ -417,6 +438,9 @@ nemo_progress_info_resume (NemoProgressInfo *info)
 
 	if (info->paused) {
 		info->paused = FALSE;
+
+        info->pause_or_resume_at_idle = TRUE;
+        queue_idle (info, TRUE);
 	}
 
 	G_UNLOCK (progress_info);

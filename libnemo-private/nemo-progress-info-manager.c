@@ -109,6 +109,8 @@ progress_info_finished_cb (NemoProgressInfo *info,
 {
 	self->priv->progress_infos =
 		g_list_remove (self->priv->progress_infos, info);
+    if (g_list_length (self->priv->progress_infos) > 0)
+        nemo_progress_info_resume (self->priv->progress_infos->data);
 }
 
 NemoProgressInfoManager *
@@ -125,7 +127,7 @@ nemo_progress_info_manager_add_new_info (NemoProgressInfoManager *self,
 		g_warning ("Adding two times the same progress info object to the manager");
 		return;
 	}
-	
+
 	self->priv->progress_infos =
 		g_list_prepend (self->priv->progress_infos, g_object_ref (info));
 

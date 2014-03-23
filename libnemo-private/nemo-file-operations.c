@@ -65,6 +65,7 @@
 #include "nemo-file-conflict-dialog.h"
 #include "nemo-file-undo-operations.h"
 #include "nemo-file-undo-manager.h"
+#include "nemo-job-queue.h"
 
 /* TODO: TESTING!!! */
 
@@ -4519,7 +4520,7 @@ copy_job (GIOSchedulerJob *io_job,
 
 	dest_fs_id = NULL;
 	
-	nemo_progress_info_start (job->common.progress);
+	// nemo_progress_info_start (job->common.progress);
 	
 	scan_sources (job->files,
 		      &source_info,
@@ -4596,11 +4597,16 @@ nemo_file_operations_copy_file (GFile *source_file,
 
 	inhibit_power_manager ((CommonJob *)job, _("Copying Files"));
 
-	g_io_scheduler_push_job (copy_job,
-			   job,
-			   NULL, /* destroy notify */
-			   0,
-			   job->common.cancellable);
+    NemoJobQueue *job_queue = nemo_job_queue_get ();
+
+    nemo_job_queue_add_new_job (job_queue, copy_job, job, job->common.cancellable);
+
+
+	// g_io_scheduler_push_job (copy_job,
+	// 		   job,
+	// 		   NULL,  destroy notify 
+	// 		   0,
+	// 		   job->common.cancellable);
 }
 
 void

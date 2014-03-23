@@ -34,6 +34,7 @@ struct _NemoProgressInfoWidgetPriv {
 	GtkWidget *status; /* GtkLabel */
 	GtkWidget *details; /* GtkLabel */
 	GtkWidget *progress_bar;
+    GtkWidget *start_button;
 };
 
 enum {
@@ -91,6 +92,19 @@ cancel_clicked (GtkWidget *button,
 }
 
 static void
+start_clicked (GtkWidget *button,
+               NemoProgressInfoWidget *self)
+{
+    nemo_progress_info_start (self->priv->info);
+}
+
+static void
+on_started (NemoProgressInfoWidget *self) {
+    g_printerr ("ON STARTED\n");
+    gtk_widget_set_sensitive (self->priv->start_button, FALSE);
+}
+
+static void
 nemo_progress_info_widget_constructed (GObject *obj)
 {
 	GtkWidget *label, *progress_bar, *hbox, *box, *button, *image;
@@ -135,6 +149,14 @@ nemo_progress_info_widget_constructed (GObject *obj)
 	g_signal_connect (button, "clicked",
 			  G_CALLBACK (cancel_clicked), self);
 
+    button = gtk_button_new_with_label ("Force start");
+    gtk_box_pack_start (GTK_BOX (hbox),
+                        button,
+                        FALSE,FALSE,
+                        0);
+    g_signal_connect (button, "clicked",
+              G_CALLBACK (start_clicked), self);
+
 	gtk_box_pack_start (GTK_BOX (self),
 			    hbox,
 			    FALSE,FALSE,
@@ -160,6 +182,9 @@ nemo_progress_info_widget_constructed (GObject *obj)
 	g_signal_connect_swapped (self->priv->info,
 				  "progress-changed",
 				  G_CALLBACK (update_progress), self);
+    g_signal_connect_swapped (self->priv->info,
+                  "started",
+                  G_CALLBACK (on_started), self);
 	g_signal_connect_swapped (self->priv->info,
 				  "finished",
 				  G_CALLBACK (info_finished), self);

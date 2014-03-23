@@ -4647,11 +4647,15 @@ nemo_file_operations_copy (GList *files,
 		g_object_unref (src_dir);
 	}
 
-	g_io_scheduler_push_job (copy_job,
-			   job,
-			   NULL, /* destroy notify */
-			   0,
-			   job->common.cancellable);
+    NemoJobQueue *job_queue = nemo_job_queue_get ();
+
+    nemo_job_queue_add_new_job (job_queue, copy_job, job, job->common.cancellable);
+
+	// g_io_scheduler_push_job (copy_job,
+	// 		   job,
+	// 		   NULL,  destroy notify 
+	// 		   0,
+	// 		   job->common.cancellable);
 }
 
 static void
@@ -5190,11 +5194,16 @@ nemo_file_operations_move (GList *files,
 		g_object_unref (src_dir);
 	}
 
-	g_io_scheduler_push_job (move_job,
-				 job,
-				 NULL, /* destroy notify */
-				 0,
-				 job->common.cancellable);
+    NemoJobQueue *job_queue = nemo_job_queue_get ();
+
+    nemo_job_queue_add_new_job (job_queue, move_job, job, job->common.cancellable);
+
+
+	// g_io_scheduler_push_job (move_job,
+	// 			 job,
+	// 			 NULL,  destroy notify 
+	// 			 0,
+	// 			 job->common.cancellable);
 }
 
 static void
@@ -5506,11 +5515,15 @@ nemo_file_operations_link (GList *files,
 		g_object_unref (src_dir);
 	}
 
-	g_io_scheduler_push_job (link_job,
-			   job,
-			   NULL, /* destroy notify */
-			   0,
-			   job->common.cancellable);
+    NemoJobQueue *job_queue = nemo_job_queue_get ();
+
+    nemo_job_queue_add_new_job (job_queue, link_job, job, job->common.cancellable);
+
+	// g_io_scheduler_push_job (link_job,
+	// 		   job,
+	// 		   NULL,  destroy notify 
+	// 		   0,
+	// 		   job->common.cancellable);
 }
 
 
@@ -5548,11 +5561,17 @@ nemo_file_operations_duplicate (GList *files,
 		g_object_unref (src_dir);
 	}
 
-	g_io_scheduler_push_job (copy_job,
-			   job,
-			   NULL, /* destroy notify */
-			   0,
-			   job->common.cancellable);
+    NemoJobQueue *job_queue = nemo_job_queue_get ();
+
+    nemo_job_queue_add_new_job (job_queue, copy_job, job, job->common.cancellable);
+
+    nemo_progress_info_start (job->common.progress);
+
+	// g_io_scheduler_push_job (copy_job,
+	// 		   job,
+	// 		   NULL,  destroy notify 
+	// 		   0,
+	// 		   job->common.cancellable);
 }
 
 static gboolean

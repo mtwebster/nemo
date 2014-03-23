@@ -109,13 +109,13 @@ nemo_job_queue_class_init (NemoJobQueueClass *klass)
 	g_type_class_add_private (klass, sizeof (NemoJobQueuePriv));
 }
 
-static void
-job_finished_cb (Job *job,
-			   NemoJobQueue *self)
-{
-	self->priv->jobs =
-		g_list_remove (self->priv->jobs, job);
-}
+// static void
+// job_finished_cb (Job *job,
+// 			   NemoJobQueue *self)
+// {
+// 	self->priv->jobs =
+// 		g_list_remove (self->priv->jobs, job);
+// }
 
 static NemoJobQueue *instance = NULL;
 
@@ -127,13 +127,22 @@ nemo_job_queue_get (void)
   return instance;
 }
 
+static gint
+compare_job_data_func (gconstpointer a,
+                       gconstpointer b)
+{
+    Job *job = (Job*) a;
+    return (job->job_func == b) ? 0 : 1;
+}
+
 void
 nemo_job_queue_add_new_job (NemoJobQueue *self,
                             GIOSchedulerJobFunc job_func,
                             gpointer user_data,
                             GCancellable *cancellable)
 {
-	if (g_list_find_custom (self->priv->jobs, job_data, (GCompareFunc) compare_job_data_func) != NULL) {
+    g_printerr ("running %s\n", G_STRFUNC);
+	if (g_list_find_custom (self->priv->jobs, user_data, (GCompareFunc) compare_job_data_func) != NULL) {
 		g_warning ("Adding the same file job object to the job queue");
 		return;
 	}
@@ -144,12 +153,12 @@ nemo_job_queue_add_new_job (NemoJobQueue *self,
     new_job->cancellable = cancellable;
 
 	self->priv->jobs =
-		g_list_prepend (self->priv->jobs, g_object_ref (new_job));
+		g_list_prepend (self->priv->jobs, new_job);
 
 	// g_signal_connect (job, "finished",
 	// 		  G_CALLBACK (job_finished_cb), self);
 
-	g_signal_emit (self, signals[NEW_JOB], 0, job);
+	g_signal_emit (self, signals[NEW_JOB], 0, NULL);
 }
 
 GList *

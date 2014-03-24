@@ -142,8 +142,7 @@ static void
 progress_ui_handler_ensure_window (NemoProgressUIHandler *self)
 {
 	GtkWidget *vbox, *progress_window;
-	const gchar *desktop_environment = g_getenv ("DESKTOP_SESSION");
-	
+
 	if (self->priv->progress_window != NULL) {
 		return;
 	}
@@ -162,10 +161,6 @@ progress_ui_handler_ensure_window (NemoProgressUIHandler *self)
 				 GTK_WIN_POS_CENTER);
 	gtk_window_set_icon_name (GTK_WINDOW (progress_window),
 				"system-run");
-	if ((!g_strcmp0(desktop_environment, "ubuntu")) ||
-	       (!g_strcmp0(desktop_environment, "ubuntu-2d")))
-	    gtk_window_set_skip_taskbar_hint (GTK_WINDOW (progress_window),
-				TRUE);
 
 	vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
 	gtk_box_set_spacing (GTK_BOX (vbox), 5);
@@ -184,9 +179,14 @@ progress_ui_handler_add_to_window (NemoProgressUIHandler *self,
 				   NemoProgressInfo *info)
 {
 	GtkWidget *progress;
+    GtkWidget *sep;
 
 	progress = nemo_progress_info_widget_new (info);
 	progress_ui_handler_ensure_window (self);
+
+    sep = gtk_separator_new (GTK_ORIENTATION_HORIZONTAL);
+
+    gtk_box_pack_start (GTK_BOX (self->priv->window_vbox), sep, FALSE, FALSE, 0);
 
 	gtk_box_pack_start (GTK_BOX (self->priv->window_vbox),
 			    progress,

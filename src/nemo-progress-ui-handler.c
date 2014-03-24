@@ -316,7 +316,7 @@ timeout_data_new (NemoProgressUIHandler *self,
 }
 
 static gboolean
-new_op_started_timeout (TimeoutData *data)
+new_op_queued_timeout (TimeoutData *data)
 {
 	NemoProgressInfo *info = data->info;
 	NemoProgressUIHandler *self = data->self;
@@ -346,7 +346,7 @@ release_application (NemoProgressInfo *info,
 }
 
 static void
-progress_info_started_cb (NemoProgressInfo *info,
+progress_info_queued_cb (NemoProgressInfo *info,
 			  NemoProgressUIHandler *self)
 {
 	NemoApplication *app;
@@ -363,7 +363,7 @@ progress_info_started_cb (NemoProgressInfo *info,
 
 	/* timeout for the progress window to appear */
 	g_timeout_add_seconds (2,
-			       (GSourceFunc) new_op_started_timeout,
+			       (GSourceFunc) new_op_queued_timeout,
 			       data);
 }
 
@@ -372,8 +372,8 @@ new_progress_info_cb (NemoProgressInfoManager *manager,
 		      NemoProgressInfo *info,
 		      NemoProgressUIHandler *self)
 {
-	g_signal_connect (info, "started",
-			  G_CALLBACK (progress_info_started_cb), self);
+	g_signal_connect (info, "queued",
+			  G_CALLBACK (progress_info_queued_cb), self);
 }
 
 static void

@@ -147,7 +147,6 @@ job_finished_cb (NemoJobQueue *self,
     self->priv->queued_jobs = g_list_remove (self->priv->queued_jobs, job);
 
     nemo_job_queue_start_next_job (self);
-  //  g_object_unref (job);
 }
 
 NemoJobQueue *
@@ -178,6 +177,8 @@ nemo_job_queue_add_new_job (NemoJobQueue *self,
 	self->priv->queued_jobs =
 		g_list_append (self->priv->queued_jobs, new_job);
 
+    nemo_progress_info_queue (info);
+
 	g_signal_connect_swapped (info, "finished",
                               G_CALLBACK (job_finished_cb), self);
 
@@ -193,11 +194,14 @@ start_job (NemoJobQueue *self, Job *job)
 {
     g_printerr ("running %s\n", G_STRFUNC);
     self->priv->queued_jobs = g_list_remove (self->priv->queued_jobs, job);
+    nemo_progress_info_start (job->info);
+
     g_io_scheduler_push_job (job->job_func,
                              job->user_data,
                              NULL, // destroy notify 
                              0,
                              job->cancellable);
+
     self->priv->running_jobs = g_list_append (self->priv->running_jobs, job);
 }
 

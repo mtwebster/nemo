@@ -5565,8 +5565,6 @@ nemo_file_operations_duplicate (GList *files,
 
     nemo_job_queue_add_new_job (job_queue, copy_job, job, job->common.cancellable, job->common.progress);
 
-    nemo_progress_info_start (job->common.progress);
-
 	// g_io_scheduler_push_job (copy_job,
 	// 		   job,
 	// 		   NULL,  destroy notify 

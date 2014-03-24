@@ -4599,7 +4599,7 @@ nemo_file_operations_copy_file (GFile *source_file,
 
     NemoJobQueue *job_queue = nemo_job_queue_get ();
 
-    nemo_job_queue_add_new_job (job_queue, copy_job, job, job->common.cancellable);
+    nemo_job_queue_add_new_job (job_queue, copy_job, job, job->common.cancellable, job->common.progress);
 
 
 	// g_io_scheduler_push_job (copy_job,
@@ -4649,7 +4649,7 @@ nemo_file_operations_copy (GList *files,
 
     NemoJobQueue *job_queue = nemo_job_queue_get ();
 
-    nemo_job_queue_add_new_job (job_queue, copy_job, job, job->common.cancellable);
+    nemo_job_queue_add_new_job (job_queue, copy_job, job, job->common.cancellable, job->common.progress);
 
 	// g_io_scheduler_push_job (copy_job,
 	// 		   job,
@@ -5196,7 +5196,7 @@ nemo_file_operations_move (GList *files,
 
     NemoJobQueue *job_queue = nemo_job_queue_get ();
 
-    nemo_job_queue_add_new_job (job_queue, move_job, job, job->common.cancellable);
+    nemo_job_queue_add_new_job (job_queue, move_job, job, job->common.cancellable, job->common.progress);
 
 
 	// g_io_scheduler_push_job (move_job,
@@ -5517,7 +5517,7 @@ nemo_file_operations_link (GList *files,
 
     NemoJobQueue *job_queue = nemo_job_queue_get ();
 
-    nemo_job_queue_add_new_job (job_queue, link_job, job, job->common.cancellable);
+    nemo_job_queue_add_new_job (job_queue, link_job, job, job->common.cancellable, job->common.progress);
 
 	// g_io_scheduler_push_job (link_job,
 	// 		   job,
@@ -5563,7 +5563,7 @@ nemo_file_operations_duplicate (GList *files,
 
     NemoJobQueue *job_queue = nemo_job_queue_get ();
 
-    nemo_job_queue_add_new_job (job_queue, copy_job, job, job->common.cancellable);
+    nemo_job_queue_add_new_job (job_queue, copy_job, job, job->common.cancellable, job->common.progress);
 
     nemo_progress_info_start (job->common.progress);
 

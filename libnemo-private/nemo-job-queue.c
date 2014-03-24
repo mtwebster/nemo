@@ -27,7 +27,8 @@
 #include "nemo-job-queue.h"
 
 struct _NemoJobQueuePriv {
-	GList *jobs;
+	GList *queued_jobs;
+    GList *running_jobs;
 };
 
 enum {
@@ -38,6 +39,7 @@ enum {
 typedef struct {
     GIOSchedulerJobFunc job_func;
     gpointer user_data;
+    NemoProgressInfo *info;
     GCancellable *cancellable;
 } Job;
 
@@ -53,8 +55,8 @@ nemo_job_queue_finalize (GObject *obj)
 {
 	NemoJobQueue *self = NEMO_JOB_QUEUE (obj);
 
-	if (self->priv->jobs != NULL) {
-		g_list_free_full (self->priv->jobs, g_object_unref);
+	if (self->priv->queued_jobs != NULL) {
+		g_list_free_full (self->priv->queued_jobs, g_object_unref);
 	}
 
 	G_OBJECT_CLASS (nemo_job_queue_parent_class)->finalize (obj);
@@ -76,7 +78,7 @@ nemo_job_queue_constructor (GType type,
 
 	singleton = NEMO_JOB_QUEUE (retval);
 	g_object_add_weak_pointer (retval, (gpointer) &singleton);
-
+g_printerr ("constructor????  running %s\n", G_STRFUNC);
 	return retval;
 }
 
@@ -85,6 +87,9 @@ nemo_job_queue_init (NemoJobQueue *self)
 {
 	self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, NEMO_TYPE_JOB_QUEUE,
 						  NemoJobQueuePriv);
+
+    self->priv->queued_jobs = NULL;
+    self->priv->running_jobs = NULL;
 }
 
 static void
@@ -109,22 +114,12 @@ nemo_job_queue_class_init (NemoJobQueueClass *klass)
 	g_type_class_add_private (klass, sizeof (NemoJobQueuePriv));
 }
 
-// static void
-// job_finished_cb (Job *job,
-// 			   NemoJobQueue *self)
-// {
-// 	self->priv->jobs =
-// 		g_list_remove (self->priv->jobs, job);
-// }
-
-static NemoJobQueue *instance = NULL;
-
-NemoJobQueue *
-nemo_job_queue_get (void)
+static gint
+compare_info_func (gconstpointer a,
+                   gconstpointer b)
 {
-  if (instance == NULL)
-    instance = g_object_new (NEMO_TYPE_JOB_QUEUE, NULL);
-  return instance;
+    Job *job = (Job*) a;
+    return (job->info == b) ? 0 : 1;
 }
 
 static gint
@@ -135,14 +130,42 @@ compare_job_data_func (gconstpointer a,
     return (job->job_func == b) ? 0 : 1;
 }
 
+static void
+job_finished_cb (NemoJobQueue *self,
+                 NemoProgressInfo *info)
+{
+        g_printerr ("running %s\n", G_STRFUNC);
+    GList *ptr;
+
+    ptr = g_list_find_custom (self->priv->running_jobs, info, (GCompareFunc) compare_info_func);
+    if (!ptr)
+        ptr = g_list_find_custom (self->priv->queued_jobs, info, (GCompareFunc) compare_info_func);
+
+    Job *job = ptr->data; 
+
+    self->priv->running_jobs = g_list_remove (self->priv->running_jobs, job);
+    self->priv->queued_jobs = g_list_remove (self->priv->queued_jobs, job);
+
+    if (self->priv->running_jobs == NULL)
+        nemo_job_queue_start_next_job (self);
+  //  g_object_unref (job);
+}
+
+NemoJobQueue *
+nemo_job_queue_get (void)
+{
+    return g_object_new (NEMO_TYPE_JOB_QUEUE, NULL);
+}
+
 void
 nemo_job_queue_add_new_job (NemoJobQueue *self,
                             GIOSchedulerJobFunc job_func,
                             gpointer user_data,
-                            GCancellable *cancellable)
+                            GCancellable *cancellable,
+                            NemoProgressInfo *info)
 {
     g_printerr ("running %s\n", G_STRFUNC);
-	if (g_list_find_custom (self->priv->jobs, user_data, (GCompareFunc) compare_job_data_func) != NULL) {
+	if (g_list_find_custom (self->priv->queued_jobs, user_data, (GCompareFunc) compare_job_data_func) != NULL) {
 		g_warning ("Adding the same file job object to the job queue");
 		return;
 	}
@@ -151,18 +174,54 @@ nemo_job_queue_add_new_job (NemoJobQueue *self,
     new_job->job_func = job_func;
     new_job->user_data = user_data;
     new_job->cancellable = cancellable;
+    new_job->info = info;
 
-	self->priv->jobs =
-		g_list_prepend (self->priv->jobs, new_job);
+	self->priv->queued_jobs =
+		g_list_append (self->priv->queued_jobs, new_job);
 
-	// g_signal_connect (job, "finished",
-	// 		  G_CALLBACK (job_finished_cb), self);
+	g_signal_connect_swapped (info, "finished",
+                              G_CALLBACK (job_finished_cb), self);
+
+        g_printerr ("num queued: %d\n", g_list_length (self->priv->queued_jobs));
+g_printerr ("num running: %d\n", g_list_length (self->priv->running_jobs));
+    if (self->priv->running_jobs == NULL)
+        nemo_job_queue_start_next_job (self);
 
 	g_signal_emit (self, signals[NEW_JOB], 0, NULL);
+}
+
+static void
+start_job (NemoJobQueue *self, Job *job)
+{
+    g_printerr ("running %s\n", G_STRFUNC);
+    self->priv->queued_jobs = g_list_remove (self->priv->queued_jobs, job);
+    g_io_scheduler_push_job (job->job_func,
+                             job->user_data,
+                             NULL, // destroy notify 
+                             0,
+                             job->cancellable);
+    self->priv->running_jobs = g_list_append (self->priv->running_jobs, job);
+}
+
+void
+nemo_job_queue_start_next_job (NemoJobQueue *self)
+{
+    g_printerr ("running %s\n", G_STRFUNC);
+    start_job (self, self->priv->queued_jobs->data);
+}
+
+void
+nemo_job_queue_start_job_by_info (NemoJobQueue     *self,
+                                  NemoProgressInfo *info)
+{
+    GList *target = g_list_find_custom (self->priv->queued_jobs, info, (GCompareFunc) compare_info_func);
+g_printerr ("running %s\n", G_STRFUNC);
+    if (target)
+        start_job (self, target->data);
 }
 
 GList *
 nemo_job_queue_get_all_jobs (NemoJobQueue *self)
 {
-	return self->priv->jobs;
+	return self->priv->queued_jobs;
 }

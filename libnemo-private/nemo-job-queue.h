@@ -63,7 +63,13 @@ NemoJobQueue *nemo_job_queue_get (void);
 void nemo_job_queue_add_new_job (NemoJobQueue *self,
                                  GIOSchedulerJobFunc job_func,
                                  gpointer user_data,
-                                 GCancellable *cancellable);
+                                 GCancellable *cancellable,
+                                 NemoProgressInfo *info);
+
+void nemo_job_queue_start_next_job (NemoJobQueue *self);
+
+void nemo_job_queue_start_job_by_info (NemoJobQueue     *self,
+                                       NemoProgressInfo *info);
 
 GList *nemo_job_queue_get_all_jobs (NemoJobQueue *self);
 

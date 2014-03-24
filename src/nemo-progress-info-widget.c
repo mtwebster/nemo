@@ -27,6 +27,7 @@
 #include <config.h>
 
 #include "nemo-progress-info-widget.h"
+#include "nemo-job-queue.h"
 
 struct _NemoProgressInfoWidgetPriv {
 	NemoProgressInfo *info;
@@ -95,7 +96,9 @@ static void
 start_clicked (GtkWidget *button,
                NemoProgressInfoWidget *self)
 {
-    nemo_progress_info_start (self->priv->info);
+    NemoJobQueue *queue = nemo_job_queue_get ();
+
+    nemo_job_queue_start_job_by_info (queue, self->priv->info);
 }
 
 static void

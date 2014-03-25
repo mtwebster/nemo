@@ -194,7 +194,7 @@ start_job (NemoJobQueue *self, Job *job)
 {
     g_printerr ("running %s\n", G_STRFUNC);
     self->priv->queued_jobs = g_list_remove (self->priv->queued_jobs, job);
-    nemo_progress_info_start (job->info);
+    nemo_progress_info_queue (job->info);
 
     g_io_scheduler_push_job (job->job_func,
                              job->user_data,

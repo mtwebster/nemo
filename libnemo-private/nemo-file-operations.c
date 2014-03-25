@@ -1888,8 +1888,6 @@ delete_job (GIOSchedulerJob *io_job,
 	common = (CommonJob *)job;
 	common->io_job = io_job;
 
-	nemo_progress_info_start (job->common.progress);
-	
 	to_trash_files = NULL;
 	to_delete_files = NULL;
 
@@ -1950,6 +1948,8 @@ delete_job (GIOSchedulerJob *io_job,
 						   job,
 						   NULL);
 
+
+
 	return FALSE;
 }
 
@@ -1981,11 +1981,9 @@ trash_or_delete_internal (GList                  *files,
 		job->common.undo_info = nemo_file_undo_info_trash_new (g_list_length (files));
 	}
 
-	g_io_scheduler_push_job (delete_job,
-			   job,
-			   NULL,
-			   0,
-			   NULL);
+    NemoJobQueue *job_queue = nemo_job_queue_get ();
+
+    nemo_job_queue_add_new_job (job_queue, delete_job, job, job->common.cancellable, job->common.progress);
 }
 
 void
@@ -2273,11 +2271,9 @@ nemo_file_operations_unmount_mount_full (GtkWindow                      *parent_
 			job->trash_dirs = get_trash_dirs_for_mount (mount);
 			job->done_callback = empty_trash_for_unmount_done;
 			job->done_callback_data = data;
-			g_io_scheduler_push_job (empty_trash_job,
-					   job,
-					   NULL,
-					   0,
-					   NULL);
+
+            NemoJobQueue *job_queue = nemo_job_queue_get ();
+            nemo_job_queue_add_new_job (job_queue, empty_trash_job, job, job->common.cancellable, job->common.progress);
 			return;
 		} else if (response == GTK_RESPONSE_CANCEL) {
 			if (callback) {
@@ -4519,9 +4515,7 @@ copy_job (GIOSchedulerJob *io_job,
 	common->io_job = io_job;
 
 	dest_fs_id = NULL;
-	
-	// nemo_progress_info_start (job->common.progress);
-	
+
 	scan_sources (job->files,
 		      &source_info,
 		      common,
@@ -4600,13 +4594,6 @@ nemo_file_operations_copy_file (GFile *source_file,
     NemoJobQueue *job_queue = nemo_job_queue_get ();
 
     nemo_job_queue_add_new_job (job_queue, copy_job, job, job->common.cancellable, job->common.progress);
-
-
-	// g_io_scheduler_push_job (copy_job,
-	// 		   job,
-	// 		   NULL,  destroy notify 
-	// 		   0,
-	// 		   job->common.cancellable);
 }
 
 void
@@ -4650,12 +4637,6 @@ nemo_file_operations_copy (GList *files,
     NemoJobQueue *job_queue = nemo_job_queue_get ();
 
     nemo_job_queue_add_new_job (job_queue, copy_job, job, job->common.cancellable, job->common.progress);
-
-	// g_io_scheduler_push_job (copy_job,
-	// 		   job,
-	// 		   NULL,  destroy notify 
-	// 		   0,
-	// 		   job->common.cancellable);
 }
 
 static void
@@ -5089,9 +5070,7 @@ move_job (GIOSchedulerJob *io_job,
 	dest_fs_type = NULL;
 
 	fallbacks = NULL;
-	
-	nemo_progress_info_start (job->common.progress);
-	
+
 	verify_destination (&job->common,
 			    job->destination,
 			    &dest_fs_id,
@@ -5197,13 +5176,6 @@ nemo_file_operations_move (GList *files,
     NemoJobQueue *job_queue = nemo_job_queue_get ();
 
     nemo_job_queue_add_new_job (job_queue, move_job, job, job->common.cancellable, job->common.progress);
-
-
-	// g_io_scheduler_push_job (move_job,
-	// 			 job,
-	// 			 NULL,  destroy notify 
-	// 			 0,
-	// 			 job->common.cancellable);
 }
 
 static void
@@ -5434,9 +5406,7 @@ link_job (GIOSchedulerJob *io_job,
 	common->io_job = io_job;
 
 	dest_fs_type = NULL;
-	
-	nemo_progress_info_start (job->common.progress);
-	
+
 	verify_destination (&job->common,
 			    job->destination,
 			    NULL,
@@ -5518,12 +5488,6 @@ nemo_file_operations_link (GList *files,
     NemoJobQueue *job_queue = nemo_job_queue_get ();
 
     nemo_job_queue_add_new_job (job_queue, link_job, job, job->common.cancellable, job->common.progress);
-
-	// g_io_scheduler_push_job (link_job,
-	// 		   job,
-	// 		   NULL,  destroy notify 
-	// 		   0,
-	// 		   job->common.cancellable);
 }
 
 
@@ -5564,12 +5528,6 @@ nemo_file_operations_duplicate (GList *files,
     NemoJobQueue *job_queue = nemo_job_queue_get ();
 
     nemo_job_queue_add_new_job (job_queue, copy_job, job, job->common.cancellable, job->common.progress);
-
-	// g_io_scheduler_push_job (copy_job,
-	// 		   job,
-	// 		   NULL,  destroy notify 
-	// 		   0,
-	// 		   job->common.cancellable);
 }
 
 static gboolean
@@ -5690,8 +5648,6 @@ set_permissions_job (GIOSchedulerJob *io_job,
 	nemo_progress_info_set_status (common->progress,
 					   _("Setting permissions"));
 
-	nemo_progress_info_start (job->common.progress);
-
 	set_permissions_file (job, job->file, NULL);
 
 	g_io_scheduler_job_send_to_mainloop_async (io_job,
@@ -5731,11 +5687,9 @@ nemo_file_set_permissions_recursive (const char *directory,
 								     dir_permissions, dir_mask);
 	}
 
-	g_io_scheduler_push_job (set_permissions_job,
-			   job,
-			   NULL,
-			   0,
-			   NULL);
+    NemoJobQueue *job_queue = nemo_job_queue_get ();
+
+    nemo_job_queue_add_new_job (job_queue, set_permissions_job, job, job->common.cancellable, job->common.progress);
 }
 
 static GList *
@@ -5927,8 +5881,6 @@ create_job (GIOSchedulerJob *io_job,
 	job = user_data;
 	common = &job->common;
 	common->io_job = io_job;
-
-	nemo_progress_info_start (job->common.progress);
 
 	handled_invalid_filename = FALSE;
 
@@ -6213,11 +6165,9 @@ nemo_file_operations_new_folder (GtkWidget *parent_view,
 		job->common.undo_info = nemo_file_undo_info_create_new (NEMO_FILE_UNDO_OP_CREATE_FOLDER);
 	}
 
-	g_io_scheduler_push_job (create_job,
-			   job,
-			   NULL, /* destroy notify */
-			   0,
-			   job->common.cancellable);
+    NemoJobQueue *job_queue = nemo_job_queue_get ();
+
+    nemo_job_queue_add_new_job (job_queue, create_job, job, job->common.cancellable, job->common.progress);
 }
 
 void 
@@ -6255,11 +6205,9 @@ nemo_file_operations_new_file_from_template (GtkWidget *parent_view,
 		job->common.undo_info = nemo_file_undo_info_create_new (NEMO_FILE_UNDO_OP_CREATE_FILE_FROM_TEMPLATE);
 	}
 
-	g_io_scheduler_push_job (create_job,
-			   job,
-			   NULL, /* destroy notify */
-			   0,
-			   job->common.cancellable);
+    NemoJobQueue *job_queue = nemo_job_queue_get ();
+
+    nemo_job_queue_add_new_job (job_queue, create_job, job, job->common.cancellable, job->common.progress);
 }
 
 void 
@@ -6296,14 +6244,10 @@ nemo_file_operations_new_file (GtkWidget *parent_view,
 		job->common.undo_info = nemo_file_undo_info_create_new (NEMO_FILE_UNDO_OP_CREATE_EMPTY_FILE);
 	}
 
-	g_io_scheduler_push_job (create_job,
-			   job,
-			   NULL, /* destroy notify */
-			   0,
-			   job->common.cancellable);
+    NemoJobQueue *job_queue = nemo_job_queue_get ();
+
+    nemo_job_queue_add_new_job (job_queue, create_job, job, job->common.cancellable, job->common.progress);
 }
-
-
 
 static void
 delete_trash_file (CommonJob *job,
@@ -6376,8 +6320,6 @@ empty_trash_job (GIOSchedulerJob *io_job,
 	
 	common = (CommonJob *)job;
 	common->io_job = io_job;
-	
-	nemo_progress_info_start (job->common.progress);
 
 	if (job->should_confirm) {
 		confirmed = confirm_empty_trash (common);
@@ -6417,12 +6359,10 @@ nemo_file_operations_empty_trash (GtkWidget *parent_view)
 	job->should_confirm = TRUE;
 
 	inhibit_power_manager ((CommonJob *)job, _("Emptying Trash"));
-	
-	g_io_scheduler_push_job (empty_trash_job,
-			   job,
-			   NULL,
-			   0,
-			   NULL);
+
+    NemoJobQueue *job_queue = nemo_job_queue_get ();
+
+    nemo_job_queue_add_new_job (job_queue, empty_trash_job, job, job->common.cancellable, job->common.progress);
 }
 
 static gboolean
@@ -6611,8 +6551,6 @@ mark_trusted_job (GIOSchedulerJob *io_job,
 	
 	common = (CommonJob *)job;
 	common->io_job = io_job;
-	
-	nemo_progress_info_start (job->common.progress);
 
 	mark_desktop_file_trusted (common,
 				   cancellable,
@@ -6642,11 +6580,9 @@ nemo_file_mark_desktop_file_trusted (GFile *file,
 	job->done_callback = done_callback;
 	job->done_callback_data = done_callback_data;
 	
-	g_io_scheduler_push_job (mark_trusted_job,
-				 job,
-				 NULL,
-				 0,
-				 NULL);
+    NemoJobQueue *job_queue = nemo_job_queue_get ();
+
+    nemo_job_queue_add_new_job (job_queue, mark_trusted_job, job, job->common.cancellable, job->common.progress);
 }
 
 #if !defined (NEMO_OMIT_SELF_CHECK)

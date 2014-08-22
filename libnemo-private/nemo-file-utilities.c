@@ -68,18 +68,18 @@ nemo_compute_title_for_location (GFile *location)
 	}
 	
 	builder = NULL;
-	if (location) {
-		file = nemo_file_get (location);
-		builder = nemo_file_get_description (file);
-		if (builder == NULL) {
-			builder = nemo_file_get_display_name (file);
-		}
-		nemo_file_unref (file);
-	}
-
+	// if (location) {
+	// 	file = nemo_file_get (location);
+	// 	builder = nemo_file_get_description (file);
+	// 	if (builder == NULL) {
+	// 		builder = nemo_file_get_display_name (file);
+	// 	}
+	// 	nemo_file_unref (file);
+	// }
 	if (builder == NULL) {
 		builder = g_file_get_basename (location);
 	}
+g_printerr ("NAME IS %s\n", builder);
 
     if (g_settings_get_boolean (nemo_preferences, NEMO_PREFERENCES_SHOW_FULL_PATH_TITLES)) {
         file = nemo_file_get (location);

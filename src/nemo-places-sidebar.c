@@ -760,6 +760,10 @@ update_places (NemoPlacesSidebar *sidebar)
         bookmark = nemo_bookmark_list_item_at (sidebar->bookmarks, index);
         root = nemo_bookmark_get_location (bookmark);
 
+        // gboolean show = TRUE;
+        // gchar *test_path = g_file_get_path (root);
+        // show = nemo_bookmark_get_exists (bookmark)
+
         if (!nemo_bookmark_get_exists (bookmark) && g_file_is_native (root)) {
             g_object_unref (root);
             continue;
@@ -768,7 +772,6 @@ update_places (NemoPlacesSidebar *sidebar)
         file = nemo_file_get (root);
 
         if (is_built_in_bookmark (file)) {
-            g_printerr ("book\n");
             g_object_unref (root);
             nemo_file_unref (file);
             continue;

@@ -388,7 +388,13 @@ exists_non_native_idle_cb (gpointer user_data)
 {
     NemoBookmark *bookmark = user_data;
     bookmark->details->exists_id = 0;
-    nemo_bookmark_set_exists (bookmark, FALSE);
+    gchar *test_path;
+
+    test_path = g_file_get_path (bookmark->details->location);
+
+    nemo_bookmark_set_exists (bookmark, test_path != NULL);
+
+    g_free (test_path);
 
     return FALSE;
 }
@@ -414,9 +420,11 @@ exists_query_info_ready_cb (GObject *source,
 
     if (info) {
         exists = TRUE;
-
+        g_printerr ("HAS INFO NATIVE %s\n", bookmark->details->name);
         g_object_unref (info);
         g_clear_object (&bookmark->details->cancellable);
+    } else {
+        g_printerr ("NO INFO NATIVE %s\n", bookmark->details->name);
     }
 
     nemo_bookmark_set_exists (bookmark, exists);
@@ -428,6 +436,7 @@ nemo_bookmark_update_exists (NemoBookmark *bookmark)
     /* Convert to a path, returning FALSE if not local. */
     if (!g_file_is_native (bookmark->details->location) &&
         bookmark->details->exists_id == 0) {
+        g_printerr ("NOT NATIVE update existss %s\n", bookmark->details->name);
         bookmark->details->exists_id =
             g_idle_add (exists_non_native_idle_cb, bookmark);
         return;

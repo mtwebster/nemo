@@ -455,6 +455,10 @@ char *                  nemo_file_get_drop_target_uri               (NemoFile   
 
 GIcon *                 nemo_file_get_gicon                         (NemoFile                   *file,
 									 NemoFileIconFlags           flags);
+
+GIcon *                 nemo_file_get_emblemed_icon (NemoFile         *file,
+                                                     NemoFileIconFlags flags);
+
 gboolean                nemo_file_has_custom_icon                   (NemoFile                   *file);
 
 NemoIconInfo *      nemo_file_get_icon                          (NemoFile                   *file,

@@ -1529,6 +1529,9 @@ create_tree (FMTreeView *view)
 	column = gtk_tree_view_column_new ();
 
 	cell = gtk_cell_renderer_pixbuf_new ();
+        g_object_set (cell,
+                  "follow-state", TRUE,
+                  NULL);
 	gtk_tree_view_column_pack_start (column, cell, FALSE);
     gtk_tree_view_column_set_cell_data_func (column, cell, (GtkTreeCellDataFunc) surface_data_func, NULL, NULL);
 

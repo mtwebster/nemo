@@ -257,7 +257,8 @@ get_native_icon (NemoBookmark *bookmark,
         if (symbolic) {
             icon = nemo_special_directory_get_symbolic_icon (xdg_type);
         } else {
-            icon = nemo_file_get_gicon (bookmark->details->file, NEMO_FILE_ICON_FLAGS_NONE);
+            icon = nemo_special_directory_get_icon (xdg_type);
+            // icon = nemo_file_get_emblemed_icon (bookmark->details->file, NEMO_FILE_ICON_FLAGS_NONE);
         }
     }
 
@@ -266,7 +267,7 @@ get_native_icon (NemoBookmark *bookmark,
         if (symbolic) {
             icon = g_themed_icon_new (NEMO_ICON_FOLDER);
         } else {
-            icon = nemo_file_get_gicon (bookmark->details->file, NEMO_FILE_ICON_FLAGS_NONE);
+            icon = nemo_file_get_emblemed_icon (bookmark->details->file, NEMO_FILE_ICON_FLAGS_NONE);
         }
     }
 

@@ -4211,6 +4211,12 @@ get_default_file_icon (NemoFileIconFlags flags)
 	}
 }
 
+gboolean
+nemo_file_has_custom_icon (NemoFile *file)
+{
+    return file->details->custom_icon != NULL;
+}
+
 NemoIconInfo *
 nemo_file_get_icon (NemoFile *file,
 			int size,

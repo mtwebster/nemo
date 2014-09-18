@@ -77,6 +77,8 @@ struct NemoBookmarkDetails
 
 static void   nemo_bookmark_disconnect_file   (NemoBookmark  *file);
 
+static void   nemo_bookmark_set_icon_to_default (NemoBookmark *bookmark);
+
 G_DEFINE_TYPE (NemoBookmark, nemo_bookmark, G_TYPE_OBJECT);
 
 static void
@@ -157,6 +159,7 @@ bookmark_file_changed_callback (NemoFile *file,
         nemo_bookmark_disconnect_file (bookmark);
     } else {
         bookmark_set_name_from_ready_file (bookmark, file);
+        nemo_bookmark_set_icon_to_default (bookmark);
     }
 }
 
@@ -254,7 +257,7 @@ get_native_icon (NemoBookmark *bookmark,
         if (symbolic) {
             icon = nemo_special_directory_get_symbolic_icon (xdg_type);
         } else {
-            icon = nemo_special_directory_get_icon (xdg_type);
+            icon = nemo_file_get_gicon (bookmark->details->file, NEMO_FILE_ICON_FLAGS_NONE);
         }
     }
 
@@ -263,7 +266,7 @@ get_native_icon (NemoBookmark *bookmark,
         if (symbolic) {
             icon = g_themed_icon_new (NEMO_ICON_FOLDER);
         } else {
-            icon = g_themed_icon_new (NEMO_ICON_FULLCOLOR_FOLDER);
+            icon = nemo_file_get_gicon (bookmark->details->file, NEMO_FILE_ICON_FLAGS_NONE);
         }
     }
 

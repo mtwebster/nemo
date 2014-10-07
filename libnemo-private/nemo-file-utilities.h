@@ -47,6 +47,9 @@ gboolean nemo_is_desktop_directory_file          (GFile *dir,
 						      const char *filename);
 gboolean nemo_is_root_directory                  (GFile *dir);
 gboolean nemo_is_desktop_directory               (GFile *dir);
+
+GMount * nemo_get_mounted_mount_for_root         (GFile *location);
+
 gboolean nemo_is_home_directory                  (GFile *dir);
 gboolean nemo_is_home_directory_file             (GFile *dir,
 						      const char *filename);

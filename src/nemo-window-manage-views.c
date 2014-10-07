@@ -276,38 +276,43 @@ viewed_file_changed_callback (NemoFile *file,
 
 	slot->viewed_file_in_trash = is_in_trash = nemo_file_is_in_trash (file);
 
-	/* Close window if the file it's viewing has been deleted or moved to trash. */
 	if (nemo_file_is_gone (file) || (is_in_trash && !was_in_trash)) {
-                /* Don't close the window in the case where the
-                 * file was never seen in the first place.
+        if (slot->viewed_file_seen) {
+            /* auto-show existing parent. */
+            GFile *go_to_file;
+            GFile *parent;
+            GFile *location;
+            GMount *mount;
+
+                /* Detecting a file is gone may happen in the
+                 * middle of a pending location change, we
+                 * need to cancel it before closing the window
+                 * or things break.
                  */
-                if (slot->viewed_file_seen) {
-			/* auto-show existing parent. */
-			GFile *go_to_file, *parent, *location;
+                /* FIXME: It makes no sense that this call is
+                 * needed. When the window is destroyed, it
+                 * calls nemo_window_manage_views_destroy,
+                 * which calls free_location_change, which
+                 * should be sufficient. Also, if this was
+                 * really needed, wouldn't it be needed for
+                 * all other nemo_window_close callers?
+                 */
+            end_location_change (slot);
+            go_to_file = NULL;
+            parent = NULL;
 
-                        /* Detecting a file is gone may happen in the
-                         * middle of a pending location change, we
-                         * need to cancel it before closing the window
-                         * or things break.
-                         */
-                        /* FIXME: It makes no sense that this call is
-                         * needed. When the window is destroyed, it
-                         * calls nemo_window_manage_views_destroy,
-                         * which calls free_location_change, which
-                         * should be sufficient. Also, if this was
-                         * really needed, wouldn't it be needed for
-                         * all other nemo_window_close callers?
-                         */
-			end_location_change (slot);
+            location = nemo_file_get_location (file);
+            mount = nemo_get_mounted_mount_for_root (location);
+            if (mount != NULL) {
+               parent = g_file_get_parent (location);
+               g_object_unref (mount);
+            }
 
-			go_to_file = NULL;
-			location =  nemo_file_get_location (file);
-			parent = g_file_get_parent (location);
-			g_object_unref (location);
-			if (parent) {
-				go_to_file = nemo_find_existing_uri_in_hierarchy (parent);
-				g_object_unref (parent);
-			}
+            g_object_unref (location);
+            if (parent != NULL) {
+                go_to_file = nemo_find_existing_uri_in_hierarchy (parent);
+                g_object_unref (parent);
+            }
 				
 			if (go_to_file != NULL) {
 				/* the path bar URI will be set to go_to_uri immediately

@@ -250,13 +250,14 @@ nemo_bookmark_connect_file (NemoBookmark *bookmark)
 	}
 
 	if (!nemo_bookmark_uri_known_not_to_exist (bookmark)) {
-		DEBUG ("%s: creating file", nemo_bookmark_get_name (bookmark));
+		g_printerr ("%s: creating file\n", nemo_bookmark_get_name (bookmark));
 
 		bookmark->details->file = nemo_file_get (bookmark->details->location);
-		if (!nemo_file_is_gone (bookmark->details->file)) {
-            g_signal_connect_object (bookmark->details->file, "changed",
-                     G_CALLBACK (bookmark_file_changed_callback), bookmark, 0);
-        }
+
+        g_assert (!nemo_file_is_gone (bookmark->details->file));
+
+        g_signal_connect_object (bookmark->details->file, "changed",
+                                 G_CALLBACK (bookmark_file_changed_callback), bookmark, 0);
 	}
 
 	/* Set icon based on available information. */

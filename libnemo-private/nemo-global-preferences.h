@@ -237,12 +237,13 @@ typedef enum
 /* Plugins */
 #define NEMO_PLUGIN_PREFERENCES_DISABLED_EXTENSIONS    "disabled-extensions"
 #define NEMO_PLUGIN_PREFERENCES_DISABLED_ACTIONS       "disabled-actions"
-
+#define NEMO_PLUGIN_PREFERENCES_DISABLED_SCRIPTS       "diabled-scripts"
 
 void nemo_global_preferences_init                      (void);
 char *nemo_global_preferences_get_default_folder_viewer_preference_as_iid (void);
 gboolean nemo_global_preferences_get_ignore_view_metadata (void);
 gint nemo_global_preferences_get_tooltip_flags (void);
+gboolean nemo_global_preferences_should_load_plugin (const gchar *name, const gchar *key);
 
 GSettings *nemo_preferences;
 GSettings *nemo_icon_view_preferences;

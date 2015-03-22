@@ -242,23 +242,6 @@ void_action_list (NemoActionManager *action_manager)
     g_list_free_full (tmp, g_object_unref);
 }
 
-static gboolean
-should_load (const char *name)
-{
-    gchar **disabled_list = g_settings_get_strv (nemo_plugin_preferences, NEMO_PLUGIN_PREFERENCES_DISABLED_ACTIONS);
-
-    gboolean ret = TRUE;
-    gint i = 0;
-
-    for (i = 0; i < g_strv_length (disabled_list); i++) {
-        if (g_strcmp0 (disabled_list[i], name) == 0)
-            ret = FALSE;
-    }
-
-    g_strfreev (disabled_list);
-    return ret;
-}
-
 static void
 set_up_actions (NemoActionManager *action_manager)
 {
@@ -274,7 +257,8 @@ set_up_actions (NemoActionManager *action_manager)
         file_list = nemo_directory_get_file_list (directory);
         for (node = file_list; node != NULL; node = node->next) {
             file = node->data;
-            if (!g_str_has_suffix (nemo_file_peek_name (file), ".nemo_action") || !should_load (nemo_file_peek_name (file)))
+            if (!g_str_has_suffix (nemo_file_peek_name (file), ".nemo_action") ||
+                !nemo_global_preferences_should_load_plugin (nemo_file_peek_name (file), NEMO_PLUGIN_PREFERENCES_DISABLED_ACTIONS))
                 continue;
             add_action_to_action_list (action_manager, file);
         }

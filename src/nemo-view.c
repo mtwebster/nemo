@@ -2498,6 +2498,12 @@ static void slot_changed_pane (NemoWindowSlot *slot,
 	hidden_files_mode_changed (view->details->window, view);
 }
 
+static void
+plugin_prefs_changed (GSettings *settings, gchar *key, gpointer user_data)
+{
+    scripts_added_or_changed_callback (NULL, NULL, user_data);
+}
+
 void
 nemo_view_grab_focus (NemoView *view)
 {
@@ -2752,6 +2758,10 @@ nemo_view_init (NemoView *view)
 	manager = nemo_file_undo_manager_get ();
 	g_signal_connect_object (manager, "undo-changed",
 				 G_CALLBACK (undo_manager_changed_cb), view, 0);				  
+
+    g_signal_connect (nemo_plugin_preferences,
+                      "changed::" NEMO_PLUGIN_PREFERENCES_DISABLED_SCRIPTS,
+                      G_CALLBACK (plugin_prefs_changed), NULL);
 
 	/* Accessibility */
 	atk_object = gtk_widget_get_accessible (GTK_WIDGET (view));
@@ -6101,7 +6111,8 @@ update_directory_in_scripts_menu (NemoView *view, NemoDirectory *directory)
 	for (node = file_list; node != NULL; node = node->next) {
 		file = node->data;
 
-		if (nemo_file_is_launchable (file)) {
+		if (nemo_file_is_launchable (file) &&
+            nemo_global_preferences_should_load_plugin (nemo_file_peek_name (file), NEMO_PLUGIN_PREFERENCES_DISABLED_SCRIPTS)) {
 			add_script_to_scripts_menus (view, file, menu_path, popup_path, popup_bg_path);
 			any_scripts = TRUE;
 		} else if (nemo_file_is_directory (file)) {

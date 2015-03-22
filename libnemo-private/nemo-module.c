@@ -63,17 +63,6 @@ static GType nemo_module_get_type (void);
 G_DEFINE_TYPE (NemoModule, nemo_module, G_TYPE_TYPE_MODULE);
 
 static gboolean
-module_pulls_in_orbit (GModule *module)
-{
-	gpointer symbol;
-	gboolean res;
-
-	res = g_module_symbol (module, "ORBit_realloc_tcval", &symbol);
-
-	return res;
-}
-
-static gboolean
 nemo_module_load (GTypeModule *gmodule)
 {
 	NemoModule *module;
@@ -86,16 +75,6 @@ nemo_module_load (GTypeModule *gmodule)
 		g_warning ("%s", g_module_error ());
 		return FALSE;
 	}
-
-	/* ORBit installs atexit() handlers, which would get unloaded together
-	 * with the module now that the main process doesn't depend on GConf anymore,
-	 * causing nemo to sefgault at exit.
-	 * If we detect that an extension would pull in ORBit, we make the
-	 * module resident to prevent that.
-	 */
-        if (module_pulls_in_orbit (module->library)) {
-		g_module_make_resident (module->library);
-        }
 
 	if (!g_module_symbol (module->library,
 			      "nemo_module_initialize",

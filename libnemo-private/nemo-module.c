@@ -259,6 +259,12 @@ free_nemo_modules (void)
     g_list_free (module_objects);
 }
 
+static void
+plugin_prefs_changed (GSettings *settings, gchar *key, gpointer user_data)
+{
+    nemo_module_refresh ();
+}
+
 void
 nemo_module_setup (void)
 {
@@ -271,6 +277,9 @@ nemo_module_setup (void)
 
 		eel_debug_call_at_shutdown (free_module_objects);
         eel_debug_call_at_shutdown (free_nemo_modules);
+        g_signal_connect (nemo_plugin_preferences,
+                          "changed::" NEMO_PLUGIN_PREFERENCES_DISABLED_EXTENSIONS,
+                          G_CALLBACK (plugin_prefs_changed), NULL);
 	}
 }
 

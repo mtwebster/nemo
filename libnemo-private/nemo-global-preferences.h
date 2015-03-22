@@ -234,6 +234,9 @@ typedef enum
 
 #define NEMO_PREFERENCES_DISABLE_MENU_WARNING          "disable-menu-warning"
 
+/* Plugins */
+#define NEMO_PLUGIN_PREFERENCES_DISABLED_EXTENSIONS    "disabled-extensions"
+
 void nemo_global_preferences_init                      (void);
 char *nemo_global_preferences_get_default_folder_viewer_preference_as_iid (void);
 gboolean nemo_global_preferences_get_ignore_view_metadata (void);
@@ -246,6 +249,7 @@ GSettings *nemo_compact_view_preferences;
 GSettings *nemo_desktop_preferences;
 GSettings *nemo_tree_sidebar_preferences;
 GSettings *nemo_window_state;
+GSettings *nemo_plugin_preferences;
 GSettings *gnome_lockdown_preferences;
 GSettings *gnome_background_preferences;
 GSettings *gnome_media_handling_preferences;

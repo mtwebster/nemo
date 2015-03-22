@@ -328,6 +328,14 @@ selection_clear_event_cb (GtkWidget	        *widget,
 }
 
 static void
+plugin_prefs_changed_cb (GSettings *settings, gchar *key, gpointer user_data)
+{
+    if (g_strcmp0 (key, NEMO_PLUGIN_PREFERENCES_DISABLED_EXTENSIONS) == 0) {
+        nemo_module_refresh ();
+    }
+}
+
+static void
 nemo_application_create_desktop_windows (NemoApplication *application)
 {
 	GdkDisplay *display;
@@ -1225,6 +1233,7 @@ nemo_application_startup (GApplication *app)
 	
 	/* initialize nemo modules */
 	nemo_module_setup ();
+    g_signal_connect (nemo_plugin_preferences, "changed", G_CALLBACK (plugin_prefs_changed_cb), self);
 
 	/* attach menu-provider module callback */
 	menu_provider_init_callback ();

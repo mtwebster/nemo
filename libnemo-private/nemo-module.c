@@ -24,6 +24,7 @@
 
 #include <config.h>
 #include "nemo-module.h"
+#include <libnemo-private/nemo-global-preferences.h>
 
 #include <eel/eel-debug.h>
 #include <gmodule.h>
@@ -57,6 +58,7 @@ struct _NemoModuleClass {
 };
 
 static GList *module_objects = NULL;
+static GList *nemo_modules = NULL;
 
 static GType nemo_module_get_type (void);
 
@@ -161,22 +163,48 @@ add_module_objects (NemoModule *module)
 	}
 }
 
-static NemoModule *
+static void
 nemo_module_load_file (const char *filename)
 {
-	NemoModule *module;
-	
-	module = g_object_new (NEMO_TYPE_MODULE, NULL);
-	module->path = g_strdup (filename);
-	
-	if (g_type_module_use (G_TYPE_MODULE (module))) {
-		add_module_objects (module);
-		g_type_module_unuse (G_TYPE_MODULE (module));
-		return module;
-	} else {
-		g_object_unref (module);
-		return NULL;
-	}
+	NemoModule *module = NULL;
+    GList *l;
+
+    for (l = nemo_modules; l != NULL; l = l->next) {
+        if (g_strcmp0 (filename, NEMO_MODULE (l->data)->path) == 0) {
+            module = NEMO_MODULE (l->data);
+            add_module_objects (module);
+            break;
+        }
+    }
+
+    if (!module) {
+        module = g_object_new (NEMO_TYPE_MODULE, NULL);
+        module->path = g_strdup (filename);
+        if (g_type_module_use (G_TYPE_MODULE (module))) {
+            nemo_modules = g_list_prepend (nemo_modules, module);
+            add_module_objects (module);
+            g_type_module_unuse (G_TYPE_MODULE (module));
+        } else {
+            g_object_unref (module);
+        }
+    }
+}
+
+static gboolean
+should_load (const char *name)
+{
+    gchar **disabled_list = g_settings_get_strv (nemo_plugin_preferences, NEMO_PLUGIN_PREFERENCES_DISABLED_EXTENSIONS);
+
+    gboolean ret = TRUE;
+    gint i = 0;
+
+    for (i = 0; i < g_strv_length (disabled_list); i++) {
+        if (g_strcmp0 (disabled_list[i], name) == 0)
+            ret = FALSE;
+    }
+
+    g_strfreev (disabled_list);
+    return ret;
 }
 
 static void
@@ -190,13 +218,13 @@ load_module_dir (const char *dirname)
 		const char *name;
 		
 		while ((name = g_dir_read_name (dir))) {
-			if (g_str_has_suffix (name, "." G_MODULE_SUFFIX)) {
+			if (g_str_has_suffix (name, "." G_MODULE_SUFFIX) && should_load (name)) {
 				char *filename;
 
 				filename = g_build_filename (dirname, 
 							     name, 
 							     NULL);
-				nemo_module_load_file (filename);
+                nemo_module_load_file (filename);
 				g_free (filename);
 			}
 		}
@@ -218,6 +246,19 @@ free_module_objects (void)
 	g_list_free (module_objects);
 }
 
+static void
+free_nemo_modules (void)
+{
+    GList *l, *next;
+
+    for (l = nemo_modules; l != NULL; l = next) {
+        next = l->next;
+        g_object_unref (l->data);
+    }
+    
+    g_list_free (module_objects);
+}
+
 void
 nemo_module_setup (void)
 {
@@ -229,7 +270,18 @@ nemo_module_setup (void)
 		load_module_dir (NEMO_EXTENSIONDIR);
 
 		eel_debug_call_at_shutdown (free_module_objects);
+        eel_debug_call_at_shutdown (free_nemo_modules);
 	}
+}
+
+void
+nemo_module_refresh (void)
+{
+    free_module_objects ();
+
+    module_objects = NULL;
+
+    load_module_dir (NEMO_EXTENSIONDIR);
 }
 
 GList *

@@ -108,6 +108,7 @@ nemo_global_preferences_init (void)
 	nemo_compact_view_preferences = g_settings_new("org.nemo.compact-view");
 	nemo_desktop_preferences = g_settings_new("org.nemo.desktop");
 	nemo_tree_sidebar_preferences = g_settings_new("org.nemo.sidebar-panels.tree");
+    nemo_plugin_preferences = g_settings_new("org.nemo.plugins");
 	gnome_lockdown_preferences = g_settings_new("org.cinnamon.desktop.lockdown");
 	gnome_background_preferences = g_settings_new("org.cinnamon.desktop.background");
 	gnome_media_handling_preferences = g_settings_new("org.cinnamon.desktop.media-handling");

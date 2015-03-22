@@ -580,5 +580,10 @@
       <_summary>List of extensions -not- to load.</_summary>
       <_description>List of extension names you do -not- want to run.  This maintains the behavior of an installed extension being enabled by default.</_description>
     </key>
+    <key name="disabled-actions" type="as">
+      <default>[]</default>
+      <_summary>List of NemoActions -not- to load.</_summary>
+      <_description>List of action names you do -not- want to run.  This maintains the behavior of an installed action being enabled by default.</_description>
+    </key>
   </schema>
 </schemalist>

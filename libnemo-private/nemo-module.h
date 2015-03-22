@@ -29,6 +29,7 @@
 G_BEGIN_DECLS
 
 void   nemo_module_setup                   (void);
+void   nemo_module_refresh                 (void);
 GList *nemo_module_get_extensions_for_type (GType  type);
 void   nemo_module_extension_list_free     (GList *list);
 

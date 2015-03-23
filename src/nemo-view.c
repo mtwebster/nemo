@@ -2304,24 +2304,17 @@ static gboolean
 set_up_scripts_directory_global (void)
 {
 	char *scripts_directory_path;
-	const char *override;
 
 	if (scripts_directory_uri != NULL) {
 		return TRUE;
 	}
 
-	override = g_getenv ("GNOME22_USER_DIR");
-
-	if (override) {
-		scripts_directory_path = g_build_filename (override,
-							   "nemo-scripts",
-							   NULL);
-	} else {
-		scripts_directory_path = g_build_filename (g_get_home_dir (),
-							   ".gnome2",
-							   "nemo-scripts",
-							   NULL);
-	}
+    scripts_directory_path = g_build_filename (g_get_home_dir (),
+                                               ".local",
+                                               "share",
+                                               "nemo",
+                                               "scripts",
+                                               NULL);
 
 	if (g_mkdir_with_parents (scripts_directory_path, 0755) == 0) {
 		scripts_directory_uri = g_filename_to_uri (scripts_directory_path, NULL, NULL);
@@ -2764,7 +2757,7 @@ nemo_view_init (NemoView *view)
 
     g_signal_connect (nemo_plugin_preferences,
                       "changed::" NEMO_PLUGIN_PREFERENCES_DISABLED_SCRIPTS,
-                      G_CALLBACK (plugin_prefs_changed), NULL);
+                      G_CALLBACK (plugin_prefs_changed), view);
 
 	/* Accessibility */
 	atk_object = gtk_widget_get_accessible (GTK_WIDGET (view));
@@ -8457,8 +8450,7 @@ real_merge_menus (NemoView *view)
 				      directory_view_entries, G_N_ELEMENTS (directory_view_entries),
 				      view);
 
-	/* Translators: %s is a directory */
-	tooltip = g_strdup_printf (_("Run or manage scripts from %s"), "~/.gnome2/nemo-scripts");
+	tooltip = g_strdup_printf (_("Run scripts"));
 	/* Create a script action here specially because its tooltip is dynamic */
 	action = gtk_action_new ("Scripts", _("_Scripts"), tooltip, NULL);
 	gtk_action_group_add_action (action_group, action);

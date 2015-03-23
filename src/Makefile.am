@@ -9,6 +9,7 @@ bin_PROGRAMS=					\
 
 libexec_PROGRAMS=				\
 	nemo-convert-metadata		\
+    nemo-extensions-list \
 	$(NULL)
 
 INCLUDES =							\
@@ -214,6 +215,10 @@ nemo_open_with_SOURCES = \
 nemo_convert_metadata_SOURCES= \
 	nemo-convert-metadata.c	\
 	$(NULL)
+
+nemo_extensions_list_SOURCES= \
+    nemo-extensions-list.c \
+    $(NULL)
 
 polkitdir = $(datadir)/polkit-1/actions
 polkit_in_files = org.nemo.root.policy.in

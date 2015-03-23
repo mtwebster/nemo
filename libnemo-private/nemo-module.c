@@ -27,40 +27,9 @@
 #include <libnemo-private/nemo-global-preferences.h>
 
 #include <eel/eel-debug.h>
-#include <gmodule.h>
-
-#define NEMO_TYPE_MODULE    	(nemo_module_get_type ())
-#define NEMO_MODULE(obj)		(G_TYPE_CHECK_INSTANCE_CAST ((obj), NEMO_TYPE_MODULE, NemoModule))
-#define NEMO_MODULE_CLASS(klass)	(G_TYPE_CHECK_CLASS_CAST ((klass), NEMO_TYPE_MODULE, NemoModule))
-#define NEMO_IS_MODULE(obj)		(G_TYPE_CHECK_INSTANCE_TYPE ((obj), NEMO_TYPE_MODULE))
-#define NEMO_IS_MODULE_CLASS(klass)	(G_TYPE_CLASS_CHECK_CLASS_TYPE ((klass), NEMO_TYPE_MODULE))
-
-typedef struct _NemoModule        NemoModule;
-typedef struct _NemoModuleClass   NemoModuleClass;
-
-struct _NemoModule {
-	GTypeModule parent;
-
-	GModule *library;
-
-	char *path;
-
-	void (*initialize) (GTypeModule  *module);
-	void (*shutdown)   (void);
-
-	void (*list_types) (const GType **types,
-			    int          *num_types);
-
-};
-
-struct _NemoModuleClass {
-	GTypeModuleClass parent;	
-};
 
 static GList *module_objects = NULL;
 static GList *nemo_modules = NULL;
-
-static GType nemo_module_get_type (void);
 
 G_DEFINE_TYPE (NemoModule, nemo_module, G_TYPE_TYPE_MODULE);
 
@@ -202,7 +171,6 @@ nemo_module_load_file (const char *filename)
         if (g_type_module_use (G_TYPE_MODULE (module))) {
             nemo_modules = g_list_prepend (nemo_modules, module);
             add_module_objects (module);
-            g_type_module_unuse (G_TYPE_MODULE (module));
         } else {
             g_object_unref (module);
         }
@@ -255,6 +223,7 @@ free_nemo_modules (void)
 
     for (l = nemo_modules; l != NULL; l = next) {
         next = l->next;
+        g_type_module_unuse (G_TYPE_MODULE (l->data));
         g_object_unref (l->data);
     }
     

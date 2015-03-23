@@ -237,7 +237,7 @@ typedef enum
 /* Plugins */
 #define NEMO_PLUGIN_PREFERENCES_DISABLED_EXTENSIONS    "disabled-extensions"
 #define NEMO_PLUGIN_PREFERENCES_DISABLED_ACTIONS       "disabled-actions"
-#define NEMO_PLUGIN_PREFERENCES_DISABLED_SCRIPTS       "diabled-scripts"
+#define NEMO_PLUGIN_PREFERENCES_DISABLED_SCRIPTS       "disabled-scripts"
 
 void nemo_global_preferences_init                      (void);
 char *nemo_global_preferences_get_default_folder_viewer_preference_as_iid (void);

@@ -266,6 +266,7 @@ dnl base libs
 PKG_CHECK_MODULES(BASE, [
 	gtk+-3.0 >= gtk_minver
 	glib-2.0 >= glib_minver
+    gmodule-no-export-2.0 >= glib_minver
 ])
 
 AC_SUBST(BASE_CFLAGS)

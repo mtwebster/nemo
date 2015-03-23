@@ -10,6 +10,7 @@ INCLUDES=\
 	$(BASE_CFLAGS) \
 	$(WARNING_CFLAGS) \
 	$(DISABLE_DEPRECATED_CFLAGS) \
+    -DLIBEXECDIR=\""$(libexecdir)"\" \
 	-DDATADIR=\""$(datadir)"\" \
 	$(NULL)
 
@@ -31,10 +32,16 @@ libnemo_extension_include_HEADERS=		\
 	nemo-location-widget-provider.h     \
 	nemo-menu-item.h                    \
 	nemo-menu-provider.h                \
+    nemo-name-and-desc-provider.h       \
 	nemo-property-page-provider.h       \
 	nemo-property-page.h                \
 	nemo-menu.h                         \
 	nemo-simple-button.h                \
+    nemo-plugin-manager-widget.h        \
+    nemo-action-config-widget.h         \
+    nemo-script-config-widget.h         \
+    nemo-extension-config-widget.h      \
+    nemo-config-base-widget.h           \
 	$(NULL)
 
 libnemo_extension_la_SOURCES=			\
@@ -48,10 +55,16 @@ libnemo_extension_la_SOURCES=			\
 	nemo-location-widget-provider.c             \
 	nemo-menu-item.c                            \
 	nemo-menu-provider.c                        \
+    nemo-name-and-desc-provider.c               \
 	nemo-property-page-provider.c               \
 	nemo-property-page.c                        \
 	nemo-menu.c                                 \
 	nemo-simple-button.c                        \
+    nemo-plugin-manager-widget.c        \
+    nemo-action-config-widget.c         \
+    nemo-script-config-widget.c         \
+    nemo-extension-config-widget.c      \
+    nemo-config-base-widget.c           \
 	$(NULL)
 
 pkgconfigdir=$(libdir)/pkgconfig

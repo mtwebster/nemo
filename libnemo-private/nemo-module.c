@@ -146,6 +146,23 @@ module_object_weak_notify (gpointer user_data, GObject *object)
 	module_objects = g_list_remove (module_objects, object);
 }
 
+static gboolean
+should_load_extension (GType type)
+{
+    gchar **disabled_list = g_settings_get_strv (nemo_plugin_preferences, NEMO_PLUGIN_PREFERENCES_DISABLED_EXTENSIONS);
+
+    gboolean ret = TRUE;
+    gint i = 0;
+
+    for (i = 0; i < g_strv_length (disabled_list); i++) {
+        if (g_strcmp0 (disabled_list[i], g_type_name (type)) == 0)
+            ret = FALSE;
+    }
+
+    g_strfreev (disabled_list);
+    return ret;
+}
+
 static void
 add_module_objects (NemoModule *module)
 {
@@ -159,8 +176,10 @@ add_module_objects (NemoModule *module)
 		if (types[i] == 0) { /* Work around broken extensions */
 			break;
 		}
-		nemo_module_add_type (types[i]);
-	}
+        if (should_load_extension (types[i])) {
+            nemo_module_add_type (types[i]);
+        }
+    }
 }
 
 static void
@@ -201,8 +220,7 @@ load_module_dir (const char *dirname)
 		const char *name;
 		
 		while ((name = g_dir_read_name (dir))) {
-			if (g_str_has_suffix (name, "." G_MODULE_SUFFIX) &&
-                nemo_global_preferences_should_load_plugin (name, NEMO_PLUGIN_PREFERENCES_DISABLED_EXTENSIONS)) {
+			if (g_str_has_suffix (name, "." G_MODULE_SUFFIX)) {
 				char *filename;
 
 				filename = g_build_filename (dirname, 

@@ -32,6 +32,8 @@ struct _NemoActionConfigWidget
 
   GList *actions;
   GSettings *settings;
+
+  gulong bl_handler;
 };
 
 struct _NemoActionConfigWidgetClass

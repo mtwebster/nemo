@@ -36,12 +36,27 @@ action_proxy_free (ActionProxy *proxy)
     g_clear_pointer (&proxy->filename, g_free);
 }
 
-static gboolean
-on_button_release (GtkWidget *evbox, GdkEventButton *event, GtkWidget *button)
+static GtkWidget *
+get_button_for_row (GtkWidget *row)
 {
-    if (event->button == GDK_BUTTON_PRIMARY) {
-        gtk_button_clicked (GTK_BUTTON (button));
-    }
+    GtkWidget *ret;
+
+    GtkWidget *box = gtk_bin_get_child (GTK_BIN (row));
+    GList *clist = gtk_container_get_children (GTK_CONTAINER (box));
+
+    ret = clist->data;
+
+    g_list_free (clist);
+
+    return ret;
+}
+
+static gboolean
+on_row_activated (GtkWidget *box, GtkWidget *row, GtkWidget *widget)
+{
+    GtkWidget *button = get_button_for_row (row);
+
+    gtk_button_clicked (GTK_BUTTON (button));
 }
 
 static void
@@ -73,7 +88,9 @@ on_check_toggled(GtkWidget *button, ActionProxy *proxy)
 
     gchar **new_list_ptr = (char **) g_ptr_array_free (new_list, FALSE);
 
-    g_settings_set_strv (proxy->widget->settings, BLACKLIST_KEY, new_list_ptr);
+    g_signal_handler_block (proxy->widget->settings, proxy->widget->bl_handler);
+    g_settings_set_strv (proxy->widget->settings, BLACKLIST_KEY, (const gchar * const *) new_list_ptr);
+    g_signal_handler_unblock (proxy->widget->settings, proxy->widget->bl_handler);
 
     g_strfreev (blacklist);
     g_strfreev (new_list_ptr);
@@ -197,6 +214,25 @@ refresh_widget (NemoActionConfigWidget *widget)
     populate_from_directory (widget, path);
     g_clear_pointer (&path, g_free);
 
+    if (widget->actions == NULL) {
+        GtkWidget *empty_label = gtk_label_new (NULL);
+        gchar *markup = NULL;
+
+        markup = g_strdup_printf ("<i>%s</i>", _("No actions found"));
+
+        gtk_label_set_markup (GTK_LABEL (empty_label), markup);
+        g_free (markup);
+
+        GtkWidget *empty_row = gtk_list_box_row_new ();
+        gtk_list_box_row_set_activatable (GTK_LIST_BOX_ROW (empty_row), FALSE);
+        gtk_container_add (GTK_CONTAINER (empty_row), empty_label);
+
+        gtk_widget_show_all (empty_row);
+        gtk_container_add (GTK_CONTAINER (NEMO_CONFIG_BASE_WIDGET (widget)->listbox), empty_row);
+
+        return;
+    }
+
     GList *l;
     gchar **blacklist = g_settings_get_strv (widget->settings, BLACKLIST_KEY);
 
@@ -235,14 +271,11 @@ refresh_widget (NemoActionConfigWidget *widget)
 
         gtk_box_pack_start (GTK_BOX (box), w, FALSE, FALSE, 2);
 
-        GtkWidget *ebox = gtk_event_box_new ();
-        gtk_event_box_set_above_child (GTK_EVENT_BOX (ebox), TRUE);
-        gtk_container_add (GTK_CONTAINER (ebox), box);
+        GtkWidget *row = gtk_list_box_row_new ();
+        gtk_container_add (GTK_CONTAINER (row), box);
 
-        g_signal_connect (ebox, "button-release-event", G_CALLBACK (on_button_release), button);
-
-        gtk_widget_show_all (ebox);
-        gtk_container_add (GTK_CONTAINER (NEMO_CONFIG_BASE_WIDGET (widget)->listbox), ebox);
+        gtk_widget_show_all (row);
+        gtk_container_add (GTK_CONTAINER (NEMO_CONFIG_BASE_WIDGET (widget)->listbox), row);
     }
 
     g_strfreev (blacklist);
@@ -257,6 +290,30 @@ on_settings_changed (GSettings *settings, gchar *key, gpointer user_data)
 }
 
 static void
+on_enable_clicked (GtkWidget *button, NemoActionConfigWidget *widget)
+{
+    g_settings_set_strv (widget->settings, BLACKLIST_KEY, NULL);
+}
+
+static void
+on_disable_clicked (GtkWidget *button, NemoActionConfigWidget *widget)
+{
+    GPtrArray *new_list = g_ptr_array_new ();
+
+    GList *l;
+
+    for (l = widget->actions; l != NULL; l = l->next)
+        g_ptr_array_add (new_list, g_strdup (((ActionProxy *) l->data)->filename));
+
+    g_ptr_array_add (new_list, NULL);
+
+    gchar **new_list_ptr = (char **) g_ptr_array_free (new_list, FALSE);
+    g_settings_set_strv (widget->settings, BLACKLIST_KEY, (const gchar * const *) new_list_ptr);
+
+    g_strfreev (new_list_ptr);
+}
+
+static void
 nemo_action_config_widget_class_init (NemoActionConfigWidgetClass *klass)
 {
 }
@@ -267,7 +324,8 @@ nemo_action_config_widget_init (NemoActionConfigWidget *self)
     self->actions = NULL;
 
     self->settings = g_settings_new ("org.nemo.plugins");
-    g_signal_connect (self->settings, "changed::" BLACKLIST_KEY, G_CALLBACK (on_settings_changed), self);
+    self->bl_handler = g_signal_connect (self->settings, "changed::" BLACKLIST_KEY,
+                                         G_CALLBACK (on_settings_changed), self);
 
     GtkWidget *label = nemo_config_base_widget_get_label (NEMO_CONFIG_BASE_WIDGET (self));
 
@@ -278,6 +336,14 @@ nemo_action_config_widget_init (NemoActionConfigWidget *self)
 
     g_free (title);
     g_free (markup);
+
+    g_signal_connect (nemo_config_base_widget_get_enable_button (NEMO_CONFIG_BASE_WIDGET (self)), "clicked",
+                                                                 G_CALLBACK (on_enable_clicked), self);
+
+    g_signal_connect (nemo_config_base_widget_get_disable_button (NEMO_CONFIG_BASE_WIDGET (self)), "clicked",
+                                                                  G_CALLBACK (on_disable_clicked), self);
+
+    g_signal_connect (NEMO_CONFIG_BASE_WIDGET (self)->listbox, "row-activated", G_CALLBACK (on_row_activated), self);
 
     refresh_widget (self);
 }

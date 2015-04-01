@@ -167,56 +167,56 @@ refresh_widget (NemoExtensionConfigWidget *widget)
 
         gtk_widget_show_all (empty_row);
         gtk_container_add (GTK_CONTAINER (NEMO_CONFIG_BASE_WIDGET (widget)->listbox), empty_row);
+    } else {
+        GList *l;
+        gchar **blacklist = g_settings_get_strv (widget->settings, BLACKLIST_KEY);
 
-        return;
-    }
+        for (l = widget->extensions; l != NULL; l=l->next) {
+            ExtensionProxy *proxy = l->data;
 
-    GList *l;
-    gchar **blacklist = g_settings_get_strv (widget->settings, BLACKLIST_KEY);
+            gboolean active = TRUE;
+            gint i = 0;
 
-    for (l = widget->extensions; l != NULL; l=l->next) {
-        ExtensionProxy *proxy = l->data;
-
-        gboolean active = TRUE;
-        gint i = 0;
-
-        for (i = 0; i < g_strv_length (blacklist); i++) {
-            if (g_strcmp0 (blacklist[i], proxy->name) == 0) {
-                active = FALSE;
-                break;
+            for (i = 0; i < g_strv_length (blacklist); i++) {
+                if (g_strcmp0 (blacklist[i], proxy->name) == 0) {
+                    active = FALSE;
+                    break;
+                }
             }
+
+            GtkWidget *w;
+            GtkWidget *box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
+
+            GtkWidget *button = gtk_check_button_new ();
+
+            gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (button), active);
+            g_signal_connect (button, "toggled", G_CALLBACK (on_check_toggled), proxy);
+            gtk_box_pack_start (GTK_BOX (box), button, FALSE, FALSE, 2);
+
+            w = gtk_label_new (NULL);
+            gchar *markup = NULL;
+
+            if (proxy->display_name == NULL)
+                markup = g_strdup_printf ("%s - <i>%s</i>", proxy->name, _("no information available"));
+            else
+                markup = g_strdup_printf ("%s - <i>%s</i>", proxy->display_name, proxy->desc);
+
+            gtk_label_set_markup (GTK_LABEL (w), markup);
+            g_free (markup);
+
+            gtk_box_pack_start (GTK_BOX (box), w, FALSE, FALSE, 2);
+
+            GtkWidget *row = gtk_list_box_row_new ();
+            gtk_container_add (GTK_CONTAINER (row), box);
+
+            gtk_widget_show_all (row);
+            gtk_container_add (GTK_CONTAINER (NEMO_CONFIG_BASE_WIDGET (widget)->listbox), row);
         }
 
-        GtkWidget *w;
-        GtkWidget *box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
-
-        GtkWidget *button = gtk_check_button_new ();
-
-        gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (button), active);
-        g_signal_connect (button, "toggled", G_CALLBACK (on_check_toggled), proxy);
-        gtk_box_pack_start (GTK_BOX (box), button, FALSE, FALSE, 2);
-
-        w = gtk_label_new (NULL);
-        gchar *markup = NULL;
-
-        if (proxy->display_name == NULL)
-            markup = g_strdup_printf ("%s - <i>%s</i>", proxy->name, _("no information available"));
-        else
-            markup = g_strdup_printf ("%s - <i>%s</i>", proxy->display_name, proxy->desc);
-
-        gtk_label_set_markup (GTK_LABEL (w), markup);
-        g_free (markup);
-
-        gtk_box_pack_start (GTK_BOX (box), w, FALSE, FALSE, 2);
-
-        GtkWidget *row = gtk_list_box_row_new ();
-        gtk_container_add (GTK_CONTAINER (row), box);
-
-        gtk_widget_show_all (row);
-        gtk_container_add (GTK_CONTAINER (NEMO_CONFIG_BASE_WIDGET (widget)->listbox), row);
+        g_strfreev (blacklist);
     }
 
-    g_strfreev (blacklist);
+    nemo_config_base_widget_set_default_buttons_sensitive (NEMO_CONFIG_BASE_WIDGET (widget), widget->extensions != NULL);
 }
 
 static void

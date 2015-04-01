@@ -144,6 +144,21 @@ nemo_config_base_widget_get_disable_button (NemoConfigBaseWidget *widget)
 }
 
 /**
+ * nemo_config_base_widget_set_default_buttons_sensitive:
+ * @widget: a #NemoConfigBaseWidget
+ * @sensitive: TRUE or FALSE
+ *
+ * Set the enable/disable buttons sensitive or not
+ */
+
+void
+nemo_config_base_widget_set_default_buttons_sensitive (NemoConfigBaseWidget *widget, gboolean sensitive)
+{
+    gtk_widget_set_sensitive (widget->enable_button, sensitive);
+    gtk_widget_set_sensitive (widget->disable_button, sensitive);
+}
+
+/**
  * nemo_config_base_widget_clear_list:
  * @widget: a #NemoConfigBaseWidget
  * 

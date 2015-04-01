@@ -5,6 +5,7 @@ bin_PROGRAMS=					\
 	nemo-autorun-software		\
 	nemo-connect-server			\
     nemo-open-with \
+    nemo-plugin-manager \
 	$(NULL)
 
 libexec_PROGRAMS=				\
@@ -210,6 +211,10 @@ nemo_connect_server_SOURCES= \
 
 nemo_open_with_SOURCES = \
     nemo-open-with-main.c \
+    $(NULL)
+
+nemo_plugin_manager_SOURCES = \
+    nemo-plugin-manager-main.c \
     $(NULL)
 
 nemo_convert_metadata_SOURCES= \

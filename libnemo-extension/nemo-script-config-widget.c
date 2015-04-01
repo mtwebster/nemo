@@ -152,45 +152,45 @@ refresh_widget (NemoScriptConfigWidget *widget)
 
         gtk_widget_show_all (empty_row);
         gtk_container_add (GTK_CONTAINER (NEMO_CONFIG_BASE_WIDGET (widget)->listbox), empty_row);
+    } else {
+        GList *l;
+        gchar **blacklist = g_settings_get_strv (widget->settings, BLACKLIST_KEY);
 
-        return;
-    }
+        for (l = widget->scripts; l != NULL; l=l->next) {
+            ScriptProxy *proxy = l->data;
 
-    GList *l;
-    gchar **blacklist = g_settings_get_strv (widget->settings, BLACKLIST_KEY);
+            gboolean active = TRUE;
+            gint i = 0;
 
-    for (l = widget->scripts; l != NULL; l=l->next) {
-        ScriptProxy *proxy = l->data;
-
-        gboolean active = TRUE;
-        gint i = 0;
-
-        for (i = 0; i < g_strv_length (blacklist); i++) {
-            if (g_strcmp0 (blacklist[i], proxy->name) == 0) {
-                active = FALSE;
-                break;
+            for (i = 0; i < g_strv_length (blacklist); i++) {
+                if (g_strcmp0 (blacklist[i], proxy->name) == 0) {
+                    active = FALSE;
+                    break;
+                }
             }
+
+            GtkWidget *w;
+            GtkWidget *box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
+
+            GtkWidget *button = gtk_check_button_new ();
+            gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (button), active);
+            g_signal_connect (button, "toggled", G_CALLBACK (on_check_toggled), proxy);
+            gtk_box_pack_start (GTK_BOX (box), button, FALSE, FALSE, 2);
+
+            w = gtk_label_new (proxy->name);
+            gtk_box_pack_start (GTK_BOX (box), w, FALSE, FALSE, 2);
+
+            GtkWidget *row = gtk_list_box_row_new ();
+            gtk_container_add (GTK_CONTAINER (row), box);
+
+            gtk_widget_show_all (row);
+            gtk_container_add (GTK_CONTAINER (NEMO_CONFIG_BASE_WIDGET (widget)->listbox), row);
         }
 
-        GtkWidget *w;
-        GtkWidget *box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
-
-        GtkWidget *button = gtk_check_button_new ();
-        gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (button), active);
-        g_signal_connect (button, "toggled", G_CALLBACK (on_check_toggled), proxy);
-        gtk_box_pack_start (GTK_BOX (box), button, FALSE, FALSE, 2);
-
-        w = gtk_label_new (proxy->name);
-        gtk_box_pack_start (GTK_BOX (box), w, FALSE, FALSE, 2);
-
-        GtkWidget *row = gtk_list_box_row_new ();
-        gtk_container_add (GTK_CONTAINER (row), box);
-
-        gtk_widget_show_all (row);
-        gtk_container_add (GTK_CONTAINER (NEMO_CONFIG_BASE_WIDGET (widget)->listbox), row);
+        g_strfreev (blacklist);
     }
 
-    g_strfreev (blacklist);
+    nemo_config_base_widget_set_default_buttons_sensitive (NEMO_CONFIG_BASE_WIDGET (widget), widget->scripts != NULL);
 }
 
 static void

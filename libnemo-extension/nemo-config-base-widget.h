@@ -48,6 +48,8 @@ GtkWidget *nemo_config_base_widget_get_buttonbox      (NemoConfigBaseWidget *wid
 GtkWidget *nemo_config_base_widget_get_enable_button  (NemoConfigBaseWidget *widget);
 GtkWidget *nemo_config_base_widget_get_disable_button (NemoConfigBaseWidget *widget);
 
+void       nemo_config_base_widget_set_default_buttons_sensitive (NemoConfigBaseWidget *widget, gboolean sensitive);
+
 void       nemo_config_base_widget_clear_list         (NemoConfigBaseWidget *widget);
 
 G_END_DECLS

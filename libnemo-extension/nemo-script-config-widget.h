@@ -32,6 +32,8 @@ struct _NemoScriptConfigWidget
 
   GList *scripts;
   GSettings *settings;
+
+  gulong bl_handler;
 };
 
 struct _NemoScriptConfigWidgetClass

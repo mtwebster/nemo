@@ -35,6 +35,8 @@ struct _NemoExtensionConfigWidget
 
   GList *nemo_modules;
   GList *module_objects;
+
+  gulong bl_handler;
 };
 
 struct _NemoExtensionConfigWidgetClass

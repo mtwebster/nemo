@@ -1,6 +1,0 @@
-#!/usr/bin/python
-
-import os, sys
-
-os.execvp("/usr/lib/nemo-plugin-manager/nemo-plugin-manager.py", ("",) + tuple(sys.argv[1:]))
-

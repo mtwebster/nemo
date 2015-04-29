@@ -162,7 +162,6 @@ refresh_widget (NemoExtensionConfigWidget *widget)
         g_free (markup);
 
         GtkWidget *empty_row = gtk_list_box_row_new ();
-        gtk_list_box_row_set_activatable (GTK_LIST_BOX_ROW (empty_row), FALSE);
         gtk_container_add (GTK_CONTAINER (empty_row), empty_label);
 
         gtk_widget_show_all (empty_row);

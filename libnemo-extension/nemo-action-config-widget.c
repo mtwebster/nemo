@@ -224,7 +224,6 @@ refresh_widget (NemoActionConfigWidget *widget)
         g_free (markup);
 
         GtkWidget *empty_row = gtk_list_box_row_new ();
-        gtk_list_box_row_set_activatable (GTK_LIST_BOX_ROW (empty_row), FALSE);
         gtk_container_add (GTK_CONTAINER (empty_row), empty_label);
 
         gtk_widget_show_all (empty_row);
@@ -314,6 +313,21 @@ on_disable_clicked (GtkWidget *button, NemoActionConfigWidget *widget)
 }
 
 static void
+on_open_folder_clicked (GtkWidget *button, NemoActionConfigWidget *widget)
+{
+    eel_show_action_folder_popup_dialog (GTK_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET (widget))));
+
+    gchar *path = NULL;
+    path = g_build_filename (g_get_user_data_dir (), "nemo", "actions", NULL);
+
+    gchar *cmd = g_strdup_printf ("nemo %s", path);
+    g_spawn_command_line_async (cmd, NULL);
+
+    g_free (path);
+    g_free (cmd);
+}
+
+static void
 nemo_action_config_widget_class_init (NemoActionConfigWidgetClass *klass)
 {
 }
@@ -336,6 +350,13 @@ nemo_action_config_widget_init (NemoActionConfigWidget *self)
 
     g_free (title);
     g_free (markup);
+
+    GtkWidget *widget = gtk_button_new_with_label (_("Open Actions Folder"));
+    gtk_container_add (GTK_CONTAINER (nemo_config_base_widget_get_buttonbox (NEMO_CONFIG_BASE_WIDGET (self))),
+                       widget);
+    gtk_widget_show (widget);
+
+    g_signal_connect (widget, "clicked", G_CALLBACK (on_open_folder_clicked), self);
 
     g_signal_connect (nemo_config_base_widget_get_enable_button (NEMO_CONFIG_BASE_WIDGET (self)), "clicked",
                                                                  G_CALLBACK (on_enable_clicked), self);

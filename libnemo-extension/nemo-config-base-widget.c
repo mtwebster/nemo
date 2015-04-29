@@ -57,7 +57,7 @@ nemo_config_base_widget_init (NemoConfigBaseWidget *self)
 
     w = gtk_toolbar_new ();
     context = gtk_widget_get_style_context (w);
-    gtk_style_context_add_class (context, "primary-toolbar");
+    gtk_style_context_add_class (context, GTK_STYLE_CLASS_TOOLBAR);
     gtk_box_pack_start (GTK_BOX (box), w, FALSE, FALSE, 0);
 
     toolbar_item = GTK_WIDGET (gtk_tool_item_new ());
@@ -68,6 +68,7 @@ nemo_config_base_widget_init (NemoConfigBaseWidget *self)
     gtk_button_box_set_layout (GTK_BUTTON_BOX (w), GTK_BUTTONBOX_END);
     gtk_box_set_spacing (GTK_BOX (w), 6);
     gtk_container_add (GTK_CONTAINER (toolbar_item), w);
+    self->buttonbox = w;
 
     self->disable_button = gtk_button_new_with_label (_("Disable all"));
     gtk_container_add (GTK_CONTAINER (w), self->disable_button);

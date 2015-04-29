@@ -116,7 +116,7 @@ module_object_weak_notify (gpointer user_data, GObject *object)
 }
 
 static gboolean
-should_load_extension (GType type)
+module_is_selected (GType type)
 {
     gchar **disabled_list = g_settings_get_strv (nemo_plugin_preferences, NEMO_PLUGIN_PREFERENCES_DISABLED_EXTENSIONS);
 
@@ -145,7 +145,7 @@ add_module_objects (NemoModule *module)
 		if (types[i] == 0) { /* Work around broken extensions */
 			break;
 		}
-        if (should_load_extension (types[i])) {
+        if (module_is_selected (types[i])) {
             nemo_module_add_type (types[i]);
         }
     }
@@ -217,6 +217,24 @@ free_module_objects (void)
 }
 
 static void
+free_disabled_module_objects (void)
+{
+    GList *l;
+    GList *to_remove = NULL;
+    
+    for (l = module_objects; l != NULL; l = l->next) {
+        if (!module_is_selected (G_OBJECT_TYPE (l->data)))
+            to_remove = g_list_prepend (to_remove, l->data);
+    }
+
+    for (l = to_remove; l != NULL; l = l->next) {
+        GObject *obj = l->data;
+        module_objects = g_list_remove (module_objects, l->data);
+        g_object_unref (obj);
+    }
+}
+
+static void
 free_nemo_modules (void)
 {
     GList *l, *next;
@@ -257,9 +275,9 @@ nemo_module_setup (void)
 void
 nemo_module_refresh (void)
 {
-    free_module_objects ();
+    free_disabled_module_objects ();
 
-    module_objects = NULL;
+    // module_objects = NULL;
 
     load_module_dir (NEMO_EXTENSIONDIR);
 }

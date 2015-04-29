@@ -106,8 +106,6 @@ populate_from_directory (const gchar *path)
 
         g_dir_close (dir);
     }
-
-    // g_main_loop_quit (gmain);
 }
 
 GList *

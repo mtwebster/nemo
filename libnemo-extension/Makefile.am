@@ -19,7 +19,8 @@ libnemo_extension_la_LDFLAGS=\
 	-no-undefined \
 	$(NULL)
 
-libnemo_extension_la_LIBADD = $(BASE_LIBS)
+libnemo_extension_la_LIBADD = $(BASE_LIBS) \
+    $(top_builddir)/eel/libeel-2.la
 
 libnemo_extension_includedir=$(includedir)/nemo/libnemo-extension
 

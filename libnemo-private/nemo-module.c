@@ -277,8 +277,6 @@ nemo_module_refresh (void)
 {
     free_disabled_module_objects ();
 
-    // module_objects = NULL;
-
     load_module_dir (NEMO_EXTENSIONDIR);
 }
 

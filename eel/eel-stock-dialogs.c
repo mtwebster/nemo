@@ -583,7 +583,7 @@ eel_create_question_dialog (const char *primary_text,
 
 GtkDialog *
 eel_show_script_folder_popup_dialog (GtkWindow *parent) {
-    eel_show_info_dialog_with_details
+    return eel_show_info_dialog_with_details
         (_("All executable files in this folder will appear in the "
            "Scripts menu."),
          _("Choosing a script from the menu will run "
@@ -609,7 +609,7 @@ eel_show_script_folder_popup_dialog (GtkWindow *parent) {
 
 GtkDialog *
 eel_show_action_folder_popup_dialog (GtkWindow *parent) {
-    eel_show_info_dialog_with_details
+    return eel_show_info_dialog_with_details
        (_("You can create your own actions and place them in this folder."),
         _("Choosing an action from the popup menu will execute that action on your current selection"), 
         _("See the sample action file in /usr/share/nemo/actions to see how to make your own"),

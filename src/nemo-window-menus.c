@@ -53,6 +53,8 @@
 #include <eel/eel-stock-dialogs.h>
 
 #include <libnemo-extension/nemo-menu-provider.h>
+#include <libnemo-extension/nemo-plugin-manager-widget.h>
+
 #include <libnemo-private/nemo-file-utilities.h>
 #include <libnemo-private/nemo-global-preferences.h>
 #include <libnemo-private/nemo-icon-names.h>
@@ -286,9 +288,20 @@ action_preferences_callback (GtkAction *action,
 
 static void
 action_plugins_callback (GtkAction *action, 
-                        gpointer user_data)
+                         gpointer user_data)
 {
-    g_spawn_command_line_async ("nemo-plugin-manager", NULL);
+    GtkWidget *window = NULL;
+    window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+
+    gtk_window_set_title (GTK_WINDOW (window), _("Nemo Plugin Manager"));
+    gtk_window_set_icon_name (GTK_WINDOW (window), "preferences-system");
+
+    gtk_window_set_default_size (GTK_WINDOW (window), 640, 480);
+
+    NemoPluginManagerWidget *pm = nemo_plugin_manager_widget_new ();
+    gtk_container_add (GTK_CONTAINER (window), GTK_WIDGET (pm));
+
+    gtk_widget_show_all (GTK_WIDGET (window));
 }
 
 static void

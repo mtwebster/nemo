@@ -22,6 +22,7 @@
 #include <gtk/gtk.h>
 
 #include "nemo-interesting-folder-bar.h"
+#include "nemo-application.h"
 
 #include "nemo-view.h"
 #include <libnemo-private/nemo-file-operations.h>
@@ -40,7 +41,9 @@ enum {
 
 enum {
     INTERESTING_FOLDER_BAR_ACTION_OPEN_DOC = 1,
-	INTERESTING_FOLDER_BAR_SCRIPT_OPEN_DOC
+    INTERESTING_FOLDER_BAR_SCRIPT_OPEN_DOC,
+    INTERESTING_FOLDER_BAR_FIX_CACHE,
+    INTERESTING_FOLDER_BAR_FIX_CACHE_DISMISS
 };
 
 struct NemoInterestingFolderBarPrivate
@@ -74,6 +77,16 @@ interesting_folder_bar_response_cb (GtkInfoBar *infobar,
             if (g_file_query_exists (f, NULL))
                 nemo_view_activate_file (bar->priv->view, nemo_file_get (f), NEMO_WINDOW_OPEN_FLAG_NEW_WINDOW);
             g_object_unref (f);
+            break;
+        case INTERESTING_FOLDER_BAR_FIX_CACHE:
+            g_spawn_command_line_sync ("sh -c \"pkexec nemo --clear-cache\"", NULL, NULL, NULL, NULL);
+            nemo_application_clear_cache_flag (nemo_application_get_singleton ());
+            nemo_window_slot_reload (nemo_view_get_nemo_window_slot (bar->priv->view));
+            gtk_widget_hide (GTK_WIDGET (infobar));
+            break;
+        case INTERESTING_FOLDER_BAR_FIX_CACHE_DISMISS:
+            nemo_application_clear_cache_flag (nemo_application_get_singleton ());
+            gtk_widget_hide (GTK_WIDGET (infobar));
             break;
         default:
             break;
@@ -135,6 +148,15 @@ nemo_interesting_folder_bar_constructed (GObject *obj)
                                          INTERESTING_FOLDER_BAR_SCRIPT_OPEN_DOC);
             gtk_widget_set_tooltip_text (w, _("View additional information about creating scripts"));
             break;
+        case TYPE_CACHE_BAD:
+            label = gtk_label_new (_("A problem has been detected with your thumbnail cache.  Fixing will require administrative privileges."));
+            w = gtk_info_bar_add_button (GTK_INFO_BAR (bar),
+                                         _("Fix now"),
+                                         INTERESTING_FOLDER_BAR_FIX_CACHE);
+            w = gtk_info_bar_add_button (GTK_INFO_BAR (bar),
+                                         _("Dismiss"),
+                                         INTERESTING_FOLDER_BAR_FIX_CACHE_DISMISS);
+            break;
         default:
             label = gtk_label_new ("undefined");
             break;
@@ -176,7 +198,7 @@ nemo_interesting_folder_bar_class_init (NemoInterestingFolderBarClass *klass)
                                   "type",
                                   "the InterestingFolderType",
                                   TYPE_NONE_FOLDER,
-                                  TYPE_SCRIPTS_FOLDER,
+                                  TYPE_CACHE_BAD,
                                   TYPE_NONE_FOLDER,
                                   G_PARAM_WRITABLE |
                                   G_PARAM_CONSTRUCT_ONLY |

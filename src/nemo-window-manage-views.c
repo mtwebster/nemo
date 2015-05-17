@@ -39,6 +39,7 @@
 #include "nemo-trash-bar.h"
 #include "nemo-view-factory.h"
 #include "nemo-x-content-bar.h"
+#include "nemo-interesting-folder-bar.h"
 #include <eel/eel-accessibility.h>
 #include <eel/eel-debug.h>
 #include <eel/eel-glib-extensions.h>
@@ -1455,6 +1456,14 @@ update_for_new_location (NemoWindowSlot *slot)
 		}
 
         maybe_show_interesting_folder_bar (slot);
+
+        if (nemo_application_get_cache_bad (nemo_application_get_singleton ())) {
+            GtkWidget *bad_bar = nemo_interesting_folder_bar_new (nemo_window_slot_get_current_view (slot), TYPE_CACHE_BAD);
+            if (bad_bar) {
+                gtk_widget_show (bad_bar);
+                nemo_window_slot_add_extra_location_widget (slot, bad_bar);
+            }
+        }
 
 		/* need the mount to determine if we should put up the x-content cluebar */
 		if (slot->find_mount_cancellable != NULL) {

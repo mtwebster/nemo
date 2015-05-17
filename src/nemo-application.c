@@ -70,6 +70,7 @@
 #include <sys/stat.h>
 #include <pwd.h>
 #include <fcntl.h>
+#include <errno.h>
 #include <glib/gstdio.h>
 #include <glib/gi18n.h>
 #include <gio/gio.h>
@@ -113,6 +114,8 @@ struct _NemoApplicationPriv {
 
 	gboolean no_desktop;
 	gchar *geometry;
+
+    gboolean cache_problem;
 
     NotifyNotification *unmount_notify;
 };
@@ -838,6 +841,75 @@ do_perform_self_checks (gint *exit_status)
 	*exit_status = EXIT_SUCCESS;
 }
 
+static gboolean
+access_ok (const gchar *path)
+{
+    if (g_access (path, R_OK|W_OK) != 0) {
+        if (errno != ENOENT)
+            return FALSE;
+    }
+
+    return TRUE;
+}
+
+static gboolean
+recursively_check_file (const gchar *path)
+{
+    if (!access_ok (path))
+        return FALSE;
+
+    gboolean ret = TRUE;
+
+    if (g_file_test (path, G_FILE_TEST_IS_DIR)) {
+        GDir *dir = g_dir_open (path, 0, NULL);
+
+        if (dir) {
+            const char *name;
+
+            while ((name = g_dir_read_name (dir))) {
+                gchar *filename;
+                filename = g_build_filename (path, name, NULL);
+
+                if (!recursively_check_file (filename)) {
+                    ret = FALSE;
+                }
+
+                g_free (filename);
+
+                if (!ret)
+                    break;
+            }
+
+            g_dir_close (dir);
+        }
+    }
+
+    return ret;
+}
+
+static void
+check_cache_directory (NemoApplication *application)
+{
+    const gchar *cache_dir = g_get_user_cache_dir ();
+
+    gchar *base_dir;
+
+    base_dir = g_build_filename (cache_dir, "thumbnails", NULL);
+
+    if (!access_ok (base_dir))
+        goto problem;
+
+    if (!recursively_check_file (base_dir))
+        goto problem;
+
+    g_free (base_dir);
+    return;
+
+problem:
+    application->priv->cache_problem = TRUE;
+    g_free (base_dir);
+}
+
 static void
 clear_thumbnail_cache (void)
 {
@@ -1239,19 +1311,6 @@ menu_state_changed_callback (NemoApplication *self)
 
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 static void
 nemo_application_startup (GApplication *app)
 {
@@ -1315,6 +1374,8 @@ nemo_application_startup (GApplication *app)
 	 * if there are problems.
 	 */
 	check_required_directories (self);
+
+    check_cache_directory (self);
 
     if (geteuid() != 0)
         init_desktop (self);
@@ -1381,3 +1442,16 @@ nemo_application_get_singleton (void)
                          "inactivity-timeout", 12000,
                          NULL);
 }
+
+gboolean
+nemo_application_get_cache_bad (NemoApplication *application)
+{
+    return application->priv->cache_problem;
+}
+
+void
+nemo_application_clear_cache_flag (NemoApplication *application)
+{
+    application->priv->cache_problem = FALSE;
+}
+

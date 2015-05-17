@@ -49,7 +49,7 @@
 #include "nemo-file-private.h"
 
 /* turn this on to see messages about thumbnail creation */
-#if 0
+#if 1
 #define DEBUG_THUMBNAILS
 #endif
 

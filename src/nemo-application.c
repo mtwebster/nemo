@@ -68,6 +68,7 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <pwd.h>
 #include <fcntl.h>
 #include <glib/gstdio.h>
 #include <glib/gi18n.h>
@@ -837,6 +838,38 @@ do_perform_self_checks (gint *exit_status)
 	*exit_status = EXIT_SUCCESS;
 }
 
+static void
+clear_thumbnail_cache (void)
+{
+    struct passwd *pwent;
+    gchar *cache_dir;
+
+    if (getuid () != geteuid ()) {
+        gint uid = getuid ();
+        pwent = getpwuid (uid);
+    } else if (g_getenv ("SUDO_UID") != NULL) {
+        gint uid = (int) g_ascii_strtoll (g_getenv ("SUDO_UID"), NULL, 10);
+        pwent = getpwuid (uid);
+    } else if (g_getenv ("PKEXEC_UID") != NULL) {
+        gint uid = (int) g_ascii_strtoll (g_getenv ("PKEXEC_UID"), NULL, 10);
+        pwent = getpwuid (uid);
+    } else if (g_getenv ("USERNAME") != NULL) {
+        pwent = getpwnam (g_getenv ("USERNAME"));
+    }
+
+    if (!pwent) {
+        g_printerr ("clear-cache error: Could not determine session user.\n");
+        return;
+    }
+
+    cache_dir = g_build_filename (pwent->pw_dir, ".cache", "thumbnails", NULL);
+    gchar *cmd = g_strdup_printf ("rm -rf %s", cache_dir);
+    g_free (cache_dir);
+
+    system (cmd);
+    g_free (cmd);
+}
+
 void
 nemo_application_quit (NemoApplication *self)
 {
@@ -860,6 +893,7 @@ nemo_application_local_command_line (GApplication *application,
 	gboolean browser = FALSE;
 	gboolean kill_shell = FALSE;
 	gboolean no_default_window = FALSE;
+    gboolean clear_cache = FALSE;
 	gchar **remaining = NULL;
 	NemoApplication *self = NEMO_APPLICATION (application);
 
@@ -879,6 +913,8 @@ nemo_application_local_command_line (GApplication *application,
 		  N_("Only create windows for explicitly specified URIs."), NULL },
 		{ "no-desktop", '\0', 0, G_OPTION_ARG_NONE, &self->priv->no_desktop,
 		  N_("Do not manage the desktop (ignore the preference set in the preferences dialog)."), NULL },
+        { "clear-cache", '\0', 0, G_OPTION_ARG_NONE, &clear_cache,
+          N_("Clear the user thumbnail cache - this can be useful if you're having trouble with file thumbnails.  Must be run as root"), NULL },
 		{ "quit", 'q', 0, G_OPTION_ARG_NONE, &kill_shell, 
 		  N_("Quit Nemo."), NULL },
 		{ G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_STRING_ARRAY, &remaining, NULL,  N_("[URI...]") },
@@ -922,6 +958,17 @@ nemo_application_local_command_line (GApplication *application,
 		do_perform_self_checks (exit_status);
 		goto out;
 	}
+
+    if (clear_cache) {
+        if (geteuid () != 0) {
+            g_printerr ("The --fix-cache option must be run with sudo or as the root user.\n");
+        } else {
+            clear_thumbnail_cache ();
+            g_print ("User thumbnail cache successfully cleared.\n");
+        }
+
+        goto out;
+    }
 
 	DEBUG ("Parsing local command line, no_default_window %d, quit %d, "
 	       "self checks %d, no_desktop %d",

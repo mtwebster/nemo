@@ -841,21 +841,77 @@ do_perform_self_checks (gint *exit_status)
 	*exit_status = EXIT_SUCCESS;
 }
 
-static gboolean
-access_ok (const gchar *path)
+static void
+fix_owner (const gchar *path, uid_t uid, gid_t gid)
 {
+    G_GNUC_UNUSED int res;
+
+    res = chown (path, uid, gid);
+}
+
+static gboolean
+access_ok (const gchar *path, uid_t uid, gid_t gid)
+{
+    /* user mode will always trip on this */
     if (g_access (path, R_OK|W_OK) != 0) {
         if (errno != ENOENT)
+            return FALSE;
+        else
+            return TRUE;
+    }
+
+    /* root will need to check against the real user */
+
+    GStatBuf buf;
+
+    gint ret = g_stat (path, &buf);
+
+    if (ret == 0) {
+        if (buf.st_uid != uid || buf.st_gid != gid || (buf.st_mode & S_IRUSR|S_IWUSR != 0))
             return FALSE;
     }
 
     return TRUE;
 }
 
-static gboolean
-recursively_check_file (const gchar *path)
+static void
+recursively_fix_file (const gchar *path, uid_t uid, gid_t gid)
 {
-    if (!access_ok (path))
+    if (!access_ok (path, uid, gid))
+        fix_owner (path, uid, gid);
+
+    if (g_file_test (path, G_FILE_TEST_IS_DIR)) {
+        GDir *dir = g_dir_open (path, 0, NULL);
+
+        if (dir) {
+            const char *name;
+
+            while ((name = g_dir_read_name (dir))) {
+                gchar *filename;
+
+                filename = g_build_filename (path, name, NULL);
+                recursively_fix_file (filename, uid, gid);
+                g_free (filename);
+            }
+
+            g_dir_close (dir);
+        }
+    }
+}
+
+static void
+fix_cache_directory (const gchar *cache_dir, uid_t uid, gid_t gid)
+{
+    if (!access_ok (cache_dir, uid, gid))
+        fix_owner (cache_dir, uid, gid);
+
+    recursively_fix_file (cache_dir, uid, gid);
+}
+
+static gboolean
+recursively_check_file (const gchar *path, uid_t uid, gid_t gid)
+{
+    if (!access_ok (path, uid, gid))
         return FALSE;
 
     gboolean ret = TRUE;
@@ -870,7 +926,7 @@ recursively_check_file (const gchar *path)
                 gchar *filename;
                 filename = g_build_filename (path, name, NULL);
 
-                if (!recursively_check_file (filename)) {
+                if (!recursively_check_file (filename, uid, gid)) {
                     ret = FALSE;
                 }
 
@@ -887,34 +943,10 @@ recursively_check_file (const gchar *path)
     return ret;
 }
 
-static void
-check_cache_directory (NemoApplication *application)
-{
-    const gchar *cache_dir = g_get_user_cache_dir ();
-
-    gchar *base_dir;
-
-    base_dir = g_build_filename (cache_dir, "thumbnails", NULL);
-
-    if (!access_ok (base_dir))
-        goto problem;
-
-    if (!recursively_check_file (base_dir))
-        goto problem;
-
-    g_free (base_dir);
-    return;
-
-problem:
-    application->priv->cache_problem = TRUE;
-    g_free (base_dir);
-}
-
-static void
-clear_thumbnail_cache (void)
+static struct passwd *
+get_real_pwent (void)
 {
     struct passwd *pwent;
-    gchar *cache_dir;
 
     if (getuid () != geteuid ()) {
         gint uid = getuid ();
@@ -930,16 +962,47 @@ clear_thumbnail_cache (void)
     }
 
     if (!pwent) {
-        g_printerr ("clear-cache error: Could not determine session user.\n");
-        return;
+        g_printerr ("fix-cache error: Could not determine session user.\n");
+        return NULL;
     }
 
-    cache_dir = g_build_filename (pwent->pw_dir, ".cache", "thumbnails", NULL);
-    gchar *cmd = g_strdup_printf ("rm -rf %s", cache_dir);
-    g_free (cache_dir);
+    return pwent;
+}
 
-    system (cmd);
-    g_free (cmd);
+static void
+check_cache_directory (NemoApplication *application)
+{
+    struct passwd *pwent;
+
+    pwent = get_real_pwent ();
+
+    gchar *cache_dir = g_build_filename (pwent->pw_dir, ".cache", "thumbnails", NULL);
+
+    if (!access_ok (cache_dir, pwent->pw_uid, pwent->pw_gid))
+        goto problem;
+
+    if (!recursively_check_file (cache_dir, pwent->pw_uid, pwent->pw_gid))
+        goto problem;
+
+    g_free (cache_dir);
+    return;
+
+problem:
+    application->priv->cache_problem = TRUE;
+    g_free (cache_dir);
+}
+
+static void
+fix_thumbnail_cache (void)
+{
+    struct passwd *pwent;
+
+    pwent = get_real_pwent ();
+
+    gchar *cache_dir = g_build_filename (pwent->pw_dir, ".cache", "thumbnails", NULL);
+
+    fix_cache_directory (cache_dir, pwent->pw_uid, pwent->pw_gid);
+    g_free (cache_dir);
 }
 
 void
@@ -965,7 +1028,7 @@ nemo_application_local_command_line (GApplication *application,
 	gboolean browser = FALSE;
 	gboolean kill_shell = FALSE;
 	gboolean no_default_window = FALSE;
-    gboolean clear_cache = FALSE;
+    gboolean fix_cache = FALSE;
 	gchar **remaining = NULL;
 	NemoApplication *self = NEMO_APPLICATION (application);
 
@@ -985,7 +1048,7 @@ nemo_application_local_command_line (GApplication *application,
 		  N_("Only create windows for explicitly specified URIs."), NULL },
 		{ "no-desktop", '\0', 0, G_OPTION_ARG_NONE, &self->priv->no_desktop,
 		  N_("Do not manage the desktop (ignore the preference set in the preferences dialog)."), NULL },
-        { "clear-cache", '\0', 0, G_OPTION_ARG_NONE, &clear_cache,
+        { "fix-cache", '\0', 0, G_OPTION_ARG_NONE, &fix_cache,
           N_("Clear the user thumbnail cache - this can be useful if you're having trouble with file thumbnails.  Must be run as root"), NULL },
 		{ "quit", 'q', 0, G_OPTION_ARG_NONE, &kill_shell, 
 		  N_("Quit Nemo."), NULL },
@@ -1031,12 +1094,12 @@ nemo_application_local_command_line (GApplication *application,
 		goto out;
 	}
 
-    if (clear_cache) {
+    if (fix_cache) {
         if (geteuid () != 0) {
             g_printerr ("The --fix-cache option must be run with sudo or as the root user.\n");
         } else {
-            clear_thumbnail_cache ();
-            g_print ("User thumbnail cache successfully cleared.\n");
+            fix_thumbnail_cache ();
+            g_print ("User thumbnail cache successfully repaired.\n");
         }
 
         goto out;
@@ -1375,7 +1438,15 @@ nemo_application_startup (GApplication *app)
 	 */
 	check_required_directories (self);
 
-    check_cache_directory (self);
+    self->priv->cache_problem = FALSE;
+
+    /* silently check and fix the cache when running as root */
+    if (geteuid () == 0) {
+        check_cache_directory (self);
+        if (self->priv->cache_problem)
+            fix_thumbnail_cache ();
+        self->priv->cache_problem = FALSE;
+    }
 
     if (geteuid() != 0)
         init_desktop (self);
@@ -1453,5 +1524,11 @@ void
 nemo_application_clear_cache_flag (NemoApplication *application)
 {
     application->priv->cache_problem = FALSE;
+}
+
+void
+nemo_application_set_cache_flag (NemoApplication *application)
+{
+    application->priv->cache_problem = TRUE;
 }
 

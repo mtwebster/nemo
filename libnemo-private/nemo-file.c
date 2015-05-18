@@ -67,6 +67,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <errno.h>
 
 #ifdef HAVE_SELINUX
 #include <selinux/selinux.h>
@@ -4024,6 +4025,22 @@ nemo_file_get_filesystem_use_preview (NemoFile *file)
 	return use_preview;
 }
 
+/* This check can be simpler for checking a single file - 
+   if we're running as root, permissions were already fixed at startup.
+   Besides, you'd only have ownership/permission issues with viewing the
+   thumbnail as a normal user */
+
+static gboolean
+access_ok (const gchar *path)
+{
+    if (g_access (path, R_OK|W_OK) != 0) {
+        if (errno != ENOENT)
+            return FALSE;
+    }
+
+    return TRUE;
+}
+
 gboolean
 nemo_file_should_show_thumbnail (NemoFile *file)
 {
@@ -4038,6 +4055,12 @@ nemo_file_should_show_thumbnail (NemoFile *file)
 	    nemo_file_get_size (file) > cached_thumbnail_limit) {
 		return FALSE;
 	}
+
+    if (file->details->thumbnail_path != NULL &&
+        !access_ok (file->details->thumbnail_path)) {
+        file->details->thumbnail_access_problem = TRUE;
+        return FALSE;
+    }
 
 	if (show_image_thumbs == NEMO_SPEED_TRADEOFF_ALWAYS) {
 		if (use_preview == G_FILESYSTEM_PREVIEW_TYPE_NEVER) {
@@ -7575,6 +7598,12 @@ nemo_file_construct_tooltip (NemoFile *file, NemoFileTooltipFlags flags)
     g_string_free (string, FALSE);
 
     return ret;
+}
+
+gboolean
+nemo_file_has_thumbnail_access_problem   (NemoFile *file)
+{
+    return file->details->thumbnail_access_problem;
 }
 
 static void

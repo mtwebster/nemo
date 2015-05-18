@@ -79,7 +79,7 @@ interesting_folder_bar_response_cb (GtkInfoBar *infobar,
             g_object_unref (f);
             break;
         case INTERESTING_FOLDER_BAR_FIX_CACHE:
-            g_spawn_command_line_sync ("sh -c \"pkexec nemo --clear-cache\"", NULL, NULL, NULL, NULL);
+            g_spawn_command_line_sync ("sh -c \"pkexec nemo --fix-cache\"", NULL, NULL, NULL, NULL);
             nemo_application_clear_cache_flag (nemo_application_get_singleton ());
             nemo_window_slot_reload (nemo_view_get_nemo_window_slot (bar->priv->view));
             gtk_widget_hide (GTK_WIDGET (infobar));

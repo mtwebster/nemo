@@ -1457,13 +1457,7 @@ update_for_new_location (NemoWindowSlot *slot)
 
         maybe_show_interesting_folder_bar (slot);
 
-        if (nemo_application_get_cache_bad (nemo_application_get_singleton ())) {
-            GtkWidget *bad_bar = nemo_interesting_folder_bar_new (nemo_window_slot_get_current_view (slot), TYPE_CACHE_BAD);
-            if (bad_bar) {
-                gtk_widget_show (bad_bar);
-                nemo_window_slot_add_extra_location_widget (slot, bad_bar);
-            }
-        }
+        nemo_window_slot_check_bad_cache_bar (slot);
 
 		/* need the mount to determine if we should put up the x-content cluebar */
 		if (slot->find_mount_cancellable != NULL) {
@@ -1891,4 +1885,28 @@ nemo_window_slot_reload (NemoWindowSlot *slot)
         g_free (current_pos);
 	g_object_unref (location);
 	g_list_free_full (selection, g_object_unref);
+}
+
+void
+nemo_window_slot_check_bad_cache_bar (NemoWindowSlot *slot)
+{
+    if (NEMO_IS_DESKTOP_WINDOW (nemo_window_slot_get_window (slot)))
+        return;
+
+    if (nemo_application_get_cache_bad (nemo_application_get_singleton ())) {
+        if (slot->cache_bar != NULL) {
+            gtk_widget_show (slot->cache_bar);
+        } else {
+            GtkWidget *bad_bar = nemo_interesting_folder_bar_new (nemo_window_slot_get_current_view (slot), TYPE_CACHE_BAD);
+            if (bad_bar) {
+                gtk_widget_show (bad_bar);
+                nemo_window_slot_add_extra_location_widget (slot, bad_bar);
+                slot->cache_bar = bad_bar;
+            }
+        }
+    } else {
+        if (slot->cache_bar != NULL) {
+            gtk_widget_hide (slot->cache_bar);
+        }
+    }
 }

@@ -2106,6 +2106,19 @@ update_links_if_target (NemoFile *target_file)
 }
 
 static gboolean
+access_ok (const gchar *path)
+{
+    g_printerr ("access_ok? ");
+    if (g_access (path, R_OK|W_OK) != 0) {
+        g_printerr ("no - error %d\n", errno);
+        if (errno != ENOENT)
+            return FALSE;
+    }
+    g_printerr ("yes\n");
+    return TRUE;
+}
+
+static gboolean
 update_info_internal (NemoFile *file,
 		      GFileInfo *info,
 		      gboolean update_name)
@@ -2439,7 +2452,12 @@ update_info_internal (NemoFile *file,
 	if (g_strcmp0 (file->details->thumbnail_path, thumbnail_path) != 0) {
 		changed = TRUE;
 		g_free (file->details->thumbnail_path);
-		file->details->thumbnail_path = g_strdup (thumbnail_path);
+        if (!access_ok (thumbnail_path)) {
+            file->details->thumbnail_access_problem = TRUE;
+            file->details->thumbnail_path = NULL;
+        } else {
+            file->details->thumbnail_path = g_strdup (thumbnail_path);
+        }
 	}
 
 	thumbnailing_failed =  g_file_info_get_attribute_boolean (info, G_FILE_ATTRIBUTE_THUMBNAILING_FAILED);
@@ -4030,17 +4048,6 @@ nemo_file_get_filesystem_use_preview (NemoFile *file)
    Besides, you'd only have ownership/permission issues with viewing the
    thumbnail as a normal user */
 
-static gboolean
-access_ok (const gchar *path)
-{
-    if (g_access (path, R_OK|W_OK) != 0) {
-        if (errno != ENOENT)
-            return FALSE;
-    }
-
-    return TRUE;
-}
-
 gboolean
 nemo_file_should_show_thumbnail (NemoFile *file)
 {
@@ -4056,11 +4063,8 @@ nemo_file_should_show_thumbnail (NemoFile *file)
 		return FALSE;
 	}
 
-    if (file->details->thumbnail_path != NULL &&
-        !access_ok (file->details->thumbnail_path)) {
-        file->details->thumbnail_access_problem = TRUE;
+    if (file->details->thumbnail_access_problem)
         return FALSE;
-    }
 
 	if (show_image_thumbs == NEMO_SPEED_TRADEOFF_ALWAYS) {
 		if (use_preview == G_FILESYSTEM_PREVIEW_TYPE_NEVER) {

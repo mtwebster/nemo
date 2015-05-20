@@ -80,6 +80,10 @@
 #include <gdk/gdkx.h>
 #include <gtk/gtk.h>
 
+#define GNOME_DESKTOP_USE_UNSTABLE_API
+
+#include <libcinnamon-desktop/gnome-desktop-thumbnail.h>
+
 /* Keep window from shrinking down ridiculously small; numbers are somewhat arbitrary */
 #define APPLICATION_WINDOW_MIN_WIDTH	300
 #define APPLICATION_WINDOW_MIN_HEIGHT	100
@@ -841,170 +845,6 @@ do_perform_self_checks (gint *exit_status)
 	*exit_status = EXIT_SUCCESS;
 }
 
-static void
-fix_owner (const gchar *path, uid_t uid, gid_t gid)
-{
-    G_GNUC_UNUSED int res;
-
-    res = chown (path, uid, gid);
-}
-
-static gboolean
-access_ok (const gchar *path, uid_t uid, gid_t gid)
-{
-    /* user mode will always trip on this */
-    if (g_access (path, R_OK|W_OK) != 0) {
-        if (errno != ENOENT)
-            return FALSE;
-        else
-            return TRUE;
-    }
-
-    /* root will need to check against the real user */
-
-    GStatBuf buf;
-
-    gint ret = g_stat (path, &buf);
-
-    if (ret == 0) {
-        if (buf.st_uid != uid || buf.st_gid != gid || (buf.st_mode & S_IRUSR|S_IWUSR != 0))
-            return FALSE;
-    }
-
-    return TRUE;
-}
-
-static void
-recursively_fix_file (const gchar *path, uid_t uid, gid_t gid)
-{
-    if (!access_ok (path, uid, gid))
-        fix_owner (path, uid, gid);
-
-    if (g_file_test (path, G_FILE_TEST_IS_DIR)) {
-        GDir *dir = g_dir_open (path, 0, NULL);
-
-        if (dir) {
-            const char *name;
-
-            while ((name = g_dir_read_name (dir))) {
-                gchar *filename;
-
-                filename = g_build_filename (path, name, NULL);
-                recursively_fix_file (filename, uid, gid);
-                g_free (filename);
-            }
-
-            g_dir_close (dir);
-        }
-    }
-}
-
-static void
-fix_cache_directory (const gchar *cache_dir, uid_t uid, gid_t gid)
-{
-    if (!access_ok (cache_dir, uid, gid))
-        fix_owner (cache_dir, uid, gid);
-
-    recursively_fix_file (cache_dir, uid, gid);
-}
-
-static gboolean
-recursively_check_file (const gchar *path, uid_t uid, gid_t gid)
-{
-    if (!access_ok (path, uid, gid))
-        return FALSE;
-
-    gboolean ret = TRUE;
-
-    if (g_file_test (path, G_FILE_TEST_IS_DIR)) {
-        GDir *dir = g_dir_open (path, 0, NULL);
-
-        if (dir) {
-            const char *name;
-
-            while ((name = g_dir_read_name (dir))) {
-                gchar *filename;
-                filename = g_build_filename (path, name, NULL);
-
-                if (!recursively_check_file (filename, uid, gid)) {
-                    ret = FALSE;
-                }
-
-                g_free (filename);
-
-                if (!ret)
-                    break;
-            }
-
-            g_dir_close (dir);
-        }
-    }
-
-    return ret;
-}
-
-static struct passwd *
-get_real_pwent (void)
-{
-    struct passwd *pwent;
-
-    if (getuid () != geteuid ()) {
-        gint uid = getuid ();
-        pwent = getpwuid (uid);
-    } else if (g_getenv ("SUDO_UID") != NULL) {
-        gint uid = (int) g_ascii_strtoll (g_getenv ("SUDO_UID"), NULL, 10);
-        pwent = getpwuid (uid);
-    } else if (g_getenv ("PKEXEC_UID") != NULL) {
-        gint uid = (int) g_ascii_strtoll (g_getenv ("PKEXEC_UID"), NULL, 10);
-        pwent = getpwuid (uid);
-    } else if (g_getenv ("USERNAME") != NULL) {
-        pwent = getpwnam (g_getenv ("USERNAME"));
-    }
-
-    if (!pwent) {
-        g_printerr ("fix-cache error: Could not determine session user.\n");
-        return NULL;
-    }
-
-    return pwent;
-}
-
-static void
-check_cache_directory (NemoApplication *application)
-{
-    struct passwd *pwent;
-
-    pwent = get_real_pwent ();
-
-    gchar *cache_dir = g_build_filename (pwent->pw_dir, ".cache", "thumbnails", NULL);
-
-    if (!access_ok (cache_dir, pwent->pw_uid, pwent->pw_gid))
-        goto problem;
-
-    if (!recursively_check_file (cache_dir, pwent->pw_uid, pwent->pw_gid))
-        goto problem;
-
-    g_free (cache_dir);
-    return;
-
-problem:
-    application->priv->cache_problem = TRUE;
-    g_free (cache_dir);
-}
-
-static void
-fix_thumbnail_cache (void)
-{
-    struct passwd *pwent;
-
-    pwent = get_real_pwent ();
-
-    gchar *cache_dir = g_build_filename (pwent->pw_dir, ".cache", "thumbnails", NULL);
-
-    fix_cache_directory (cache_dir, pwent->pw_uid, pwent->pw_gid);
-    g_free (cache_dir);
-}
-
 void
 nemo_application_quit (NemoApplication *self)
 {
@@ -1098,7 +938,7 @@ nemo_application_local_command_line (GApplication *application,
         if (geteuid () != 0) {
             g_printerr ("The --fix-cache option must be run with sudo or as the root user.\n");
         } else {
-            fix_thumbnail_cache ();
+            gnome_desktop_thumbnail_cache_fix_permissions ();
             g_print ("User thumbnail cache successfully repaired.\n");
         }
 
@@ -1440,12 +1280,15 @@ nemo_application_startup (GApplication *app)
 
     self->priv->cache_problem = FALSE;
 
-    /* silently check and fix the cache when running as root */
+    /* silently do a full check of the cache and fix if running as root.
+     * If running as a normal user, do a quick check, and we'll notify the
+     * user later if there's a problem via an infobar */
     if (geteuid () == 0) {
-        check_cache_directory (self);
-        if (self->priv->cache_problem)
-            fix_thumbnail_cache ();
-        self->priv->cache_problem = FALSE;
+        if (!gnome_desktop_thumbnail_cache_check_permissions (FALSE))
+            gnome_desktop_thumbnail_cache_fix_permissions ();
+    } else {
+        if (!gnome_desktop_thumbnail_cache_check_permissions (TRUE))
+            self->priv->cache_problem = TRUE;
     }
 
     if (geteuid() != 0)

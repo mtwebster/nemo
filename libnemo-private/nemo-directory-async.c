@@ -4003,7 +4003,7 @@ thumbnail_start (NemoDirectory *directory,
 	}
 	
 	directory->details->thumbnail_state = state;
-
+g_printerr ("start\n");
 	g_file_load_contents_async (location,
 				    state->cancellable,
 				    thumbnail_read_callback,

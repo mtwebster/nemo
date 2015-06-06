@@ -220,7 +220,7 @@ static void
 progress_ui_handler_ensure_window (NemoProgressUIHandler *self)
 {
     NemoProgressUIHandlerPriv *priv = NEMO_PROGRESS_UI_HANDLER (self)->priv;
-
+g_printerr ("ensure window\n");
     GtkWidget *main_box, *progress_window;
     GtkWidget *w, *frame;
 
@@ -287,13 +287,13 @@ progress_ui_handler_add_to_window (NemoProgressUIHandler *self,
     gboolean started = nemo_progress_info_get_is_started (info);
 
     gtk_stack_set_visible_child_name (GTK_STACK (priv->stack), started ? "running" : "pending");
-
+g_printerr ("adding ifno widget to info window\n");
     gtk_box_pack_start (GTK_BOX (self->priv->list), progress, FALSE, FALSE, 0);
     gtk_widget_show (progress);
 
     if (self->priv->active_infos == 1)
         gtk_widget_hide (priv->separator);
-
+g_printerr ("revealing widget\n");
     nemo_progress_info_widget_reveal (NEMO_PROGRESS_INFO_WIDGET (progress));
 
     InfoChangedData *payload = g_slice_new0 (InfoChangedData);
@@ -334,12 +334,14 @@ progress_info_finished_cb (NemoProgressInfo *info,
 {
 	self->priv->active_infos--;
 	self->priv->infos = g_list_remove (self->priv->infos, info);
-
+g_printerr ("finished_cb, maybe hide window %s\n", nemo_progress_info_get_initial_details (info));
 	if (self->priv->active_infos > 0) {
+        g_printerr ("more jobs left..\n");
 		if (!gtk_widget_get_visible (self->priv->progress_window)) {
 			progress_ui_handler_update_status_icon (self);
 		}
 	} else {
+        g_printerr ("no more jobs, hide or notify\n");
 		if (gtk_widget_get_visible (self->priv->progress_window)) {
 			gtk_widget_hide (self->priv->progress_window);
 		} else {

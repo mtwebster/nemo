@@ -2047,11 +2047,8 @@ create_and_set_up_tree_view (NemoListView *view)
 			gtk_tree_view_column_set_sort_column_id (view->details->file_name_column, column_num);
 			gtk_tree_view_column_set_title (view->details->file_name_column, _("Name"));
 			gtk_tree_view_column_set_resizable (view->details->file_name_column, TRUE);
-            gtk_tree_view_column_set_min_width (view->details->file_name_column, 125);
-            gtk_tree_view_column_set_sizing (view->details->file_name_column, GTK_TREE_VIEW_COLUMN_FIXED);
+            gtk_tree_view_column_set_min_width (view->details->file_name_column, 100);
             gtk_tree_view_column_set_reorderable (view->details->file_name_column, TRUE);
-
-            gtk_tree_view_column_set_expand (view->details->file_name_column, TRUE);
 
 			gtk_tree_view_column_pack_start (view->details->file_name_column, cell, FALSE);
 			gtk_tree_view_column_set_attributes (view->details->file_name_column,
@@ -2078,6 +2075,7 @@ create_and_set_up_tree_view (NemoListView *view)
             g_object_set (cell,
                           "xalign", xalign,
                           "xpad", 5,
+                          "ellipsize", PANGO_ELLIPSIZE_END,
                           NULL);
 			view->details->cells = g_list_append (view->details->cells,
 							      cell);
@@ -2085,7 +2083,6 @@ create_and_set_up_tree_view (NemoListView *view)
 									   cell,
 									   "text", column_num,
 									   NULL);
-            gtk_tree_view_column_set_sizing (column, GTK_TREE_VIEW_COLUMN_FIXED);
             gtk_tree_view_column_set_min_width (column, 10);
             g_object_ref_sink (column);
 			gtk_tree_view_column_set_sort_column_id (column, column_num);
@@ -2096,7 +2093,6 @@ create_and_set_up_tree_view (NemoListView *view)
 			gtk_tree_view_column_set_resizable (column, TRUE);
             gtk_tree_view_column_set_visible (column, TRUE);
             gtk_tree_view_column_set_reorderable (column, TRUE);
-            gtk_tree_view_column_set_expand (column, TRUE);
 		}
 		g_free (name);
 		g_free (label);

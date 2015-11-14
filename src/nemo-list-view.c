@@ -1921,6 +1921,28 @@ column_header_clicked (GtkWidget *column_button,
 }
 
 static void
+ellipsize_columns (GList *list)
+{
+    GList *l = list;
+
+    while (l != NULL) {
+        GtkWidget *child = GTK_IS_WIDGET (l->data) ?
+                               GTK_WIDGET (l->data) :
+                               gtk_tree_view_column_get_button (GTK_TREE_VIEW_COLUMN (l->data));
+
+        if (GTK_IS_LABEL (child)) {
+            gtk_label_set_ellipsize (GTK_LABEL (child), PANGO_ELLIPSIZE_END);
+        } else if (GTK_IS_CONTAINER (child)) {
+            GList *child_list = gtk_container_get_children (GTK_CONTAINER (child));
+            ellipsize_columns (child_list);
+            g_list_free (child_list);
+        }
+
+        l = l->next;
+    }
+}
+
+static void
 apply_columns_settings (NemoListView *list_view,
 			char **column_order,
 			char **visible_columns)
@@ -2006,6 +2028,9 @@ apply_columns_settings (NemoListView *list_view,
 		gtk_tree_view_move_column_after (list_view->details->tree_view, l->data, prev_view_column);
 		prev_view_column = l->data;
 	}
+
+    ellipsize_columns (view_columns);
+
 	g_list_free (view_columns);
 }
 
@@ -2209,7 +2234,6 @@ create_and_set_up_tree_view (NemoListView *view)
             gtk_tree_view_column_set_min_width (view->details->file_name_column, 125);
             gtk_tree_view_column_set_sizing (view->details->file_name_column, GTK_TREE_VIEW_COLUMN_FIXED);
             gtk_tree_view_column_set_reorderable (view->details->file_name_column, TRUE);
-
             gtk_tree_view_column_set_expand (view->details->file_name_column, TRUE);
 
 			gtk_tree_view_column_pack_start (view->details->file_name_column, cell, FALSE);
@@ -2235,6 +2259,7 @@ create_and_set_up_tree_view (NemoListView *view)
 		} else {		
 			cell = gtk_cell_renderer_text_new ();
             g_object_set (cell,
+                          "ellipsize", PANGO_ELLIPSIZE_END,
                           "xalign", xalign,
                           "xpad", 5,
                           NULL);
@@ -2244,8 +2269,7 @@ create_and_set_up_tree_view (NemoListView *view)
 									   cell,
 									   "text", column_num,
 									   NULL);
-            gtk_tree_view_column_set_sizing (column, GTK_TREE_VIEW_COLUMN_FIXED);
-            gtk_tree_view_column_set_min_width (column, 10);
+            gtk_tree_view_column_set_min_width (column, 30);
             g_object_ref_sink (column);
 			gtk_tree_view_column_set_sort_column_id (column, column_num);
 			g_hash_table_insert (view->details->columns, 
@@ -2255,7 +2279,6 @@ create_and_set_up_tree_view (NemoListView *view)
 			gtk_tree_view_column_set_resizable (column, TRUE);
             gtk_tree_view_column_set_visible (column, TRUE);
             gtk_tree_view_column_set_reorderable (column, TRUE);
-            gtk_tree_view_column_set_expand (column, TRUE);
 		}
 		g_free (name);
 		g_free (label);

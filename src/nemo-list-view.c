@@ -1922,27 +1922,27 @@ column_header_clicked (GtkWidget *column_button,
 	return TRUE;
 }
 
-static void
-ellipsize_columns (GList *list)
-{
-    GList *l = list;
+// static void
+// ellipsize_columns (GList *list)
+// {
+//     GList *l = list;
 
-    while (l != NULL) {
-        GtkWidget *child = GTK_IS_WIDGET (l->data) ?
-                               GTK_WIDGET (l->data) :
-                               gtk_tree_view_column_get_button (GTK_TREE_VIEW_COLUMN (l->data));
+//     while (l != NULL) {
+//         GtkWidget *child = GTK_IS_WIDGET (l->data) ?
+//                                GTK_WIDGET (l->data) :
+//                                gtk_tree_view_column_get_button (GTK_TREE_VIEW_COLUMN (l->data));
 
-        if (GTK_IS_LABEL (child)) {
-            gtk_label_set_ellipsize (GTK_LABEL (child), PANGO_ELLIPSIZE_END);
-        } else if (GTK_IS_CONTAINER (child)) {
-            GList *child_list = gtk_container_get_children (GTK_CONTAINER (child));
-            ellipsize_columns (child_list);
-            g_list_free (child_list);
-        }
+//         if (GTK_IS_LABEL (child)) {
+//             gtk_label_set_ellipsize (GTK_LABEL (child), PANGO_ELLIPSIZE_END);
+//         } else if (GTK_IS_CONTAINER (child)) {
+//             GList *child_list = gtk_container_get_children (GTK_CONTAINER (child));
+//             ellipsize_columns (child_list);
+//             g_list_free (child_list);
+//         }
 
-        l = l->next;
-    }
-}
+//         l = l->next;
+//     }
+// }
 
 static void
 apply_columns_settings (NemoListView *list_view,
@@ -2031,7 +2031,7 @@ apply_columns_settings (NemoListView *list_view,
 		prev_view_column = l->data;
 	}
 
-    ellipsize_columns (view_columns);
+    // ellipsize_columns (view_columns);
 
 	g_list_free (view_columns);
 }
@@ -2108,8 +2108,6 @@ create_and_set_up_tree_view (NemoListView *view)
 							g_str_equal,
 							(GDestroyNotify) g_free,
 							(GDestroyNotify) g_object_unref);
-
-    gtk_scrollable_set_hscroll_policy (GTK_SCROLLABLE (view->details->tree_view), GTK_SCROLL_NATURAL);
 
 	gtk_tree_view_set_enable_search (view->details->tree_view, TRUE);
 
@@ -2261,7 +2259,7 @@ create_and_set_up_tree_view (NemoListView *view)
 		} else {		
 			cell = gtk_cell_renderer_text_new ();
             g_object_set (cell,
-                          "ellipsize", PANGO_ELLIPSIZE_END,
+                          // "ellipsize", PANGO_ELLIPSIZE_END,
                           "xalign", xalign,
                           "xpad", 5,
                           NULL);
@@ -2271,7 +2269,6 @@ create_and_set_up_tree_view (NemoListView *view)
 									   cell,
 									   "text", column_num,
 									   NULL);
-            gtk_tree_view_column_set_min_width (column, 30);
             g_object_ref_sink (column);
 			gtk_tree_view_column_set_sort_column_id (column, column_num);
 			g_hash_table_insert (view->details->columns, 

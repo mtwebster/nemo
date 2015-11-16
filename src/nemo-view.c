@@ -2797,7 +2797,7 @@ nemo_view_init (NemoView *view)
                       G_CALLBACK (actions_added_or_changed_callback),
                                   view);
 
-    view->details->bookmarks = nemo_bookmark_list_get_default ();
+    view->details->bookmarks = nemo_bookmark_list_new ();
 
     view->details->bookmarks_changed_id =
         g_signal_connect_swapped (view->details->bookmarks, "changed",
@@ -2885,6 +2885,7 @@ nemo_view_destroy (GtkWidget *object)
                          view->details->bookmarks_changed_id);
         view->details->bookmarks_changed_id = 0;
     }
+    g_clear_object (&view->details->bookmarks);
 
     if (view->details->action_manager_changed_id != 0) {
         g_signal_handler_disconnect (view->details->action_manager,

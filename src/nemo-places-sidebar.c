@@ -791,8 +791,18 @@ update_places (NemoPlacesSidebar *sidebar)
     for (bookmark_index = 0; bookmark_index < sidebar->bookmark_breakpoint; ++bookmark_index) {
         bookmark = nemo_bookmark_list_item_at (sidebar->bookmarks, bookmark_index);
 
+        if (!nemo_bookmark_uri_get_exists (bookmark)) {
+            continue;
+        }
+
         root = nemo_bookmark_get_location (bookmark);
         file = nemo_file_get (root);
+
+        //if (is_built_in_bookmark (file)) {
+        //  g_object_unref (root);
+        //  nemo_file_unref (file);
+        //  continue;
+        //}
 
         nemo_file_unref (file);
 
@@ -4243,6 +4253,7 @@ nemo_places_sidebar_dispose (GObject *object)
 	}
 
 	g_clear_object (&sidebar->store);
+	g_clear_object (&sidebar->bookmarks);
 
     g_clear_object (&sidebar->action_manager);
 
@@ -4321,7 +4332,7 @@ nemo_places_sidebar_set_parent_window (NemoPlacesSidebar *sidebar,
 
 	slot = nemo_window_get_active_slot (window);
 
-	sidebar->bookmarks = nemo_bookmark_list_get_default ();
+	sidebar->bookmarks = nemo_bookmark_list_new ();
 	sidebar->uri = nemo_window_slot_get_current_uri (slot);
 
     breakpoint = g_settings_get_int (nemo_window_state, NEMO_PREFERENCES_SIDEBAR_BOOKMARK_BREAKPOINT);

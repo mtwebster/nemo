@@ -360,7 +360,7 @@ update_bookmarks (NemoWindow *window)
 	g_assert (window->details->bookmarks_action_group == NULL);
 
 	if (window->details->bookmark_list == NULL) {
-		window->details->bookmark_list = nemo_bookmark_list_get_default ();
+		window->details->bookmark_list = nemo_bookmark_list_new ();
 	}
 
 	bookmarks = window->details->bookmark_list;

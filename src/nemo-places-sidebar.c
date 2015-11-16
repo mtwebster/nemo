@@ -791,10 +791,6 @@ update_places (NemoPlacesSidebar *sidebar)
     for (bookmark_index = 0; bookmark_index < sidebar->bookmark_breakpoint; ++bookmark_index) {
         bookmark = nemo_bookmark_list_item_at (sidebar->bookmarks, bookmark_index);
 
-        if (!nemo_bookmark_uri_get_exists (bookmark)) {
-            continue;
-        }
-
         root = nemo_bookmark_get_location (bookmark);
         file = nemo_file_get (root);
 

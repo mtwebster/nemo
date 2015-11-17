@@ -172,6 +172,8 @@ do_finalize (GObject *object)
 
 	clear_bookmarks (NEMO_BOOKMARK_LIST (object));
 
+    g_object_unref (NEMO_BOOKMARK_LIST (object)->volume_monitor);
+
 	G_OBJECT_CLASS (nemo_bookmark_list_parent_class)->finalize (object);
 }
 
@@ -230,6 +232,14 @@ bookmark_monitor_changed_cb (GFileMonitor      *monitor,
 }
 
 static void
+volume_monitor_activity_cb (GVolumeMonitor *monitor, GMount *mount, gpointer user_data)
+{
+    NemoBookmarkList *bookmarks = NEMO_BOOKMARK_LIST (user_data);
+
+    nemo_bookmark_list_load_file (bookmarks);
+}
+
+static void
 nemo_bookmark_list_init (NemoBookmarkList *bookmarks)
 {
 	GFile *file;
@@ -246,6 +256,15 @@ nemo_bookmark_list_init (NemoBookmarkList *bookmarks)
 			  G_CALLBACK (bookmark_monitor_changed_cb), bookmarks);
 
 	g_object_unref (file);
+
+    bookmarks->volume_monitor = g_volume_monitor_get ();
+
+    g_signal_connect (bookmarks->volume_monitor, "mount-added",
+                      G_CALLBACK (volume_monitor_activity_cb), bookmarks);
+    g_signal_connect (bookmarks->volume_monitor, "mount-removed",
+                      G_CALLBACK (volume_monitor_activity_cb), bookmarks);
+    g_signal_connect (bookmarks->volume_monitor, "mount-changed",
+                      G_CALLBACK (volume_monitor_activity_cb), bookmarks);
 }
 
 static void

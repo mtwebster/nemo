@@ -382,10 +382,6 @@ update_bookmarks (NemoWindow *window)
 	for (index = 0; index < bookmark_count; ++index) {
 		bookmark = nemo_bookmark_list_item_at (bookmarks, index);
 
-		if (!nemo_bookmark_uri_get_exists (bookmark)) {
-			continue;
-		}
-
 		nemo_menus_append_bookmark_to_menu
 			(NEMO_WINDOW (window),
 			 bookmark,

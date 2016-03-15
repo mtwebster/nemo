@@ -392,7 +392,7 @@
       <_description>The default size of an icon for a thumbnail in the icon view.</_description>
     </key>
     <key name="text-ellipsis-limit" type="as">
-      <default>[ '3' ]</default>
+      <default>['smallest:1', 'smaller:1', 'small:2', 'standard:2', '3']</default>
       <_summary>Text Ellipsis Limit</_summary>
       <_description>A string specifying how parts of overlong file names
 	     should be replaced by ellipses, depending on the zoom

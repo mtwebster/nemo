@@ -25,6 +25,7 @@
 #include <config.h>
 #include <math.h>
 #include "nemo-icon-canvas-item.h"
+#include "nemo-icon-info.h"
 
 #include <glib/gi18n.h>
 
@@ -51,8 +52,14 @@
 #define LABEL_OFFSET 1
 #define LABEL_LINE_SPACING 0
 
-#define MAX_TEXT_WIDTH_STANDARD 135
-#define MAX_TEXT_WIDTH_BESIDE 90
+/* base text widths for smallest to standard */
+#define MAX_TEXT_WIDTH_STANDARD 120
+#define MAX_TEXT_WIDTH_BESIDE_STANDARD 90
+
+/* and large to largest zoom levels */
+#define MAX_TEXT_WIDTH_LARGER 80
+#define MAX_TEXT_WIDTH_BESIDE_LARGER 60
+
 #define MAX_TEXT_WIDTH_BESIDE_TOP_TO_BOTTOM 150
 
 /* special text height handling
@@ -2076,24 +2083,40 @@ nemo_icon_canvas_item_get_max_text_width (NemoIconCanvasItem *item)
 {
 	EelCanvasItem *canvas_item;
 	NemoIconContainer *container;
+	int base_width;
+	gboolean beside;
 
 	canvas_item = EEL_CANVAS_ITEM (item);
 	container = NEMO_ICON_CONTAINER (canvas_item->canvas);
-
-	if (container->details->label_position == NEMO_ICON_LABEL_POSITION_BESIDE) {
-		if (container->details->layout_mode == NEMO_ICON_LAYOUT_T_B_L_R ||
-		    container->details->layout_mode == NEMO_ICON_LAYOUT_T_B_R_L) {
-			if (container->details->all_columns_same_width) {
-				return MAX_TEXT_WIDTH_BESIDE_TOP_TO_BOTTOM * canvas_item->canvas->pixels_per_unit;
-			} else {
-				return -1;
-			}
+	beside = container->details->label_position == NEMO_ICON_LABEL_POSITION_BESIDE;
+	
+	if (beside &&
+	    (container->details->layout_mode == NEMO_ICON_LAYOUT_T_B_L_R ||
+             container->details->layout_mode == NEMO_ICON_LAYOUT_T_B_R_L)) {
+		if (container->details->all_columns_same_width) {
+			base_width = MAX_TEXT_WIDTH_BESIDE_TOP_TO_BOTTOM;
 		} else {
-			return MAX_TEXT_WIDTH_BESIDE * canvas_item->canvas->pixels_per_unit;
+			return -1;
 		}
 	} else {
-		return MAX_TEXT_WIDTH_STANDARD * canvas_item->canvas->pixels_per_unit;
+		switch (container->details->zoom_level)	{
+			case NEMO_ZOOM_LEVEL_SMALLEST:
+			case NEMO_ZOOM_LEVEL_SMALLER:
+			case NEMO_ZOOM_LEVEL_SMALL:
+			case NEMO_ZOOM_LEVEL_STANDARD:
+				base_width = beside ? MAX_TEXT_WIDTH_BESIDE_STANDARD : MAX_TEXT_WIDTH_STANDARD;
+				break;
+			case NEMO_ZOOM_LEVEL_LARGE:
+			case NEMO_ZOOM_LEVEL_LARGER:
+			case NEMO_ZOOM_LEVEL_LARGEST:
+				base_width = beside ? MAX_TEXT_WIDTH_BESIDE_LARGER :  MAX_TEXT_WIDTH_LARGER;
+				break;
+			default:
+				base_width = MAX_TEXT_WIDTH_STANDARD;
+		}
 	}
+
+	return base_width * canvas_item->canvas->pixels_per_unit;
 }
 
 void

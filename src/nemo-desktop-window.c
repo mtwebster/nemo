@@ -174,6 +174,16 @@ nemo_desktop_window_delete_event (NemoDesktopWindow *window)
 	return TRUE;
 }
 
+static void
+on_style_updated (NemoWindow *window, gpointer user_data)
+{
+    GdkWindow *gdk_window = gtk_widget_get_window (GTK_WIDGET (window));
+    g_printerr ("opaque region\n");
+
+    cairo_region_t *region = cairo_region_create ();
+    gdk_window_set_opaque_region (gdk_window, region);
+}
+ 
 void
 nemo_desktop_window_update_directory (NemoDesktopWindow *window)
 {
@@ -200,6 +210,8 @@ nemo_desktop_window_new (gint monitor)
                            NULL);
 
     g_signal_connect (window, "delete_event", G_CALLBACK (nemo_desktop_window_delete_event), NULL);
+
+    g_signal_connect (window, "style-updated", G_CALLBACK (on_style_updated), NULL);
 
     GdkRGBA transparent = {0, 0, 0, 0};
     gtk_widget_override_background_color (GTK_WIDGET (window), 0, &transparent);

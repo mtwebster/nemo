@@ -77,11 +77,11 @@ struct NemoDesktopIconViewDetails
 	gboolean pending_rescan;
 };
 
-static void     default_zoom_level_changed                        (gpointer                user_data);
+static void     desktop_zoom_level_changed                        (gpointer                user_data);
 static void     real_merge_menus                                  (NemoView        *view);
 static void     real_update_menus                                 (NemoView        *view);
 static void     nemo_desktop_icon_view_update_icon_container_fonts  (NemoDesktopIconView      *view);
-static void     font_changed_callback                             (gpointer                callback_data);
+static void     desktop_font_changed_callback                     (gpointer                callback_data);
 
 G_DEFINE_TYPE (NemoDesktopIconView, nemo_desktop_icon_view, NEMO_TYPE_ICON_VIEW)
 
@@ -124,12 +124,12 @@ nemo_desktop_icon_view_dispose (GObject *object)
 					&icon_view->details->desktop_action_group);
 	}
 
-	g_signal_handlers_disconnect_by_func (nemo_icon_view_preferences,
-					      default_zoom_level_changed,
+	g_signal_handlers_disconnect_by_func (nemo_desktop_preferences,
+					      desktop_zoom_level_changed,
 					      icon_view);
-	g_signal_handlers_disconnect_by_func (nemo_preferences,
-					      font_changed_callback,
-					      icon_view);
+	g_signal_handlers_disconnect_by_func (nemo_desktop_preferences,
+                                          desktop_font_changed_callback,
+                                          icon_view);
 
 	g_signal_handlers_disconnect_by_func (nemo_preferences,
 					      desktop_directory_changed_callback,
@@ -240,24 +240,24 @@ desktop_icon_container_realize (GtkWidget *widget,
 }
 
 static NemoZoomLevel
-get_default_zoom_level (void)
+get_desktop_zoom_level (void)
 {
-	NemoZoomLevel default_zoom_level;
+    NemoZoomLevel desktop_zoom_level;
 
-	default_zoom_level = g_settings_get_enum (nemo_icon_view_preferences,
-						  NEMO_PREFERENCES_ICON_VIEW_DEFAULT_ZOOM_LEVEL);
+    desktop_zoom_level = g_settings_get_enum (nemo_desktop_preferences,
+                                              NEMO_PREFERENCES_DESKTOP_ZOOM_LEVEL);
 
-	return CLAMP (default_zoom_level, NEMO_ZOOM_LEVEL_SMALLEST, NEMO_ZOOM_LEVEL_LARGEST);
+    return CLAMP (desktop_zoom_level, NEMO_ZOOM_LEVEL_SMALLEST, NEMO_ZOOM_LEVEL_LARGEST);
 }
 
 static void
-default_zoom_level_changed (gpointer user_data)
+desktop_zoom_level_changed (gpointer user_data)
 {
 	NemoZoomLevel new_level;
 	NemoDesktopIconView *desktop_icon_view;
 
 	desktop_icon_view = NEMO_DESKTOP_ICON_VIEW (user_data);
-	new_level = get_default_zoom_level ();
+    new_level = get_desktop_zoom_level ();
 
 	nemo_icon_container_set_zoom_level (get_icon_container (desktop_icon_view),
 						new_level);
@@ -327,7 +327,7 @@ delayed_init (NemoDesktopIconView *desktop_icon_view)
 }
 
 static void
-font_changed_callback (gpointer callback_data)
+desktop_font_changed_callback (gpointer callback_data)
 {
  	g_return_if_fail (NEMO_IS_DESKTOP_ICON_VIEW (callback_data));
 	
@@ -421,17 +421,17 @@ nemo_desktop_icon_view_init (NemoDesktopIconView *desktop_icon_view)
     g_signal_connect_object (icon_container, "realize",
                  G_CALLBACK (desktop_icon_container_realize), desktop_icon_view, 0);
 
-	g_signal_connect_swapped (nemo_icon_view_preferences,
-				  "changed::" NEMO_PREFERENCES_ICON_VIEW_DEFAULT_ZOOM_LEVEL,
-				  G_CALLBACK (default_zoom_level_changed),
+	g_signal_connect_swapped (nemo_desktop_preferences,
+				  "changed::" NEMO_PREFERENCES_DESKTOP_ZOOM_LEVEL,
+				  G_CALLBACK (desktop_zoom_level_changed),
 				  desktop_icon_view);
 
 	g_signal_connect_swapped (nemo_desktop_preferences,
 				  "changed::" NEMO_PREFERENCES_DESKTOP_FONT,
-				  G_CALLBACK (font_changed_callback),
+				  G_CALLBACK (desktop_font_changed_callback),
 				  desktop_icon_view);
 
-	default_zoom_level_changed (desktop_icon_view);
+	desktop_zoom_level_changed (desktop_icon_view);
 	nemo_desktop_icon_view_update_icon_container_fonts (desktop_icon_view);
 
 	g_signal_connect_swapped (gnome_lockdown_preferences,

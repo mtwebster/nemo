@@ -475,8 +475,8 @@
     </key>
     <key name="show-desktop-icons" type="b">
       <default>true</default>
-      <_summary>Deprecated: Allow Nemo to manage the desktop</_summary>
-      <_description>Deprecated: If this is set to true, Nemo will autostart and manage the desktop</_description>
+      <_summary>Allow Nemo to manage the desktop</_summary>
+      <_description>If this is set to true, Nemo will autostart and manage the desktop</_description>
     </key>
     <key name="home-icon-visible" type="b">
       <default>false</default>
@@ -512,6 +512,11 @@
       <default>true</default>
       <_summary>Fade the background on change</_summary>
       <_description>If set to true, then Nemo will use a fade effect to change the desktop background.</_description>
+    </key>
+    <key name="desktop-zoom-level" enum="org.nemo.ZoomLevel">
+      <default>'large'</default>
+      <_summary>Desktop zoom level</_summary>
+      <_description>Desktop zoom level.</_description>
     </key>
   </schema>
 

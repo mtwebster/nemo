@@ -199,7 +199,10 @@ typedef enum
 	NEMO_SIMPLE_SEARCH_BAR
 } NemoSearchBarMode;
 
+/* Desktop */
+
 #define NEMO_PREFERENCES_DESKTOP_FONT		   "font"
+
 #define NEMO_PREFERENCES_DESKTOP_HOME_VISIBLE          "home-icon-visible"
 #define NEMO_PREFERENCES_DESKTOP_COMPUTER_VISIBLE      "computer-icon-visible"
 #define NEMO_PREFERENCES_DESKTOP_TRASH_VISIBLE         "trash-icon-visible"
@@ -207,16 +210,17 @@ typedef enum
 #define NEMO_PREFERENCES_DESKTOP_NETWORK_VISIBLE       "network-icon-visible"
 #define NEMO_PREFERENCES_DESKTOP_BACKGROUND_FADE       "background-fade"
 
+#define NEMO_PREFERENCES_DESKTOP_ZOOM_LEVEL            "desktop-zoom-level"
+
+#define NEMO_PREFERENCES_DESKTOP_LAYOUT "desktop-layout"
+#define NEMO_PREFERENCES_SHOW_ORPHANED_DESKTOP_ICONS "show-orphaned-desktop-icons"
+#define NEMO_PREFERENCES_SHOW_DESKTOP   "show-desktop-icons"
+
 /* bulk rename utility */
 #define NEMO_PREFERENCES_BULK_RENAME_TOOL              "bulk-rename-tool"
 
 /* Lockdown */
 #define NEMO_PREFERENCES_LOCKDOWN_COMMAND_LINE         "disable-command-line"
-
-/* Desktop background */
-#define NEMO_PREFERENCES_DESKTOP_LAYOUT "desktop-layout"
-#define NEMO_PREFERENCES_SHOW_ORPHANED_DESKTOP_ICONS "show-orphaned-desktop-icons"
-#define NEMO_PREFERENCES_SHOW_DESKTOP   "show-desktop-icons"    /* DEPRECATED */
 
 /* File size unit prefix */
 #define NEMO_PREFERENCES_SIZE_PREFIXES			"size-prefixes"

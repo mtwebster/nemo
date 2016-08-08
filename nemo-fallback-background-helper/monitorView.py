@@ -15,8 +15,8 @@ class WallpaperStack(Gtk.Stack):
 
         self.rect = rect
 
-        self.set_transition_type(Gtk.StackTransitionType.NONE)
-        self.set_transition_duration(0)
+        self.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
+        self.set_transition_duration(1000)
 
         self.current = None
 
@@ -30,8 +30,6 @@ class WallpaperStack(Gtk.Stack):
 
         self.add(self.current)
         self.set_visible_child(self.current)
-
-        self.set_transition_type(Gtk.StackTransitionType.NONE)
 
     def transition_to_image(self, image):
         self.queued = image

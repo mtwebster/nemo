@@ -52,18 +52,20 @@ class Stage(Gtk.Window):
 
         self.present()
 
-    def do_realize(self):
-        window = Gdk.Screen.get_default().get_root_window()
+    # def do_realize(self):
+    #     window = Gdk.Screen.get_default().get_root_window()
 
-        self.set_window(window)
+    #     self.set_window(window)
 
     def on_realized(self, widget):
         window = self.get_window()
-        window.lower()
+        # window.lower()
         # window.set_fullscreen_mode(Gdk.FullscreenMode.ALL_MONITORS)
         window.move_resize(self.rect.x, self.rect.y, self.rect.width, self.rect.height)
 
         self.setup_monitors()
+
+        GObject.idle_add(window.lower)
 
     def destroy_stage(self):
         trackers.con_tracker_get().disconnect(settings.bg,

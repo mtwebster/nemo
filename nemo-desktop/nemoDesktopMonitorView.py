@@ -90,7 +90,7 @@ class WallpaperStack(Gtk.Stack):
 
         return False
 
-class MonitorView(BaseWindow):
+class NemoDesktopMonitorView(BaseWindow):
     """
     A monitor-sized child of the stage that is responsible for displaying
     the currently-selected wallpaper or appropriate plug-in.
@@ -108,29 +108,18 @@ class MonitorView(BaseWindow):
 
         self.update_geometry()
 
-        self.stack = Gtk.Stack()
-        self.stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
-        self.stack.set_transition_duration(250)
-        self.add(self.stack)
+        self.monitor_overlay = Gtk.Overlay()
+        self.add(self.monitor_overlay)
 
         self.wallpaper_stack = WallpaperStack()
         self.wallpaper_stack.show()
         self.wallpaper_stack.set_halign(Gtk.Align.FILL)
         self.wallpaper_stack.set_valign(Gtk.Align.FILL)
+        self.monitor_overlay.add_overlay(self.wallpaper_stack)
 
-        self.stack.add_named(self.wallpaper_stack, "wallpaper")
-
-        self.socket = Gtk.Socket()
-        self.socket.show()
-        self.socket.set_halign(Gtk.Align.FILL)
-        self.socket.set_valign(Gtk.Align.FILL)
-
-        # This prevents the socket from self-destructing when the plug process is killed
-        trackers.con_tracker_get().connect(self.socket,
-                                           "plug-removed",
-                                           lambda socket: True)
-
-        self.stack.add_named(self.socket, "plugin")
+        self.icon_view = NemoDesktopIconView()
+        self.monitor_overlay.add_overlay(self.icon_view)
+        self.overlay.reorder_overlay(self.icon_view, -1)
 
         self.show_all()
 
@@ -139,120 +128,3 @@ class MonitorView(BaseWindow):
 
     def set_next_wallpaper_image(self, image):
         self.wallpaper_stack.transition_to_image(image)
-
-    def kill_plugin(self):
-        """
-        Asks the active plug-in to exit gracefully.
-        The plug-in script is set to run Gtk.main_quit()
-        when it receives a SIGTERM.
-        """
-        if self.proc:
-            self.proc.send_signal(signal.SIGTERM)
-            self.proc = None
-
-    def show_plugin(self):
-        """
-        Attempt to retreive the current plug-in info and spawn
-        a script to instantiate it.
-        """
-        name = settings.get_screensaver_name()
-        path = utils.lookup_plugin_path(name)
-        if path is not None:
-            self.spawn_plugin(path)
-            trackers.con_tracker_get().connect(self.socket,
-                                               "plug-added",
-                                               self.on_plug_added)
-
-    def on_plug_added(self, socket, data=None):
-        """
-        Callback for a plug-in being added to our GtkSocket.  This
-        completes the operation and makes the plugin stack child the
-        visible child for this MonitorView.
-        """
-        trackers.con_tracker_get().disconnect(self.socket,
-                                              "plug-added",
-                                              self.on_plug_added)
-
-        status.PluginRunning = True
-
-        if self.stack.get_visible_child_name() == "plugin":
-            self.emit("current-view-change-complete")
-            return
-
-        self.stack.set_visible_child_name("plugin")
-        trackers.con_tracker_get().connect(self.stack,
-                                           "notify::transition-running",
-                                           self.notify_transition_callback)
-
-    def show_wallpaper(self):
-        """
-        Initiate showing the wallpaper child of MonitorView
-        """
-        status.PluginRunning = False
-
-        if self.stack.get_visible_child_name() == "wallpaper":
-            self.emit("current-view-change-complete")
-            return
-
-        self.stack.set_visible_child_name("wallpaper")
-        trackers.con_tracker_get().connect(self.stack,
-                                           "notify::transition-running",
-                                           self.notify_transition_callback)
-
-    def notify_transition_callback(self, stack, pspec, data=None):
-        """
-        GtkStacks don't have any signal for telling you 'we're done transitioning'
-        the closest we can come to it is for every animation tick they call a notify
-        on the 'transition-running' property.  We wait until it returns False
-        to emit our own transition completed signal.  This only works because our
-        stack here *does* use a duration and transition type that isn't "None".
-        """
-        if stack.get_transition_running():
-            return
-        else:
-            trackers.con_tracker_get().disconnect(self.stack,
-                                                  "notify::transition-running",
-                                                  self.notify_transition_callback)
-            self.emit("current-view-change-complete")
-
-    def update_view(self, awake, low_power):
-        """
-        Syncs the current MonitorView state to whatever is appropriate, depending
-        on whether we're awake and whether a plugin should be visible instead.
-        """
-        self.kill_plugin()
-
-        if not awake and not low_power and settings.should_show_plugin():
-            self.show_plugin()
-        else:
-            self.show_wallpaper()
-
-    def spawn_plugin(self, path):
-        """
-        Spawns the plug-in script and watches its STDOUT for a window ID to use for
-        our GtkSocket.  We hold a reference to it so that we can terminate it properly
-        later.
-        """
-        try:
-            self.proc = Gio.Subprocess.new((path, None),
-                                           Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_SILENCE)
-
-            pipe = self.proc.get_stdout_pipe()
-            pipe.read_bytes_async(4096, GLib.PRIORITY_DEFAULT, None, self.on_bytes_read)
-
-        except Exception as e:
-            print(e)
-            return
-
-    def on_bytes_read(self, pipe, res):
-        bytes_read = pipe.read_bytes_finish(res)
-        pipe.close(None)
-
-        if bytes_read:
-            output = bytes_read.get_data().decode()
-
-            if output:
-                match = re.match('^\s*WINDOW ID=(\d+)\s*$', output)
-                if match:
-                    self.socket.add_id(int(match.group(1)))
-

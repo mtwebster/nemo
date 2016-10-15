@@ -9,24 +9,13 @@ appdir = $(datadir)/cinnamon-screensaver
 
 app_PYTHON = \
         __init__.py \
-        albumArt.py \
-        audioPanel.py \
         baseWindow.py \
-        clock.py \
         config.py \
-        constants.py \
-        floating.py \
-        infoPanel.py \
-        manager.py \
-        monitorView.py \
-        passwordEntry.py \
-        playerControl.py \
-        service.py \
+        nemoDesktopManager.py \
+        nemoDesktopMonitorView.py \
         singletons.py \
-        stage.py \
+        nemoDesktopStage.py \
         status.py \
-        unlock.py \
-        volumeControl.py \
         $(NULL)
 
 app_DATA = cinnamon-screensaver-gtk3.18.css \
@@ -34,7 +23,6 @@ app_DATA = cinnamon-screensaver-gtk3.18.css \
            $(NULL)
 
 app_SCRIPTS = cinnamon-screensaver-main.py \
-              cinnamon-screensaver-command.py \
               $(NULL)
 
 config.py: config.py.in Makefile
@@ -53,7 +41,6 @@ all-local: config.py
 
 EXTRA_DIST =                \
     config.py.in \
-    debug-screensaver.sh        \
     $(NULL)
 
 MAINTAINERCLEANFILES =          \

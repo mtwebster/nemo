@@ -5,6 +5,7 @@ DIRS =				\
 	libnemo-extension	\
 	cut-n-paste-code 	\
 	libnemo-private 	\
+    nemo-desktop \
 	src 			\
 	test 			\
 	po 			\

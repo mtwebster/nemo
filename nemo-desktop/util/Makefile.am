@@ -9,11 +9,7 @@ appdir = $(datadir)/cinnamon-screensaver/util
 
 app_PYTHON = \
         __init__.py \
-        eventHandler.py \
         fader.py \
-        focusNavigator.py \
-        grabHelper.py \
-        keybindings.py \
         settings.py \
         trackers.py \
         utils.py \

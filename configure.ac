@@ -277,6 +277,9 @@ libnemo-private/Makefile
 libnemo-extension/Makefile
 libnemo-extension/libnemo-extension.pc
 libnemo-extension/libnemo-extension-uninstalled.pc
+nemo-desktop/Makefile
+nemo-desktop/binfiles/Makefile
+nemo-desktop/util/Makefile
 po/Makefile.in
 src/Makefile
 files/Makefile

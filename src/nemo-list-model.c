@@ -299,6 +299,10 @@ nemo_list_model_get_value (GtkTreeModel *tree_model, GtkTreeIter *iter, int colu
 
 		g_value_set_object (value, file_entry->subdirectory);
 		break;
+    case NEMO_LIST_MODEL_NO_ICON_COLUMN:
+        g_value_init (value, CAIRO_GOBJECT_TYPE_SURFACE);
+        g_value_take_boxed (value, NULL);
+        break;
 	case NEMO_LIST_MODEL_SMALLEST_ICON_COLUMN:
 	case NEMO_LIST_MODEL_SMALLER_ICON_COLUMN:
 	case NEMO_LIST_MODEL_SMALL_ICON_COLUMN:
@@ -1493,6 +1497,22 @@ nemo_list_model_get_drag_target_list ()
 	return target_list;
 }
 
+static void
+clear_column_array (NemoListModel *model)
+{
+    guint i;
+
+    if (model->details->columns) {
+        for (i = 0; i < model->details->columns->len; i++) {
+            g_object_unref (model->details->columns->pdata[i]);
+        }
+
+        g_ptr_array_free (model->details->columns, TRUE);
+
+        model->details->columns = NULL;
+    }
+}
+
 int               
 nemo_list_model_add_column (NemoListModel *model,
 				NemoColumn *column)
@@ -1503,11 +1523,19 @@ nemo_list_model_add_column (NemoListModel *model,
 	return NEMO_LIST_MODEL_NUM_COLUMNS + (model->details->columns->len - 1);
 }
 
+void
+nemo_list_model_remove_dynamic_columns (NemoListModel *model)
+{
+    clear_column_array (model);
+
+    model->details->columns = g_ptr_array_new ();
+}
+
 int
 nemo_list_model_get_column_number (NemoListModel *model,
 				       const char *column_name)
 {
-	int i;
+	guint i;
 
 	for (i = 0; i < model->details->columns->len; i++) {
 		NemoColumn *column;
@@ -1531,17 +1559,10 @@ static void
 nemo_list_model_dispose (GObject *object)
 {
 	NemoListModel *model;
-	int i;
 
 	model = NEMO_LIST_MODEL (object);
 
-	if (model->details->columns) {
-		for (i = 0; i < model->details->columns->len; i++) {
-			g_object_unref (model->details->columns->pdata[i]);
-		}
-		g_ptr_array_free (model->details->columns, TRUE);
-		model->details->columns = NULL;
-	}
+    clear_column_array (model);
 
 	if (model->details->files) {
 		g_sequence_free (model->details->files);

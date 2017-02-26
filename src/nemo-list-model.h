@@ -46,6 +46,7 @@
 enum {
 	NEMO_LIST_MODEL_FILE_COLUMN,
 	NEMO_LIST_MODEL_SUBDIRECTORY_COLUMN,
+    NEMO_LIST_MODEL_NO_ICON_COLUMN,
 	NEMO_LIST_MODEL_SMALLEST_ICON_COLUMN,
 	NEMO_LIST_MODEL_SMALLER_ICON_COLUMN,
 	NEMO_LIST_MODEL_SMALL_ICON_COLUMN,
@@ -124,6 +125,7 @@ int               nemo_list_model_compare_func (NemoListModel *model,
 
 int               nemo_list_model_add_column (NemoListModel *model,
 						  NemoColumn *column);
+void               nemo_list_model_remove_dynamic_columns (NemoListModel *model);
 int               nemo_list_model_get_column_number (NemoListModel *model,
 							 const char *column_name);
 

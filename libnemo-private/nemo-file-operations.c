@@ -155,7 +155,7 @@ typedef struct {
 	gboolean interactive;
 	NemoOpCallback done_callback;
 	gpointer done_callback_data;
-} MarkTrustedJob;
+} MarkExecutableJob;
 
 typedef struct {
 	CommonJob common;
@@ -207,10 +207,10 @@ static void add_job_to_job_queue (GIOSchedulerJobFunc job_func,
                                               OpKind  kind);
 
 static void
-mark_desktop_file_trusted (CommonJob *common,
-			   GCancellable *cancellable,
-			   GFile *file,
-			   gboolean interactive);
+mark_desktop_file_executable (CommonJob    *common,
+                              GCancellable *cancellable,
+                              GFile        *file,
+                              gboolean      interactive);
 
 static gboolean
 is_all_button_text (const char *button_text)
@@ -4337,10 +4337,10 @@ copy_move_file (CopyMoveJob *copy_job,
 		if (copy_job->desktop_location != NULL &&
 		    g_file_equal (copy_job->desktop_location, dest_dir) &&
 		    is_trusted_desktop_file (src, job->cancellable)) {
-			mark_desktop_file_trusted (job,
-						   job->cancellable,
-						   dest,
-						   FALSE);
+            mark_desktop_file_executable (job,
+                                          job->cancellable,
+                                          dest,
+                                          FALSE);
 		}
 
 		if (job->undo_info != NULL) {
@@ -6555,9 +6555,9 @@ nemo_file_operations_empty_trash (GtkWidget *parent_view)
 }
 
 static gboolean
-mark_trusted_job_done (gpointer user_data)
+mark_executable_job_done (gpointer user_data)
 {
-	MarkTrustedJob *job = user_data;
+	MarkExecutableJob *job = user_data;
 	
 	g_object_unref (job->file);
 
@@ -6570,95 +6570,19 @@ mark_trusted_job_done (gpointer user_data)
 	return FALSE;
 }
 
-#define TRUSTED_SHEBANG "#!/usr/bin/env xdg-open\n"
-
 static void
-mark_desktop_file_trusted (CommonJob *common,
-			   GCancellable *cancellable,
-			   GFile *file,
-			   gboolean interactive)
+mark_desktop_file_executable (CommonJob    *common,
+                              GCancellable *cancellable,
+                              GFile        *file,
+                              gboolean      interactive)
 {
-	char *contents, *new_contents;
-	gsize length, new_length;
 	GError *error;
 	guint32 current_perms, new_perms;
 	int response;
 	GFileInfo *info;
 	
  retry:
-	error = NULL;
-	if (!g_file_load_contents (file,
-				  cancellable,
-				  &contents, &length,
-				  NULL, &error)) {
-		if (interactive) {
-			response = run_error (common,
-					      g_strdup (_("Unable to mark launcher trusted (executable)")),
-					      error->message,
-					      NULL,
-					      FALSE,
-					      GTK_STOCK_CANCEL, RETRY,
-					      NULL);
-		} else {
-			response = 0;
-		}
-		
-
-		if (response == 0 || response == GTK_RESPONSE_DELETE_EVENT) {
-			abort_job (common);
-		} else if (response == 1) {
-			goto retry;
-		} else {
-			g_assert_not_reached ();
-		}
-
-		goto out;
-	}
-
-	if (!g_str_has_prefix (contents, "#!")) {
-		new_length = length + strlen (TRUSTED_SHEBANG);
-		new_contents = g_malloc (new_length);
-		
-		strcpy (new_contents, TRUSTED_SHEBANG);
-		memcpy (new_contents + strlen (TRUSTED_SHEBANG),
-			contents, length);
-		
-		if (!g_file_replace_contents (file,
-					      new_contents,
-					      new_length,
-					      NULL,
-					      FALSE, 0,
-					      NULL, cancellable, &error)) {
-			g_free (contents);
-			g_free (new_contents);
-			
-			if (interactive) {
-				response = run_error (common,
-						      g_strdup (_("Unable to mark launcher trusted (executable)")),
-						      error->message,
-						      NULL,
-						      FALSE,
-						      GTK_STOCK_CANCEL, RETRY,
-						      NULL);
-			} else {
-				response = 0;
-			}
-
-			if (response == 0 || response == GTK_RESPONSE_DELETE_EVENT) {
-				abort_job (common);
-			} else if (response == 1) {
-				goto retry;
-			} else {
-				g_assert_not_reached ();
-			}
-			
-			goto out;
-		}
-		g_free (new_contents);
-		
-	}
-	g_free (contents);
-	
+    error = NULL;
 	info = g_file_query_info (file,
 				  G_FILE_ATTRIBUTE_STANDARD_TYPE","
 				  G_FILE_ATTRIBUTE_UNIX_MODE,
@@ -6731,11 +6655,11 @@ mark_desktop_file_trusted (CommonJob *common,
 }
 
 static gboolean
-mark_trusted_job (GIOSchedulerJob *io_job,
+mark_executable_job (GIOSchedulerJob *io_job,
 		  GCancellable *cancellable,
 		  gpointer user_data)
 {
-	MarkTrustedJob *job = user_data;
+	MarkExecutableJob *job = user_data;
 	CommonJob *common;
 	
 	common = (CommonJob *)job;
@@ -6743,35 +6667,35 @@ mark_trusted_job (GIOSchedulerJob *io_job,
 
     nemo_progress_info_start (common->progress);
 
-	mark_desktop_file_trusted (common,
-				   cancellable,
-				   job->file,
-				   job->interactive);
-	
+	mark_desktop_file_executable (common,
+                                  cancellable,
+                                  job->file,
+                                  job->interactive);
+
 	g_io_scheduler_job_send_to_mainloop_async (io_job,
-						   mark_trusted_job_done,
-						   job,
-						   NULL);
+                                               mark_executable_job_done,
+                                               job,
+                                               NULL);
 
 	return FALSE;
 }
 
 void
-nemo_file_mark_desktop_file_trusted (GFile *file,
-					 GtkWindow *parent_window,
-					 gboolean interactive,
-					 NemoOpCallback done_callback,
-					 gpointer done_callback_data)
+nemo_file_mark_desktop_file_executable (GFile         *file,
+                                        GtkWindow     *parent_window,
+                                        gboolean       interactive,
+                                        NemoOpCallback done_callback,
+                                        gpointer       done_callback_data)
 {
-	MarkTrustedJob *job;
-	
-	job = op_job_new (MarkTrustedJob, parent_window);
-	job->file = g_object_ref (file);
-	job->interactive = interactive;
-	job->done_callback = done_callback;
-	job->done_callback_data = done_callback_data;
-	
-    add_job_to_job_queue (mark_trusted_job, job, job->common.cancellable, job->common.progress, OP_KIND_PERMISSIONS);
+    MarkExecutableJob *job;
+
+    job = op_job_new (MarkExecutableJob, parent_window);
+    job->file = g_object_ref (file);
+    job->interactive = interactive;
+    job->done_callback = done_callback;
+    job->done_callback_data = done_callback_data;
+
+    add_job_to_job_queue (mark_executable_job, job, job->common.cancellable, job->common.progress, OP_KIND_PERMISSIONS);
 }
 
 #if 0

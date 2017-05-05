@@ -142,11 +142,10 @@ void nemo_file_operations_link      (GList                *files,
 					 GtkWindow            *parent_window,
 					 NemoCopyCallback  done_callback,
 					 gpointer              done_callback_data);
-void nemo_file_mark_desktop_file_trusted (GFile           *file,
-					      GtkWindow        *parent_window,
-					      gboolean          interactive,
-					      NemoOpCallback done_callback,
-					      gpointer          done_callback_data);
-
+void nemo_file_mark_desktop_file_executable (GFile            *file,
+                                             GtkWindow        *parent_window,
+                                             gboolean          interactive,
+                                             NemoOpCallback    done_callback,
+                                             gpointer          done_callback_data);
 
 #endif /* NEMO_FILE_OPERATIONS_H */

@@ -75,6 +75,7 @@
 #define NEMO_METADATA_KEY_EMBLEMS				"emblems"
 #define NEMO_METADATA_KEY_MONITOR               "monitor"
 #define NEMO_METADATA_KEY_DESKTOP_GRID_HORIZONTAL  "desktop-horizontal"
+#define NEMO_METADATA_KEY_DESKTOP_FILE_TRUSTED              "trusted"
 
 guint nemo_metadata_get_id (const char *metadata);
 

@@ -28,6 +28,7 @@
 #include "nemo-directory-private.h"
 #include "nemo-file-attributes.h"
 #include "nemo-file-private.h"
+#include "nemo-metadata.h"
 #include "nemo-file-utilities.h"
 #include "nemo-signaller.h"
 #include "nemo-global-preferences.h"
@@ -3312,14 +3313,20 @@ is_link_trusted (NemoFile *file,
 {
 	GFile *location;
 	gboolean res;
-	
+    gchar *trusted;
+
 	if (!is_launcher) {
 		return TRUE;
 	}
-	
-	if (nemo_file_can_execute (file)) {
-		return TRUE;
-	}
+
+    trusted = nemo_file_get_metadata (file,
+                                      NEMO_METADATA_KEY_DESKTOP_FILE_TRUSTED,
+                                      NULL);
+
+    if (nemo_file_can_execute (file) && trusted != NULL) {
+        g_free (trusted);
+        return TRUE;
+    }
 
 	res = FALSE;
 	

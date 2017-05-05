@@ -102,7 +102,6 @@ typedef struct {
 #define RESPONSE_RUN 1000
 #define RESPONSE_DISPLAY 1001
 #define RESPONSE_RUN_IN_TERMINAL 1002
-#define RESPONSE_MARK_TRUSTED 1003
 #define RESPONSE_OPEN_WITH 1004
 
 #define SILENT_WINDOW_OPEN_LIMIT 5
@@ -1276,29 +1275,58 @@ untrusted_launcher_response_callback (GtkDialog *dialog,
 	GFile *file;
 	
 	switch (response_id) {
-	case RESPONSE_RUN:
-		screen = gtk_widget_get_screen (GTK_WIDGET (parameters->parent_window));
-		uri = nemo_file_get_uri (parameters->file);
-		DEBUG ("Launching untrusted launcher %s", uri);
-		nemo_launch_desktop_file (screen, uri, NULL,
-					      parameters->parent_window);
-		g_free (uri);
-		break;
-	case RESPONSE_MARK_TRUSTED:
-		file = nemo_file_get_location (parameters->file);
-		nemo_file_mark_desktop_file_trusted (file,
-							 parameters->parent_window,
-							 TRUE, 
-							 NULL, NULL);
-		g_object_unref (file);
-		break;
-	default:
-		/* Just destroy dialog */
-		break;
-	}
-	
-	gtk_widget_destroy (GTK_WIDGET (dialog));
-	activate_parameters_special_free (parameters);
+        case GTK_RESPONSE_OK:
+        {
+            file = nemo_file_get_location (parameters->file);
+
+             /* https://github.com/linuxmint/nemo/issues/1404 */
+            nemo_file_set_metadata (parameters->file, NEMO_METADATA_KEY_DESKTOP_FILE_TRUSTED,
+                                    NULL,
+                                    "yes");
+
+            nemo_file_mark_desktop_file_executable (file,
+                                                    parameters->parent_window,
+                                                    TRUE,
+                                                    NULL, NULL);
+
+            /* Need to force a reload of the attributes so is_trusted is marked
+             * correctly. Not sure why the general monitor doesn't fire in this
+             * case when setting the metadata
+             */
+            nemo_file_invalidate_all_attributes (parameters->file);
+
+            screen = gtk_widget_get_screen (GTK_WIDGET (parameters->parent_window));
+            uri = nemo_file_get_uri (parameters->file);
+            DEBUG ("Launching untrusted launcher %s", uri);
+            nemo_launch_desktop_file (screen, uri, NULL,
+                                      parameters->parent_window);
+
+            g_free (uri);
+            g_object_unref (file);
+            break;
+        }
+        case RESPONSE_DISPLAY:
+        {
+            GAppInfo *info;
+            GList *launch_list;
+
+            file = nemo_file_get_location (parameters->file);
+            launch_list = g_list_append (launch_list, file);
+            info = g_app_info_get_default_for_type ("text/plain", FALSE);
+
+            g_app_info_launch (info, launch_list, NULL, NULL);
+
+            g_list_free (launch_list);
+            g_object_unref (file);
+            break;
+        }
+        default:
+        /* Just destroy dialog */
+        break;
+    }
+
+    gtk_widget_destroy (GTK_WIDGET (dialog));
+    activate_parameters_special_free (parameters);
 }
 
 static void
@@ -1322,40 +1350,41 @@ activate_desktop_file (ActivateParameters *parameters,
 		}
 		parameters_special->file = nemo_file_ref (file);
 
-		primary = _("Untrusted application launcher");
-		display_name = nemo_file_get_display_name (file);
-		secondary =
-			g_strdup_printf (_("The application launcher \"%s\" has not been marked as trusted (executable). "
-					   "If you do not know the source of this file, launching it may be unsafe."
-					   ),
-					 display_name);
-		
-		dialog = gtk_message_dialog_new (parameters->parent_window,
-						 0,
-						 GTK_MESSAGE_WARNING,
-						 GTK_BUTTONS_NONE,
-						 NULL);
-		g_object_set (dialog,
-			      "text", primary,
-			      "secondary-text", secondary,
-			      NULL);
+        primary = _("Untrusted application launcher");
+        display_name = nemo_file_get_display_name (file);
+        secondary = g_strdup_printf (_("The application launcher \"%s\" has not been marked as trusted (executable). "
+                                     "If you do not know the source of this file, launching it may be unsafe."),
+                                     display_name);
 
-		gtk_dialog_add_button (GTK_DIALOG (dialog),
-				       _("_Launch Anyway"), RESPONSE_RUN);
-		if (nemo_file_can_set_permissions (file)) {
-			gtk_dialog_add_button (GTK_DIALOG (dialog),
-					       _("Mark as _Trusted"), RESPONSE_MARK_TRUSTED);
-		}
+        dialog = gtk_message_dialog_new (parameters->parent_window,
+                                         0,
+                                         GTK_MESSAGE_WARNING,
+                                         GTK_BUTTONS_NONE,
+                                         NULL);
+        g_object_set (dialog,
+                      "text", primary,
+                      "secondary-text", secondary,
+                      NULL);
 
-		gtk_dialog_add_button (GTK_DIALOG (dialog),
-				       GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL);
-		gtk_dialog_set_default_response (GTK_DIALOG (dialog), GTK_RESPONSE_CANCEL);
+        gtk_dialog_add_button (GTK_DIALOG (dialog),
+                               GTK_STOCK_CANCEL,
+                               GTK_RESPONSE_CANCEL);
 
-		g_signal_connect (dialog, "response",
-				  G_CALLBACK (untrusted_launcher_response_callback),
-				  parameters_special);
-		gtk_widget_show (dialog);
-		
+        gtk_dialog_add_button (GTK_DIALOG (dialog),
+                               _("View file contents"),
+                               RESPONSE_DISPLAY);
+
+        if (nemo_file_can_set_permissions (file)) {
+            gtk_dialog_add_button (GTK_DIALOG (dialog),
+                                   _("Trust and _launch"),
+                                   GTK_RESPONSE_OK);
+        }
+
+        g_signal_connect (dialog, "response",
+                          G_CALLBACK (untrusted_launcher_response_callback),
+                          parameters_special);
+        gtk_widget_show (dialog);
+
 		g_free (display_name);
 		g_free (secondary);
 		return;

@@ -1,4 +1,4 @@
-/* -*- Mode: C; indent-tabs-mode: t; c-basic-offset: 8; tab-width: 8 -*- */
+/* -*- Mode: C; indent-tabs-mode: f; c-basic-offset: 4; tab-width: 4 -*- */
 
 /* nemo-view.c
  *
@@ -1212,6 +1212,29 @@ action_open_callback (GtkAction *action,
 				      0,
 				      TRUE);
 	nemo_file_list_free (selection);
+}
+
+static void
+action_edit_dangerous_callback (GtkAction *action,
+                                gpointer   callback_data)
+{
+    GList *selection, *wrapper;
+    GAppInfo *info;
+    NemoView *view;
+
+    wrapper = NULL;
+    view = NEMO_VIEW (callback_data);
+    selection = nemo_view_get_selection (view);
+
+    wrapper = g_list_prepend (wrapper, nemo_file_get_uri (NEMO_FILE (selection->data)));
+    info = g_app_info_get_default_for_type ("text/plain", TRUE);
+
+    g_app_info_launch_uris (info, wrapper, NULL, NULL);
+
+    g_object_unref (info);
+    g_list_free_full (wrapper, g_free);
+
+    nemo_file_list_free (selection);
 }
 
 static void
@@ -8177,6 +8200,10 @@ static const GtkActionEntry directory_view_entries[] = {
   /* label, accelerator */       N_("_Open"), "<control>o",
   /* tooltip */                  N_("Open the selected item in this window"),
                  G_CALLBACK (action_open_callback) },
+  /* name, stock id */         { NEMO_ACTION_OPEN_DANGEROUS_IN_EDITOR, NULL,
+  /* label, accelerator */       N_("_Run"), NULL,
+  /* tooltip */                  NULL,
+                 G_CALLBACK (action_edit_dangerous_callback) },
   /* name, stock id */         { "OpenAccel", NULL,
   /* label, accelerator */       "OpenAccel", "<alt>Down",
   /* tooltip */                  NULL,
@@ -9576,8 +9603,10 @@ real_update_menus (NemoView *view)
 	gboolean save_search_sensitive;
 	gboolean show_save_search_as;
 	gboolean show_desktop_target;
+    gboolean is_dangerous;
 	GtkAction *action;
 	GAppInfo *app;
+    GAppInfo *dangerous_editor_info;
 	GIcon *app_icon;
 	// GtkWidget *menuitem;
 	gboolean next_pane_is_writable;
@@ -9634,21 +9663,37 @@ real_update_menus (NemoView *view)
 	gtk_action_set_sensitive (action, can_create_files);
     gtk_action_set_visible (action, !selection_contains_recent);
 
-	can_open = show_app = selection_count != 0;
+    is_dangerous = FALSE;
+    can_open = show_app = selection_count != 0;
 
 	for (l = selection; l != NULL; l = l->next) {
 		NemoFile *file;
+        gboolean iter_is_dangerous;
+
+        iter_is_dangerous = FALSE;
 
 		file = NEMO_FILE (selection->data);
 
-		if (!nemo_mime_file_opens_in_external_app (file)) {
+        if (nemo_file_is_launchable (file)) {
+            iter_is_dangerous = TRUE;
+        }
+
+		if (!nemo_mime_file_opens_in_external_app (file) && !iter_is_dangerous) {
 			show_app = FALSE;
 		}
 
-		if (!show_app) {
-			break;
-		}
-	} 
+        if (iter_is_dangerous) {
+            is_dangerous = TRUE;
+        }
+
+        if (!show_app && is_dangerous) {
+            break;
+        }
+    }
+
+    if (is_dangerous) {
+        show_app = TRUE;
+    }
 
 	label_with_underscore = NULL;
 
@@ -9681,28 +9726,53 @@ real_update_menus (NemoView *view)
 
     action = gtk_action_group_get_action (view->details->dir_action_group,
                           NEMO_ACTION_OPEN);
-    gtk_action_set_sensitive (action, selection_count != 0);
 
-    g_object_set (action, "label", 
-              label_with_underscore ? label_with_underscore : _("_Open"),
-              NULL);
-
-    gtk_action_set_gicon (action, app_icon);
-    gtk_action_set_visible (action, can_open);
+    if (is_dangerous) {
+        g_object_set (action,
+                      "label", _("_Run"),
+                      "tooltip", _("_Run"),
+                      NULL);
+        gtk_action_set_stock_id (action, GTK_STOCK_EXECUTE);
+        gtk_action_set_gicon (action, NULL);
+        gtk_action_set_visible (action, selection_count == 1);
+        gtk_action_set_sensitive (action, selection_count == 1);
+    } else {
+        g_object_set (action,
+                      "label", label_with_underscore ? label_with_underscore : _("_Open"),
+                      "tooltip", _("Open the selected item in this window"),
+                      NULL);
+        gtk_action_set_stock_id (action, NULL);
+        gtk_action_set_gicon (action, app_icon);
+        gtk_action_set_visible (action, can_open);
+        gtk_action_set_sensitive (action, selection_count != 0);
+    }
 
     action = gtk_action_group_get_action (view->details->dir_action_group,
-                          NEMO_ACTION_OPEN_TOGGLE);
-    gtk_action_set_sensitive (action, selection_count != 0);
+                                          NEMO_ACTION_OPEN_TOGGLE);
 
-    g_object_set (action, "label", 
-              label_with_underscore ? label_with_underscore : _("_Open"),
-              NULL);
+    if (is_dangerous) {
+        g_object_set (action,
+                      "label", _("_Run"),
+                      "tooltip", _("_Run"),
+                      NULL);
+        gtk_action_set_stock_id (action, GTK_STOCK_EXECUTE);
+        gtk_action_set_gicon (action, NULL);
+        gtk_action_set_visible (action, selection_count == 1);
+        gtk_action_set_sensitive (action, selection_count == 0);
 
-    gtk_action_set_gicon (action, app_icon);
-    gtk_action_set_visible (action, can_open);
+    } else {
+        g_object_set (action,
+                      "label", label_with_underscore ? label_with_underscore : _("_Open"),
+                      "tooltip", _("Open the selected item in this window"),
+                      NULL);
+        gtk_action_set_stock_id (action, NULL);
+        gtk_action_set_gicon (action, app_icon);
+        gtk_action_set_visible (action, can_open);
+        gtk_action_set_sensitive (action, selection_count != 0);
+    }
 
-    g_object_unref (app_icon);
-    g_free (label_with_underscore);
+    g_clear_object (&app_icon);
+    g_clear_pointer (&label_with_underscore, g_free);
 
     menuitem = gtk_ui_manager_get_widget (
                           nemo_window_get_ui_manager (view->details->window),
@@ -9719,6 +9789,42 @@ real_update_menus (NemoView *view)
     /* Only force displaying the icon if it is an application icon */
     gtk_image_menu_item_set_always_show_image (
                            GTK_IMAGE_MENU_ITEM (menuitem), app_icon != NULL);
+
+    dangerous_editor_info = NULL;
+
+    if (is_dangerous) {
+        dangerous_editor_info = g_app_info_get_default_for_type ("text/plain", TRUE);
+    }
+
+    if (dangerous_editor_info != NULL) {
+        g_printerr ("editor: %p\n", dangerous_editor_info);
+        char *escaped_app;
+
+        escaped_app = eel_str_double_underscores (g_app_info_get_name (dangerous_editor_info));
+        label_with_underscore = g_strdup_printf (_("_Open With %s"),
+                                                 escaped_app);
+
+        app_icon = g_app_info_get_icon (dangerous_editor_info);
+        if (app_icon != NULL) {
+            g_printerr ("icon here\n");
+            g_object_ref (app_icon);
+        }
+
+        g_free (escaped_app);
+        g_object_unref (dangerous_editor_info);
+    }
+
+    action = gtk_action_group_get_action (view->details->dir_action_group,
+                                          NEMO_ACTION_OPEN_DANGEROUS_IN_EDITOR);
+
+    gtk_action_set_sensitive (action, selection_count == 1 && is_dangerous);
+
+    g_object_set (action,
+                  "label", label_with_underscore ? label_with_underscore : _("_Open"),
+                  "tooltip", _("Open the selected item in this window"),
+                  NULL);
+    gtk_action_set_gicon (action, app_icon);
+    gtk_action_set_visible (action, selection_count == 1 && is_dangerous);
 
 	show_open_alternate = file_list_all_are_folders (selection) &&
 		selection_count > 0 &&

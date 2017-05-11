@@ -148,6 +148,7 @@
 <popup name="selection">
 	<placeholder name="Open Placeholder">
 		<menuitem name="OpenToggle" action="OpenToggle"/>
+        <menuitem name="OpenDangerousInEditor" action="OpenDangerousInEditor"/>
 		<menuitem name="OpenInNewTab" action="OpenInNewTab"/>
 		<menuitem name="OpenAlternate" action="OpenAlternate"/>
 		<separator name="applications separator"/>

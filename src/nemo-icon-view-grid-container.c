@@ -80,7 +80,7 @@ nemo_icon_view_grid_container_get_icon_images (NemoIconContainer *container,
 	GIcon *emblemed_icon;
 	GEmblem *emblem;
 	GList *emblem_icons, *l;
-    gint scale;
+    gint scale, max_width;
 
 	file = (NemoFile *) data;
 
@@ -91,7 +91,9 @@ nemo_icon_view_grid_container_get_icon_images (NemoIconContainer *container,
 	*has_window_open = nemo_file_has_open_window (file);
 
 	flags = NEMO_FILE_ICON_FLAGS_USE_MOUNT_ICON_AS_EMBLEM |
-			NEMO_FILE_ICON_FLAGS_USE_THUMBNAILS;
+			NEMO_FILE_ICON_FLAGS_USE_THUMBNAILS |
+            NEMO_FILE_ICON_FLAGS_FORCE_THUMBNAIL_SIZE |
+            NEMO_FILE_ICON_FLAGS_PIN_HEIGHT_FOR_DESKTOP;
 
 	if (for_drag_accept) {
 		flags |= NEMO_FILE_ICON_FLAGS_FOR_DRAG_ACCEPT;
@@ -104,7 +106,7 @@ nemo_icon_view_grid_container_get_icon_images (NemoIconContainer *container,
 	g_strfreev (emblems_to_ignore);
 
     scale = gtk_widget_get_scale_factor (GTK_WIDGET (icon_view));
-	icon_info = nemo_file_get_icon (file, size, scale, flags);
+	icon_info = nemo_file_get_icon (file, size, GET_VIEW_CONSTANT (container, max_text_width_standard), scale, flags);
 
 	/* apply emblems */
 	if (emblem_icons != NULL) {

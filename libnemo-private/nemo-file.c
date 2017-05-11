@@ -4315,6 +4315,7 @@ get_throttle_count (NemoFile *file)
 NemoIconInfo *
 nemo_file_get_icon (NemoFile *file,
 			int size,
+            int max_width,
             int scale,
 			NemoFileIconFlags flags)
 {
@@ -4355,19 +4356,39 @@ nemo_file_get_icon (NemoFile *file,
 
 			w = gdk_pixbuf_get_width (raw_pixbuf);
 			h = gdk_pixbuf_get_height (raw_pixbuf);
-			
-			s = MAX (w, h);			
-			/* Don't scale up small thumbnails in the standard view */
-			if (s <= cached_thumbnail_size) {
-				thumb_scale = (double)size / NEMO_ICON_SIZE_STANDARD;
-			}
-			else {
-				thumb_scale = (double)modified_size / s;
-			}
-			/* Make sure that icons don't get smaller than NEMO_ICON_SIZE_SMALLEST */
-			if (s*thumb_scale <= NEMO_ICON_SIZE_SMALLEST) {
-				thumb_scale = (double) NEMO_ICON_SIZE_SMALLEST / s;
-			}
+
+            if (flags & NEMO_FILE_ICON_FLAGS_PIN_HEIGHT_FOR_DESKTOP) {
+                g_assert (max_width > 0);
+
+                gdouble fraction_of_height, fraction_of_width;
+
+                fraction_of_height = (gdouble) h / modified_size;
+                fraction_of_width = (gdouble) w / max_width;
+                g_printerr ("%f, %f... req: %d, %d... pb: %d, %d\n", fraction_of_height, fraction_of_width, size, max_width, h, w);
+                if (fraction_of_height > fraction_of_width) {
+                    /* Ratio is ok, just make sure the height fills the
+                     * request. */
+
+                    thumb_scale = (gdouble) modified_size / h;
+                } else {
+                    thumb_scale = (gdouble) max_width / w;
+                }
+            } else {
+                s = MAX (w, h);         
+                /* Don't scale up small thumbnails in the standard view */
+                if (s <= cached_thumbnail_size) {
+                    thumb_scale = (double)size / NEMO_ICON_SIZE_STANDARD;
+                }
+                else {
+                    thumb_scale = (double)modified_size / s;
+                }
+                /* Make sure that icons don't get smaller than NEMO_ICON_SIZE_SMALLEST */
+                if (s*thumb_scale <= NEMO_ICON_SIZE_SMALLEST) {
+                    thumb_scale = (double) NEMO_ICON_SIZE_SMALLEST / s;
+                }
+            }
+
+
 
             if (file->details->thumbnail_scale == thumb_scale &&
                 file->details->scaled_thumbnail != NULL) {
@@ -4443,7 +4464,7 @@ nemo_file_get_icon_pixbuf (NemoFile *file,
 	NemoIconInfo *info;
 	GdkPixbuf *pixbuf;
 
-	info = nemo_file_get_icon (file, size, scale, flags);
+	info = nemo_file_get_icon (file, size, 0, scale, flags);
 	if (force_size) {
 		pixbuf =  nemo_icon_info_get_pixbuf_at_size (info, size);
 	} else {

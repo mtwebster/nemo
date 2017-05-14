@@ -42,10 +42,10 @@ nemo_extension_lib = shared_library('nemo-extension',
     dependencies: nemo_extension_deps,
     include_directories: [ rootInclude, ],
     install: true,
-    version: '1.4.0'
-    # c_args: '-DLIBEXECDIR=\""$(libexecdir)" -DDATADIR=\""$(datadir)"',
-    # link_args: '-version-info @NEMO_EXTENSION_VERSION_INFO@ -no-undefined',
+    version: '1.4.0',
+    link_args: ['-Wl,-no-undefined'],
 )
+#LDFLAGS:    -version-info NEMO_EXTENSION_VERSION_INFO
 
 install_headers(nemo_extension_headers,
     subdir : join_paths(['nemo','libnemo-extension']))

@@ -172,24 +172,6 @@ endif
 nemo_deps = [ cinnamon, exempi, gail, glib, gtk, libexif, libnotify, libxml, math, x11,
     egg, nemo_extension, nemo_private ]
 
-dataDir = ''
-libDir = ''
-sysConfDir = ''
-libdir = ''
-libexecdir = ''
-prefix = ''
-VERSION = ''
-nemo_definitions =  [
-    '-DDATADIR="@0@"'.format(dataDir),
-    '-DNEMO_DATADIR="@0@/nemo"'.format(dataDir),
-    '-DSYSCONFDIR="@0@"'.format(sysConfDir),
-    '-DNEMO_EXTENSIONDIR="@0@/nemo/extensions-3.0"'.format(libDir),
-    '-DLIBDIR="@0@"'.format(libdir),
-    '-DLIBEXECDIR="@0@"'.format(libexecdir),
-    '-DUIDIR="@0@/nemo/ui"'.format(dataDir),
-    '-DNEMO_PIXMAPDIR="@0@/pixmaps/nemo"'.format(dataDir),
-    '-DPREFIX="@0@"'.format(prefix),
-]
 
 nemo = executable('nemo',
     nemoCommon_sources + nemoWindow_sources,
@@ -237,8 +219,6 @@ nemo_open_with = executable('nemo-open-with',
 )
 
 # LibExecs
-libExecPath = join_paths([get_option('libdir'), 'nemo'])
-
 nemo_convert_metadata = executable('nemo-convert-metadata',
     [ 'nemo-convert-metadata.c' ],
     include_directories : [ rootInclude, ],
@@ -256,11 +236,3 @@ nemo_extensions_list = executable('nemo-extensions-list',
     install: true,
     install_dir: libExecPath,
 )
-
-
-# eel_check = executable('check-program',
-#     [ 'check-program.c' ],
-#     link_with : [ libeel ],
-    # dependencies : nemo_deps,
-#     include_directories : [ rootInclude, ],
-#     install : false)

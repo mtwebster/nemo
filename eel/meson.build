@@ -58,3 +58,7 @@ eel_check = executable('check-program',
     include_directories: [ rootInclude, ],
     install: false
 )
+
+test('Eel test', 
+    eel_check, 
+    args: ['--g-fatal-warnings', '--sm-disable'])

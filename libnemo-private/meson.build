@@ -172,25 +172,13 @@ endif
 nemo_private_deps = [ cinnamon, eel, gail, glib, gtk, libexif, libxml, math,
     nemo_extension, tracker_sparql, x11, ]
 
-dataDir = ''
-libDir = ''
-sysConfDir = ''
-
-
-nemo_private_definitions =  [
-    '-DDATADIR="@0@"'.format(dataDir),
-    '-DNEMO_DATADIR="@0@/nemo"'.format(dataDir),
-    '-DSYSCONFDIR="@0@"'.format(sysConfDir),
-    '-DNEMO_EXTENSIONDIR="@0@/nemo/extensions-3.0"'.format(libDir)
-]
-
 
 nemo_private_lib = shared_library('nemo-private',
     nemo_private_sources,
     dependencies : nemo_private_deps,
     include_directories : [ rootInclude, ],
     install: true,
-    c_args : nemo_private_definitions,
+    c_args : nemo_definitions,
     # link_args : '-version-info @NEMO_private_VERSION_INFO@ -no-undefined',
 )
 

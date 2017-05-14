@@ -1,7 +1,8 @@
 # Meson build file
 
 # https://github.com/linuxmint/nemo
-project('nemo', 'c', version : '3.4.1')
+project('nemo', 'c', version : '3.4.1',
+  meson_version : '>=0.40.0')
 
 # 1. If the library code has changed at all since last release, then increment revision.
 # 2. If any interfaces have been added, then increment current and set revision to 0.
@@ -158,6 +159,15 @@ gnome = import('gnome')
 ################################################################################
 
 rootInclude = include_directories('.')
+nemoDataPath      = join_paths([get_option('prefix'), get_option('datadir'), 'nemo'])
+libExecPath       = join_paths([get_option('prefix'), get_option('libdir'), 'nemo'])
+nemoExtensionPath = join_paths([get_option('prefix'), get_option('libdir'), 'nemo', 'extensions-3.0'])
+
+nemo_definitions =  [
+  '-DNEMO_DATADIR="' + nemoDataPath + '"',
+  '-DNEMO_EXTENSIONDIR="' + nemoExtensionPath + '"',
+  '-DLIBEXECDIR="' + libExecPath + '"',
+]
 
 subdir('cut-n-paste-code/libegg')
 subdir('data')

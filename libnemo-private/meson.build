@@ -165,13 +165,17 @@ nemo_private_headers = [
     'nemo-widget-menu-item.h',
 ]
 
+nemo_private_deps = [ cinnamon, eel, gail, glib, gmodule, gtk, libexif, libxml, math,
+    nemo_extension, x11, ]
+
 if tracker_enabled
     nemo_private_sources += 'nemo-search-engine-tracker.c'
+    nemo_private_deps += tracker_sparql
 endif
 
-nemo_private_deps = [ cinnamon, eel, gail, glib, gtk, libexif, libxml, math,
-    nemo_extension, tracker_sparql, x11, ]
-
+if libselinux_enabled
+    nemo_private_deps += libselinux
+endif
 
 nemo_private_lib = shared_library('nemo-private',
     nemo_private_sources,

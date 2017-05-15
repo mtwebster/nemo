@@ -30,7 +30,7 @@ check_headers = [
   'sys/mount.h',
   'sys/param.h',
   'sys/vfs.h',
-  'X11/XF86keysym.h'
+  'X11/XF86keysym.h',
 ]
 
 foreach h : check_headers
@@ -41,17 +41,13 @@ conf.set10('HAVE_MALLOPT', compiler.has_function('mallopt', prefix : '#include <
 
 ################################################################################
 # Translation
-i18n = import('i18n')
-
-i18n.gettext('nemo',
-    languages : [])
 
 conf.set_quoted('GETTEXT_PACKAGE', 'nemo')
-conf.set('ENABLE_NLS', true)
+conf.set('ENABLE_NLS', compiler.has_header('libintl.h'))
 conf.set('HAVE_GETTEXT', true)
-conf.set('HAVE_LOCALE_H', true)
-conf.set_quoted('LOCALE_DIR', '/usr/share/locale')
-conf.set_quoted('LOCALEDIR',  '/usr/share/locale')
+conf.set('HAVE_LOCALE_H', compiler.has_header('locale.h'))
+conf.set_quoted('LOCALE_DIR',  join_paths([ get_option('prefix'), get_option('localedir') ]))
+conf.set_quoted('LOCALEDIR',   join_paths([ get_option('prefix'), get_option('localedir') ]))
 
 
 ################################################################################

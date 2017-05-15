@@ -57,71 +57,68 @@ conf.set_quoted('LOCALEDIR',  '/usr/share/locale')
 ################################################################################
 add_global_arguments('-Wno-deprecated-declarations', language : 'c')
 
-## GTK_DOC_CHECK([1.4])
-
 ################################################################################
 # Arguments and dependencies checking
+gnome = import('gnome')
 
 # libexif
-if get_option('exif')
+libexif_enabled = get_option('exif')
+conf.set('HAVE_EXIF', libexif_enabled)
+
+if libexif_enabled
   libexif = dependency('libexif', version : '>=0.6.20')
-  conf.set('HAVE_EXIF', true)
-  libexif_enabled = true
-else
-  conf.set('HAVE_EXIF', false)
-  libexif_enabled = false
 endif
 
 # exempi checking
-if get_option('xmp')
+exempi_enabled = get_option('xmp')
+conf.set('HAVE_EXEMPI', exempi_enabled)
+
+if exempi_enabled
   exempi = dependency('exempi-2.0', version : '>=2.2.0')
-  conf.set('HAVE_EXEMPI', true)
-  exempi_enabled = true
-else
-  conf.set('HAVE_EXEMPI', false)
-  exempi_enabled = false
 endif
 
-conf.set('GENERIC_ICON_API', true)
-
 # libselinux
-if get_option('selinux')
+libselinux_enabled = get_option('selinux')
+conf.set('HAVE_SELINUX', libselinux_enabled)
+
+if libselinux_enabled
   libselinux = dependency('libselinux', version : '>=2.0')
-  conf.set('HAVE_SELINUX', true)
-  libselinux_enabled = true
-else
-  conf.set('HAVE_SELINUX', false)
-  libselinux_enabled = false
 endif
 
 # Debug Empty View
-if get_option('empty-view')
-  conf.set10('ENABLE_EMPTY_VIEW', true)
-  enableEmptyView = true
-else
-  conf.set10('ENABLE_EMPTY_VIEW', false)
-  enableEmptyView = false
-endif
+enableEmptyView = get_option('empty-view')
+conf.set10('ENABLE_EMPTY_VIEW', enableEmptyView)
 
 # Check for Tracker
 trackerChoice = get_option('enable-tracker')
 
-if trackerChoice == 'false'
-  conf.set('ENABLE_TRACKER', false)
-  tracker_enabled = false
-else
+tracker_enabled = false
+if trackerChoice != 'false'
+  trackerRequired = (trackerChoice == 'true')
+  # Check all the possible versions
     tracker_sparql = dependency('tracker-sparql-1.0',  required : false)
   if not tracker_sparql.found()
     tracker_sparql = dependency('tracker-sparql-0.18', required : false)
   endif
   if not tracker_sparql.found()
-    tracker_sparql = dependency('tracker-sparql-0.16', required : (trackerChoice == 'true'))
+    tracker_sparql = dependency('tracker-sparql-0.16', required : trackerRequired)
   endif
 
-  tracker_enabled = (trackerChoice == 'true') or tracker_sparql.found()
-  conf.set('ENABLE_TRACKER', tracker_enabled ? true : false)
+  tracker_enabled = trackerRequired or tracker_sparql.found()
 endif
+conf.set('ENABLE_TRACKER', tracker_enabled)
 
+
+gtkdoc_enabled = false
+if build_machine.system() == 'windows'
+  message('Disabling gtk-doc while building on Windows')
+else
+  if find_program('gtkdoc-scan', required : false).found()
+    gtkdoc_enabled = true
+  else
+    message('Not building documentation as gtk-doc was not found')
+  endif
+endif
 
 enable_update_mimedb = get_option('update-mimedb')
 
@@ -154,8 +151,6 @@ gio_unix= dependency('gio-unix-2.0', version : '>= 2.37.3')
 libnotify=dependency('libnotify', version : '>= 0.7.0')
 
 
-gnome = import('gnome')
-
 ################################################################################
 
 rootInclude = include_directories('.')
@@ -175,21 +170,14 @@ subdir('eel')
 subdir('files')
 subdir('libnemo-extension')
 subdir('libnemo-private')
-# subdir('po/Makefile.in')
+# subdir('po')
 subdir('src')
 subdir('test')
 
-gtkdoc_enabled = false
-if build_machine.system() == 'windows'
-  message('Disabling gtk-doc while building on Windows')
-else
-  if find_program('gtkdoc-scan', required : false).found()
-    gtkdoc_enabled = true
+if gtkdoc_enabled
     subdir('docs')
-  else
-    message('Not building documentation as gtk-doc was not found')
-  endif
 endif
+
 
 configure_file(input : 'config.h.in',
               output : 'config.h',

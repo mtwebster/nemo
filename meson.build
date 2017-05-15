@@ -202,8 +202,3 @@ message(''.join([
     nemo-extension introspection: @1@'''.format(gtkdoc_enabled, 'introspection ?'),
 ]))
 
-
-# ## TODO
-
-#     │   └── pkgconfig
-#     │       └── libnemo-extension.pc

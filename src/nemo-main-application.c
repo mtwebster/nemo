@@ -559,7 +559,7 @@ nemo_main_application_local_command_line (GApplication *application,
             g_printerr ("The --fix-cache option must be run with sudo or as the root user.\n");
         } else {
             gnome_desktop_thumbnail_cache_fix_permissions ();
-            g_print ("User thumbnail cache successfully repaired.\n");
+            g_print ("User thumbnail cache repaired.\n");
         }
 
         goto out;

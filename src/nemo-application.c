@@ -85,9 +85,6 @@ G_DEFINE_TYPE (NemoApplication, nemo_application, GTK_TYPE_APPLICATION);
 
 struct _NemoApplicationPriv {
 	NemoProgressUIHandler *progress_handler;
-
-    gboolean cache_problem;
-    gboolean ignore_cache_problem;
 };
 
 static NemoApplication *singleton = NULL;
@@ -463,18 +460,12 @@ nemo_application_startup (GApplication *app)
 	 */
 	check_required_directories (self);
 
-    self->priv->cache_problem = FALSE;
-    self->priv->ignore_cache_problem = FALSE;
-
     /* silently do a full check of the cache and fix if running as root.
      * If running as a normal user, do a quick check, and we'll notify the
      * user later if there's a problem via an infobar */
     if (geteuid () == 0) {
         if (!gnome_desktop_thumbnail_cache_check_permissions (NULL, FALSE))
             gnome_desktop_thumbnail_cache_fix_permissions ();
-    } else {
-        if (!gnome_desktop_thumbnail_cache_check_permissions (NULL, TRUE))
-            self->priv->cache_problem = TRUE;
     }
 }
 
@@ -546,40 +537,4 @@ NemoApplication *
 nemo_application_get_singleton (void)
 {
     return singleton;
-}
-
-void
-nemo_application_check_thumbnail_cache (NemoApplication *application)
-{
-    application->priv->cache_problem = !nemo_thumbnail_factory_check_status ();
-}
-
-gboolean
-nemo_application_get_cache_bad (NemoApplication *application)
-{
-    return application->priv->cache_problem;
-}
-
-void
-nemo_application_clear_cache_flag (NemoApplication *application)
-{
-    application->priv->cache_problem = FALSE;
-}
-
-void
-nemo_application_set_cache_flag (NemoApplication *application)
-{
-    application->priv->cache_problem = TRUE;
-}
-
-void
-nemo_application_ignore_cache_problem (NemoApplication *application)
-{
-    application->priv->ignore_cache_problem = TRUE;
-}
-
-gboolean
-nemo_application_get_cache_problem_ignored (NemoApplication *application)
-{
-    return application->priv->ignore_cache_problem;
 }

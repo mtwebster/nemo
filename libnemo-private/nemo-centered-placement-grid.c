@@ -86,6 +86,10 @@ nemo_centered_placement_grid_new (NemoIconContainer *container, gboolean horizon
 void
 nemo_centered_placement_grid_free (NemoCenteredPlacementGrid *grid)
 {
+    if (grid == NULL) {
+        return;
+    }
+
     g_free (grid->icon_grid);
     g_free (grid->grid_memory);
     gtk_border_free (grid->borders);
@@ -123,6 +127,47 @@ nemo_centered_placement_grid_unmark (NemoCenteredPlacementGrid *grid,
     g_assert (grid_y >= 0 && grid_y < grid->num_rows);
 
     grid->icon_grid[grid_x][grid_y] = 0;
+}
+
+static void
+nemo_centered_placement_grid_get_next_grid_position (NemoCenteredPlacementGrid *grid,
+                                                     gint                       x_in,
+                                                     gint                       y_in,
+                                                     gint                      *x_out,
+                                                     gint                      *y_out)
+{
+    gint x, y;
+    gboolean first_line;
+
+    first_line = TRUE;
+
+    x = y = 0;
+
+    if (grid->horizontal) {
+        for (y = y_in; y < grid->num_rows; y++) {
+            for (x = first_line ? x_in : 0; x < grid->num_columns; x++) {
+                first_line = FALSE;
+
+                if (x != x_in || y != y_in) {
+                    goto out;
+                }
+            }
+        }
+    } else {
+        for (x = x_in; x < grid->num_columns; x++) {
+            for (y = first_line ? y_in : 0; y < grid->num_rows; y++) {
+                first_line = FALSE;
+
+                if (x != x_in || y != y_in) {
+                    goto out;
+                }
+            }
+        }
+    }
+
+out:
+    *x_out = x;
+    *y_out = y;
 }
 
 void
@@ -233,45 +278,6 @@ nemo_centered_placement_grid_unmark_icon (NemoCenteredPlacementGrid *grid,
 }
 
 void
-nemo_centered_placement_grid_get_next_free_position (NemoCenteredPlacementGrid *grid,
-                                                     gint                      *x_out,
-                                                     gint                      *y_out)
-{
-    gint x, y, x_ret, y_ret;
-
-    x_ret = -1;
-    y_ret = -1;
-
-    if (grid->horizontal) {
-        for (y = 0; y < grid->num_rows; y++) {
-            for (x = 0; x < grid->num_columns; x++) {
-                if (nemo_centered_placement_grid_position_is_free (grid, x, y)) {
-                    nemo_centered_placement_grid_mark (grid, x, y);
-                    x_ret = grid->borders->left + (x * grid->real_snap_x);
-                    y_ret = grid->borders->top + (y * grid->real_snap_y);
-                    goto out;
-                }
-            }
-        }
-    } else {
-        for (x = 0; x < grid->num_columns; x++) {
-            for (y = 0; y < grid->num_rows; y++) {
-                if (nemo_centered_placement_grid_position_is_free (grid, x, y)) {
-                    nemo_centered_placement_grid_mark (grid, x, y);
-                    x_ret = grid->borders->left + (x * grid->real_snap_x);
-                    y_ret = grid->borders->top + (y * grid->real_snap_y);
-                    goto out;
-                }
-            }
-        }
-    }
-
-out:
-    *x_out = x_ret;
-    *y_out = y_ret;
-}
-
-void
 nemo_centered_placement_grid_pre_populate (NemoCenteredPlacementGrid *grid,
                                            GList                     *icons)
 {
@@ -282,6 +288,54 @@ nemo_centered_placement_grid_pre_populate (NemoCenteredPlacementGrid *grid,
         icon = p->data;
         if (nemo_icon_container_icon_is_positioned (icon)) {
             nemo_centered_placement_grid_mark_icon (grid, icon);
+        }
+    }
+}
+
+void
+nemo_centered_placement_grid_get_next_position_rect (NemoCenteredPlacementGrid *grid,
+                                                     GdkRectangle              *in_rect,
+                                                     GdkRectangle              *out_rect,
+                                                     gboolean                  *is_free)
+{
+    gint index_x, index_y, next_index_x, next_index_y;
+    gint x, y;
+
+    x = in_rect->x - grid->borders->left;
+    y = in_rect->y - grid->borders->top;
+
+    index_x = x / grid->real_snap_x;
+    index_y = y / grid->real_snap_y;
+
+    index_x = CLAMP (index_x, 0, grid->num_columns - 1);
+    index_y = CLAMP (index_y, 0, grid->num_rows - 1);
+
+    nemo_centered_placement_grid_get_next_grid_position (grid,
+                                                         index_x,
+                                                         index_y,
+                                                         &next_index_x,
+                                                         &next_index_y);
+
+    next_index_x = CLAMP (next_index_x, 0, grid->num_columns - 1);
+    next_index_y = CLAMP (next_index_y, 0, grid->num_rows - 1);
+
+    out_rect->x = next_index_x * grid->real_snap_x;
+    out_rect->y = next_index_y * grid->real_snap_y;
+    out_rect->width = grid->real_snap_x;
+    out_rect->height = grid->real_snap_y;
+
+    out_rect->x += grid->borders->left;
+    out_rect->y += grid->borders->top;
+
+    if (is_free) {
+        if ((next_index_x == grid->num_columns - 1) && (next_index_y == grid->num_rows - 1)) {
+            /* Last position of the grid is our escape valve when our number if icons
+             * exceeds possible positions in the grid - we'll allow icons to overlap
+             * here  (what else can we do?  Shrink the grid till everything fits?  That
+             * could also be broken - sooner or later we need this) */
+            *is_free = TRUE;
+        } else {
+            *is_free = nemo_centered_placement_grid_position_is_free (grid, next_index_x, next_index_y);
         }
     }
 }
@@ -313,7 +367,15 @@ nemo_centered_placement_grid_get_current_position_rect (NemoCenteredPlacementGri
     rect->y += grid->borders->top;
 
     if (is_free) {
-        *is_free = nemo_centered_placement_grid_position_is_free (grid, index_x, index_y);
+        if ((index_x == grid->num_columns - 1) && (index_y == grid->num_rows - 1)) {
+            /* Last position of the grid is our escape valve when our number if icons
+             * exceeds possible positions in the grid - we'll allow icons to overlap
+             * here  (what else can we do?  Shrink the grid till everything fits?  That
+             * could also be broken - sooner or later we need this) */
+            *is_free = TRUE;
+        } else {
+            *is_free = nemo_centered_placement_grid_position_is_free (grid, index_x, index_y);
+        }
     }
 }
 

@@ -126,16 +126,6 @@ initialize_dnd_grid (NemoIconContainer *container, NemoIconDndInfo *dnd_info)
     g_list_free (selection);
 }
 
-static void
-free_dnd_grid (NemoIconContainer *container)
-{
-    if (container->details->dnd_grid != NULL) {
-        nemo_centered_placement_grid_free (container->details->dnd_grid);
-    }
-
-    container->details->dnd_grid = NULL;
-}
-
 static EelCanvasItem *
 create_selection_shadow (NemoIconContainer *container,
 			 GList *list)
@@ -571,7 +561,6 @@ drag_end_callback (GtkWidget *widget,
 
     container->details->insert_dnd_mode = FALSE;
 
-    free_dnd_grid (container);
     gtk_widget_queue_draw (GTK_WIDGET (container));
 
 	dnd_info = container->details->dnd_info;
@@ -903,15 +892,11 @@ handle_local_move (NemoIconContainer *container,
     if (container->details->insert_dnd_mode) {
         NemoCenteredPlacementGrid *dnd_grid;
         gint drop_x, drop_y;
-        gboolean free_grid_after;
-
-        free_grid_after = FALSE;
 
         if (container->details->dnd_grid == NULL) {
             /* This might be null if we're dragging from one monitor to another -
              * the target container never had an drag start signal. */
             initialize_dnd_grid (container, container->details->dnd_info);
-            free_grid_after = TRUE;
         }
 
         dnd_grid = container->details->dnd_grid;
@@ -923,10 +908,6 @@ handle_local_move (NemoIconContainer *container,
                                                                            drop_x,
                                                                            drop_y,
                                                                            container->details->dnd_info->drag_info.selection_list);
-
-        if (free_grid_after) {
-            free_dnd_grid (container);
-        }
     }
 
     /* Move the extra icons that were needed to accomodate the selection,

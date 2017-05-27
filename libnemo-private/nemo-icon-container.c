@@ -991,9 +991,23 @@ align_icons (NemoIconContainer *container)
 }
 
 static void
+reload_icon_positions (NemoIconContainer *container)
+{
+    NEMO_ICON_CONTAINER_GET_CLASS (container)->reload_icon_positions (container);
+}
+
+static void
 redo_layout_internal (NemoIconContainer *container)
 {
+    g_printerr ("%s start - ICONS: %d\n", G_STRFUNC, g_list_length (container->details->icons));
+    GdkRectangle allocation;
+    gtk_widget_get_allocation (GTK_WIDGET (container), &allocation);
+
+    g_printerr ("sizes: %d wide, %d tall\n", nemo_icon_container_get_canvas_width (container, allocation), nemo_icon_container_get_canvas_height (container, allocation));
+    // G_BREAKPOINT ();
     if (NEMO_ICON_CONTAINER_GET_CLASS (container)->finish_adding_new_icons != NULL) {
+        g_printerr ("%s call finish_adding_new_icons\n", G_STRFUNC);
+
         NEMO_ICON_CONTAINER_GET_CLASS (container)->finish_adding_new_icons (container);
     }
 
@@ -1005,12 +1019,19 @@ redo_layout_internal (NemoIconContainer *container)
 
     if (container->details->auto_layout && container->details->drag_state != DRAG_STATE_STRETCH) {
         if (container->details->needs_resort) {
+            g_printerr ("%s needs resort - autolayout\n", G_STRFUNC);
+
             nemo_icon_container_resort (container);
             container->details->needs_resort = FALSE;
         }
 
+        g_printerr ("%s call lay_down_icons\n", G_STRFUNC);
+
         NEMO_ICON_CONTAINER_GET_CLASS (container)->lay_down_icons (container, container->details->icons, 0);
-	}
+	} else if (container->details->drag_state != DRAG_STATE_STRETCH) {
+        g_printerr ("!!!!!!!!reload\n");
+        reload_icon_positions (container);
+    }
 
 	if (nemo_icon_container_is_layout_rtl (container)) {
 		nemo_icon_container_set_rtl_positions (container);
@@ -1029,6 +1050,7 @@ redo_layout_callback (gpointer callback_data)
 	NemoIconContainer *container;
 
 	container = NEMO_ICON_CONTAINER (callback_data);
+    g_printerr ("redo layout callback....\n");
 	redo_layout_internal (container);
 	container->details->idle_id = 0;
 
@@ -1058,13 +1080,8 @@ void
 nemo_icon_container_redo_layout (NemoIconContainer *container)
 {
 	unschedule_redo_layout (container);
+    g_printerr ("icon_container_redo_layout....\n");
 	redo_layout_internal (container);
-}
-
-static void
-reload_icon_positions (NemoIconContainer *container)
-{
-    NEMO_ICON_CONTAINER_GET_CLASS (container)->reload_icon_positions (container);
 }
 
 /* Container-level icon handling functions.  */
@@ -4385,6 +4402,7 @@ text_ellipsis_limit_changed_container_callback (gpointer callback_data)
 
 	container = NEMO_ICON_CONTAINER (callback_data);
 	invalidate_label_sizes (container);
+    g_printerr ("eliipses changed\n");
 	schedule_redo_layout (container);
 }
 
@@ -5741,7 +5759,7 @@ nemo_icon_container_add (NemoIconContainer *container,
 	g_hash_table_insert (details->icon_set, data, icon);
 
 	details->needs_resort = TRUE;
-
+g_printerr ("add icon schedule redo\n");
 	/* Run an idle function to add the icons. */
 	schedule_redo_layout (container);
 	
@@ -5753,6 +5771,7 @@ nemo_icon_container_layout_now (NemoIconContainer *container)
 {
 	if (container->details->idle_id != 0) {
 		unschedule_redo_layout (container);
+        g_printerr ("layout now\n");
 		redo_layout_internal (container);
 	}
 
@@ -5788,6 +5807,7 @@ nemo_icon_container_remove (NemoIconContainer *container,
 
     gtk_widget_set_tooltip_text (GTK_WIDGET (EEL_CANVAS_ITEM (icon->item)->canvas), "");
 	icon_destroy (container, icon);
+    g_printerr ("remove icon redo_layout\n");
 	schedule_redo_layout (container);
 
 	g_signal_emit (container, signals[ICON_REMOVED], 0, icon);
@@ -5816,6 +5836,7 @@ nemo_icon_container_request_update (NemoIconContainer *container,
 	if (icon != NULL) {
 		nemo_icon_container_update_icon (container, icon);
 		container->details->needs_resort = TRUE;
+        g_printerr ("request update icon\n");
 		schedule_redo_layout (container);
 	}
 }
@@ -6442,7 +6463,7 @@ nemo_icon_container_set_auto_layout (NemoIconContainer *container,
 {
 	g_return_if_fail (NEMO_IS_ICON_CONTAINER (container));
 	g_return_if_fail (auto_layout == FALSE || auto_layout == TRUE);
-
+g_printerr ("auto layout : %s\n", auto_layout ? "TRUE":"FALSE");
 	if (container->details->auto_layout == auto_layout) {
 		return;
 	}
@@ -6603,7 +6624,7 @@ nemo_icon_container_set_label_position (NemoIconContainer *container,
 
 		nemo_icon_container_invalidate_labels (container);
 		nemo_icon_container_request_update_all (container);
-
+        g_printerr ("set label position\n");
 		schedule_redo_layout (container);
 	}
 }
@@ -7054,7 +7075,7 @@ nemo_icon_container_set_margins (NemoIconContainer *container,
 	container->details->right_margin = right_margin;
 	container->details->top_margin = top_margin;
 	container->details->bottom_margin = bottom_margin;
-
+g_printerr ("margins\n");
 	/* redo layout of icons as the margins have changed */
 	schedule_redo_layout (container);
 }

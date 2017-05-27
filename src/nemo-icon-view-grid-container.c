@@ -1080,6 +1080,7 @@ nemo_icon_view_grid_container_finish_adding_new_icons (NemoIconContainer *contai
     GList *p, *new_icons, *no_position_icons;
     NemoCenteredPlacementGrid *grid;
     NemoIcon *icon;
+    g_printerr ("%s start\n", G_STRFUNC);
 
     update_layout_constants (container);
     update_visual_selection_state (container);
@@ -1098,6 +1099,7 @@ nemo_icon_view_grid_container_finish_adding_new_icons (NemoIconContainer *contai
     /* Position most icons (not unpositioned manual-layout icons). */
     new_icons = g_list_reverse (new_icons);
     no_position_icons = NULL;
+    g_printerr ("%s new_icons: %d\n", G_STRFUNC, g_list_length (new_icons));
 
     for (p = new_icons; p != NULL; p = p->next) {
         gboolean have_stored_position;
@@ -1147,12 +1149,14 @@ nemo_icon_view_grid_container_finish_adding_new_icons (NemoIconContainer *contai
 
     g_list_free (new_icons);
     nemo_centered_placement_grid_free (grid);
+    g_printerr ("%s no_position_icons: %d\n", G_STRFUNC, g_list_length (no_position_icons));
 
     /* Position the unpositioned manual layout icons. */
     if (no_position_icons != NULL) {
         g_assert (!container->details->auto_layout);
 
         nemo_icon_container_sort_icons (container, &no_position_icons);
+        g_printerr ("%s call lay_down_icons\n", G_STRFUNC);
 
         NEMO_ICON_CONTAINER_GET_CLASS (container)->lay_down_icons (container, no_position_icons, 0);
 

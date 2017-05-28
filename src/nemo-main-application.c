@@ -490,6 +490,7 @@ nemo_main_application_local_command_line (GApplication *application,
 	gboolean browser = FALSE;
 	gboolean kill_shell = FALSE;
 	gboolean no_default_window = FALSE;
+    gboolean run_as_service = FALSE;
 	gboolean fix_cache = FALSE;
 	gchar **remaining = NULL;
 	NemoMainApplication *self = NEMO_MAIN_APPLICATION (application);
@@ -508,6 +509,8 @@ nemo_main_application_local_command_line (GApplication *application,
 		  N_("Create the initial window with the given geometry."), N_("GEOMETRY") },
 		{ "no-default-window", 'n', 0, G_OPTION_ARG_NONE, &no_default_window,
 		  N_("Only create windows for explicitly specified URIs."), NULL },
+        { "service", 's', 0, G_OPTION_ARG_NONE, &run_as_service,
+          N_("Run as a dbus service.  This allows control using the gapplication command."), NULL },
 		{ "fix-cache", '\0', 0, G_OPTION_ARG_NONE, &fix_cache,
 		  N_("Repair the user thumbnail cache - this can be useful if you're having trouble with file thumbnails.  Must be run as root"), NULL },
 		{ "quit", 'q', 0, G_OPTION_ARG_NONE, &kill_shell, 
@@ -568,6 +571,15 @@ nemo_main_application_local_command_line (GApplication *application,
 	DEBUG ("Parsing local command line, no_default_window %d, quit %d, "
 	       "self checks %d",
 	       no_default_window, kill_shell, perform_self_check);
+
+    if (run_as_service) {
+        GApplicationFlags flags;
+
+        flags = g_application_get_flags (application);
+        flags |= G_APPLICATION_IS_SERVICE;
+
+        g_application_set_flags (application, flags);
+    }
 
 	g_application_register (application, NULL, &error);
 

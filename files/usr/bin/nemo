@@ -1,0 +1,23 @@
+#!/usr/bin/python3
+""" Launches nemo as a dbus service.
+"""
+
+import os
+import sys
+
+import gi
+gi.require_version('GLib', '2.0')
+from gi.repository import GLib
+
+args = sys.argv
+
+# Our service launches with --no-default-window, so we have to explicitly add the
+# home folder when we have no other arguments, so calling 'nemo' via a launcher or
+# command line will always open somthing.  If we remove --no-default-window, we always
+# get a window with the home folder, *if* we had other location arguments, and *if* nemo
+# wasn't already running as a service.
+
+if len(args) == 1:
+    args.append("%s" % GLib.get_home_dir ())
+
+os.execvp("gapplication", ("gapplication", "launch", "org.Nemo") + tuple(sys.argv[1:]))

@@ -1,7 +1,7 @@
 include $(top_srcdir)/Makefile.shared
 
 bin_PROGRAMS=					\
-	nemo				\
+	nemo-main			\
     nemo-desktop \
 	nemo-autorun-software		\
 	nemo-connect-server			\
@@ -78,7 +78,7 @@ BUILT_SOURCES = \
 	nemo-resources.h \
 	$(NULL)
 
-nemo_SOURCES = \
+nemo_main_SOURCES = \
 	nemo-actions.h			\
     nemo-action-config-widget.c         \
     nemo-action-config-widget.h         \
@@ -203,7 +203,7 @@ nemo_SOURCES = \
 	nemo-x-content-bar.h		\
 	$(NULL)
 
-nodist_nemo_SOURCES = \
+nodist_nemo_main_SOURCES = \
 	$(BUILT_SOURCES) \
 	$(NULL)
 
@@ -212,7 +212,7 @@ EMPTY_VIEW_SOURCES = \
 	nemo-empty-view.h
 
 if ENABLE_EMPTY_VIEW
-nemo_SOURCES += $(EMPTY_VIEW_SOURCES)
+nemo_main_SOURCES += $(EMPTY_VIEW_SOURCES)
 endif
 
 nemo_desktop_SOURCES = \

@@ -991,6 +991,12 @@ align_icons (NemoIconContainer *container)
 }
 
 static void
+reload_icon_positions (NemoIconContainer *container)
+{
+    NEMO_ICON_CONTAINER_GET_CLASS (container)->reload_icon_positions (container);
+}
+
+static void
 redo_layout_internal (NemoIconContainer *container)
 {
     if (NEMO_ICON_CONTAINER_GET_CLASS (container)->finish_adding_new_icons != NULL) {
@@ -1010,7 +1016,9 @@ redo_layout_internal (NemoIconContainer *container)
         }
 
         NEMO_ICON_CONTAINER_GET_CLASS (container)->lay_down_icons (container, container->details->icons, 0);
-	}
+    } else if (container->details->drag_state != DRAG_STATE_STRETCH) {
+        reload_icon_positions (container);
+    }
 
 	if (nemo_icon_container_is_layout_rtl (container)) {
 		nemo_icon_container_set_rtl_positions (container);
@@ -1059,12 +1067,6 @@ nemo_icon_container_redo_layout (NemoIconContainer *container)
 {
 	unschedule_redo_layout (container);
 	redo_layout_internal (container);
-}
-
-static void
-reload_icon_positions (NemoIconContainer *container)
-{
-    NEMO_ICON_CONTAINER_GET_CLASS (container)->reload_icon_positions (container);
 }
 
 /* Container-level icon handling functions.  */

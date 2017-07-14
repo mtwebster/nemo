@@ -866,6 +866,7 @@ insert_quote (NemoAction *action, GString *str)
             str = g_string_append (str, "`");
             break;
         case QUOTE_TYPE_NONE:
+        default:
             break;
         default:
             break;

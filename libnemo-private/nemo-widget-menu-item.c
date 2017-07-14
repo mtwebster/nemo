@@ -251,9 +251,9 @@ nemo_widget_menu_item_update (GtkActivatable *activatable,
   if (!gtk_activatable_get_use_action_appearance (activatable))
     return;
 
-  if (strcmp (property_name, "widget-a") == 0)
+  if (g_strcmp0 (property_name, "widget-a") == 0)
     activatable_update_child_widget (widget_menu_item, action);
-  else if (strcmp (property_name, "widget-b") == 0)
+  else if (g_strcmp0 (property_name, "widget-b") == 0)
     activatable_update_child_widget (widget_menu_item, action);
 }
 

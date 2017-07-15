@@ -22,8 +22,8 @@
    Author: Andy Hertzfeld <andy@eazel.com>
 */
 
-#ifndef NEMO_THUMBNAIL_CACHE_H
-#define NEMO_THUMBNAIL_CACHE_H
+#ifndef NEMO_THUMBNAILS_H
+#define NEMO_THUMBNAILS_H
 
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #include <libnemo-private/nemo-file.h>
@@ -46,4 +46,4 @@ void       nemo_thumbnail_prioritize            (const char   *file_uri);
 
 gboolean   nemo_thumbnail_factory_check_status          (void);
 
-#endif /* NEMO_THUMBNAIL_CACHE_H */
+#endif /* NEMO_THUMBNAILS_H */

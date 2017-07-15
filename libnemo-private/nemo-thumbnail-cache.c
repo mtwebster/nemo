@@ -40,18 +40,15 @@
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
-#include <pthread.h>
 #include <sys/wait.h>
 #include <unistd.h>
 #include <signal.h>
 #include <libcinnamon-desktop/gnome-desktop-thumbnail.h>
 
-#include "nemo-file-private.h"
+#define DEBUG_FLAG NEMO_DEBUG_THUMBNAILS
+#include <libnemo-private/nemo-debug.h>
 
-/* turn this on to see messages about thumbnail creation */
-#if 0
-#define DEBUG_THUMBNAILS
-#endif
+#include "nemo-file-private.h"
 
 /* Should never be a reasonable actual mtime */
 #define INVALID_MTIME 0
@@ -337,9 +334,9 @@ nemo_thumbnail_remove_from_queue (const char *file_uri)
 {
     GList *node;
 
-#ifdef DEBUG_THUMBNAILS
-    g_message ("(Remove from queue) Locking mutex\n");
-#endif
+    if (DEBUGGING) {
+        g_message ("(Remove from queue) Locking mutex");
+    }
 
     g_mutex_lock (&thumbnails_mutex);
 
@@ -361,9 +358,9 @@ nemo_thumbnail_remove_from_queue (const char *file_uri)
      * MUTEX UNLOCKED
      *********************************/
 
-#ifdef DEBUG_THUMBNAILS
-    g_message ("(Remove from queue) Unlocking mutex\n");
-#endif
+    if (DEBUGGING) {
+        g_message ("(Remove from queue) Unlocking mutex");
+    }
 
     g_mutex_unlock (&thumbnails_mutex);
 }
@@ -373,9 +370,9 @@ nemo_thumbnail_prioritize (const char *file_uri)
 {
     GList *node;
 
-#ifdef DEBUG_THUMBNAILS
-    g_message ("(Prioritize) Locking mutex\n");
-#endif
+    if (DEBUGGING) {
+        g_message ("(Prioritize) Locking mutex");
+    }
 
     g_mutex_lock (&thumbnails_mutex);
 
@@ -396,9 +393,9 @@ nemo_thumbnail_prioritize (const char *file_uri)
      * MUTEX UNLOCKED
      *********************************/
     
-#ifdef DEBUG_THUMBNAILS
-    g_message ("(Prioritize) Unlocking mutex\n");
-#endif
+    if (DEBUGGING) {
+        g_message ("(Prioritize) Unlocking mutex");
+    }
 
     g_mutex_unlock (&thumbnails_mutex);
 }
@@ -414,9 +411,9 @@ thumbnail_thread_notify_file_changed (gpointer image_uri)
 
     file = nemo_file_get_by_uri ((char *) image_uri);
 
-#ifdef DEBUG_THUMBNAILS
-    g_message ("(Thumbnail Thread) Notifying file changed file:%p uri: %s\n", file, (char*) image_uri);
-#endif
+    if (DEBUGGING) {
+        g_message ("(Thumbnail Thread) Notifying file changed file:%p uri: %s", file, (char*) image_uri);
+    }
 
     if (file != NULL) {
         nemo_file_set_is_thumbnailing (file, FALSE);
@@ -442,8 +439,12 @@ on_thumbnail_thread_finished (GObject      *source,
     success = g_task_propagate_boolean (G_TASK (res), &error);
 
     if (error != NULL) {
-        g_warning ("Error thumbnailing: %s\n", error->message);
+        g_warning ("Error thumbnailing: %s", error->message);
         g_error_free (error);
+    }
+
+    if (DEBUGGING) {
+        g_message ("(Main Thread) Thumbnail thread finished");
     }
 
     /* Thread is no longer running, no need to lock mutex */
@@ -466,9 +467,9 @@ thumbnail_thread (GTask        *task,
 	/* We loop until there are no more thumbails to make, at which point
 	   we exit the thread. */
 	for (;;) {
-#ifdef DEBUG_THUMBNAILS
-		g_message ("(Thumbnail Thread) Locking mutex\n");
-#endif
+        if (DEBUGGING) {
+            g_message ("(Thumbnail Thread) Locking mutex");
+        }
 
         g_mutex_lock (&thumbnails_mutex);
 
@@ -502,9 +503,9 @@ thumbnail_thread (GTask        *task,
 		   thumbnail_thread_is_running flag, unlock the mutex, and
 		   exit the thread. */
 		if (g_queue_is_empty ((GQueue *)&thumbnails_to_make)) {
-#ifdef DEBUG_THUMBNAILS
-			g_message ("(Thumbnail Thread) Exiting\n");
-#endif
+            if (DEBUGGING) {
+                g_message ("(Thumbnail Thread) Exiting");
+            }
 
             g_mutex_unlock (&thumbnails_mutex);
             g_task_return_boolean (task, TRUE);
@@ -517,13 +518,15 @@ thumbnail_thread (GTask        *task,
 		info = g_queue_peek_head ((GQueue *)&thumbnails_to_make);
 		currently_thumbnailing = info;
 		current_orig_mtime = info->original_file_mtime;
+
 		/*********************************
 		 * MUTEX UNLOCKED
 		 *********************************/
 
-#ifdef DEBUG_THUMBNAILS
-		g_message ("(Thumbnail Thread) Unlocking mutex\n");
-#endif
+        if (DEBUGGING) {
+            g_message ("(Thumbnail Thread) Unlocking mutex");
+        }
+
         g_mutex_unlock (&thumbnails_mutex);
 
 		time (&current_time);
@@ -532,11 +535,12 @@ thumbnail_thread (GTask        *task,
 		   This prevents constant re-thumbnailing of changing files. */ 
 		if (current_time < current_orig_mtime + (THUMBNAIL_CREATION_DELAY_SECS * info->throttle_count) &&
 		    current_time >= current_orig_mtime) {
-#ifdef DEBUG_THUMBNAILS
-			g_message ("(Thumbnail Thread) Skipping for %d seconds: %s\n",
-                       THUMBNAIL_CREATION_DELAY_SECS * info->throttle_count,
-                       info->image_uri);
-#endif
+            if (DEBUGGING) {
+                g_message ("(Thumbnail Thread) Skipping for %d seconds: %s",
+                           THUMBNAIL_CREATION_DELAY_SECS * info->throttle_count,
+                           info->image_uri);
+            }
+
 			/* Reschedule thumbnailing via a change notification */
 			g_timeout_add_seconds (THUMBNAIL_CREATION_DELAY_SECS * info->throttle_count, thumbnail_thread_notify_file_changed,
 				       g_strdup (info->image_uri));
@@ -544,10 +548,10 @@ thumbnail_thread (GTask        *task,
 		}
 
 		/* Create the thumbnail. */
-#ifdef DEBUG_THUMBNAILS
-		g_message ("(Thumbnail Thread) Creating thumbnail: %s\n",
-			   info->image_uri);
-#endif
+        if (DEBUGGING) {
+            g_message ("(Thumbnail Thread) Creating thumbnail: %s",
+                       info->image_uri);
+        }
 
 		pixbuf = gnome_desktop_thumbnail_factory_generate_thumbnail (thumbnail_factory,
 									     info->image_uri,
@@ -591,9 +595,9 @@ thumbnail_thread_starter_cb (gpointer data)
 
     thumbnails_cancellable = g_cancellable_new ();
 
-#ifdef DEBUG_THUMBNAILS
-    g_message ("(Main Thread) Creating thumbnails thread\n");
-#endif
+    if (DEBUGGING) {
+        g_message ("(Main Thread) Creating thumbnails thread");
+    }
 
     thumbnail_task = g_task_new (thumbnail_factory,
                                  thumbnails_cancellable,
@@ -640,10 +644,10 @@ nemo_create_thumbnail (NemoFile *file, gint throttle_count)
     
     info->original_file_mtime = file_mtime;
 
+    if (DEBUGGING) {
+        g_message ("(Main Thread) Locking mutex");
+    }
 
-#ifdef DEBUG_THUMBNAILS
-    g_message ("(Main Thread) Locking mutex\n");
-#endif
     g_mutex_lock (&thumbnails_mutex);
 
     /*********************************
@@ -661,10 +665,10 @@ nemo_create_thumbnail (NemoFile *file, gint throttle_count)
     if (existing == NULL) {
         /* Add the thumbnail to the list. */
 
-#ifdef DEBUG_THUMBNAILS
-        g_message ("(Main Thread) Adding thumbnail: %s\n",
-               info->image_uri);
-#endif
+        if (DEBUGGING) {
+            g_message ("(Main Thread) Adding thumbnail: %s",
+                       info->image_uri);
+        }
 
         g_queue_push_tail ((GQueue *)&thumbnails_to_make, info);
         node = g_queue_peek_tail_link ((GQueue *)&thumbnails_to_make);
@@ -682,10 +686,11 @@ nemo_create_thumbnail (NemoFile *file, gint throttle_count)
             thumbnail_thread_starter_id = g_idle_add_full (G_PRIORITY_LOW, thumbnail_thread_starter_cb, NULL, NULL);
         }
     } else {
-#ifdef DEBUG_THUMBNAILS
-        g_message ("(Main Thread) Updating non-current mtime: %s\n",
-               info->image_uri);
-#endif
+        if (DEBUGGING) {
+            g_message ("(Main Thread) Updating non-current mtime: %s",
+                       info->image_uri);
+        }
+
         /* The file in the queue might need a new original mtime */
         existing_info = existing->data;
         existing_info->original_file_mtime = info->original_file_mtime;
@@ -696,9 +701,10 @@ nemo_create_thumbnail (NemoFile *file, gint throttle_count)
      * MUTEX UNLOCKED
      *********************************/
 
-#ifdef DEBUG_THUMBNAILS
-    g_message ("(Main Thread) Unlocking mutex\n");
-#endif
+    if (DEBUGGING) {
+        g_message ("(Main Thread) Unlocking mutex");
+    }
+
     g_mutex_unlock (&thumbnails_mutex);
 }
 

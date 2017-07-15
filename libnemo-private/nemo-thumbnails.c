@@ -1,6 +1,6 @@
 /* -*- Mode: C; indent-tabs-mode: t; c-basic-offset: 8; tab-width: 8 -*-
 
-   nemo-thumbnail-cache.h: Thumbnail code for icon factory.
+   nemo-thumbnails.h: Thumbnail code for icon factory.
  
    Copyright (C) 2000, 2001 Eazel, Inc.
    Copyright (C) 2002, 2003 Red Hat, Inc.
@@ -24,7 +24,7 @@
 */
 
 #include <config.h>
-#include "nemo-thumbnail-cache.h"
+#include "nemo-thumbnails.h"
 
 #define GNOME_DESKTOP_USE_UNSTABLE_API
 

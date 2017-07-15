@@ -1,6 +1,6 @@
 /* -*- Mode: C; indent-tabs-mode: t; c-basic-offset: 8; tab-width: 8 -*-
 
-   nemo-thumbnail-cache.h: Thumbnail code for icon factory.
+   nemo-thumbnails.h: Thumbnail code for icon factory.
  
    Copyright (C) 2000 Eazel, Inc.
   

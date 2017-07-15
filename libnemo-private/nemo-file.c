@@ -42,7 +42,7 @@
 #include "nemo-module.h"
 #include "nemo-search-directory.h"
 #include "nemo-search-directory-file.h"
-#include "nemo-thumbnail-cache.h"
+#include "nemo-thumbnails.h"
 #include "nemo-vfs-file.h"
 #include "nemo-file-undo-operations.h"
 #include "nemo-file-undo-manager.h"

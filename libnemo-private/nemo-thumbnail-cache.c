@@ -31,18 +31,8 @@
 #include "nemo-directory-notify.h"
 #include "nemo-global-preferences.h"
 #include "nemo-file-utilities.h"
-#include <math.h>
 #include <eel/eel-graphic-effects.h>
-#include <eel/eel-string.h>
-#include <eel/eel-debug.h>
-#include <eel/eel-vfs-extensions.h>
 #include <gtk/gtk.h>
-#include <errno.h>
-#include <stdio.h>
-#include <string.h>
-#include <sys/wait.h>
-#include <unistd.h>
-#include <signal.h>
 #include <libcinnamon-desktop/gnome-desktop-thumbnail.h>
 
 #define DEBUG_FLAG NEMO_DEBUG_THUMBNAILS

@@ -36,7 +36,7 @@
 #include <libnemo-private/nemo-global-preferences.h>
 #include <libnemo-private/nemo-file-attributes.h>
 #include <libnemo-private/nemo-metadata.h>
-#include <libnemo-private/nemo-thumbnails.h>
+#include <libnemo-private/nemo-thumbnail-cache.h>
 #include <libnemo-private/nemo-desktop-icon-file.h>
 
 #define DEBUG_FLAG NEMO_DEBUG_ICON_CONTAINER

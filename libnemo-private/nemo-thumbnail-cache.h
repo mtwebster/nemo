@@ -1,6 +1,6 @@
 /* -*- Mode: C; indent-tabs-mode: t; c-basic-offset: 8; tab-width: 8 -*-
 
-   nemo-thumbnails.h: Thumbnail code for icon factory.
+   nemo-thumbnail-cache.h: Thumbnail code for icon factory.
  
    Copyright (C) 2000 Eazel, Inc.
   
@@ -22,8 +22,8 @@
    Author: Andy Hertzfeld <andy@eazel.com>
 */
 
-#ifndef NEMO_THUMBNAILS_H
-#define NEMO_THUMBNAILS_H
+#ifndef NEMO_THUMBNAIL_CACHE_H
+#define NEMO_THUMBNAIL_CACHE_H
 
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #include <libnemo-private/nemo-file.h>
@@ -46,4 +46,4 @@ void       nemo_thumbnail_prioritize            (const char   *file_uri);
 
 gboolean   nemo_thumbnail_factory_check_status          (void);
 
-#endif /* NEMO_THUMBNAILS_H */
+#endif /* NEMO_THUMBNAIL_CACHE_H */

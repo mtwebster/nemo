@@ -184,8 +184,8 @@ libnemo_private_la_SOURCES = \
 	nemo-query.h \
     nemo-separator-action.c \
     nemo-separator-action.h \
-	nemo-thumbnails.c \
-	nemo-thumbnails.h \
+	nemo-thumbnail-cache.c \
+	nemo-thumbnail-cache.h \
 	nemo-trash-monitor.c \
 	nemo-trash-monitor.h \
 	nemo-tree-view-drag-dest.c \

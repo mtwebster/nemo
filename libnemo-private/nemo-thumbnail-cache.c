@@ -73,22 +73,18 @@ static guint thumbnail_thread_starter_id = 0;
    thumbnails_to_make list. */
 static GMutex thumbnails_mutex;
 static GCancellable *thumbnails_cancellable;
-
 /* A flag to indicate whether a thumbnail thread is running, so we don't
    start more than one. Lock thumbnails_mutex when accessing this. */
 static volatile gboolean thumbnail_thread_is_running = FALSE;
-
 /* The list of NemoThumbnailInfo structs containing information about the
    thumbnails we are making. Lock thumbnails_mutex when accessing this. */
 static volatile GQueue thumbnails_to_make = G_QUEUE_INIT;
-
 /* Quickly check if uri is in thumbnails_to_make list */
 static GHashTable *thumbnails_to_make_hash = NULL;
 
 /* The currently thumbnailed icon. it also exists in the thumbnails_to_make list
  * to avoid adding it again. Lock thumbnails_mutex when accessing this. */
 static NemoThumbnailInfo *currently_thumbnailing = NULL;
-
 static GnomeDesktopThumbnailFactory *thumbnail_factory = NULL;
 
 static gboolean
@@ -561,10 +557,11 @@ thumbnail_thread (GTask        *task,
 
 		/* We need to call nemo_file_changed(), but I don't think that is
 		   thread safe. So add an idle handler and do it from the main loop. */
-		g_idle_add_full (G_PRIORITY_HIGH_IDLE,
-				 thumbnail_thread_notify_file_changed,
-				 g_strdup (info->image_uri), NULL);
-	}
+        g_idle_add_full (G_PRIORITY_HIGH_IDLE,
+                         thumbnail_thread_notify_file_changed,
+                         g_strdup (info->image_uri),
+                         NULL);
+    }
 
     g_task_return_boolean (task, TRUE);
 }

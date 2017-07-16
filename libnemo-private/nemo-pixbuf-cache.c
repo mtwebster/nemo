@@ -38,6 +38,7 @@
 #include <libnemo-private/nemo-debug.h>
 
 #include "nemo-file-private.h"
+#include "nemo-directory-private.h"
 #include "nemo-icon-info.h"
 #include "nemo-pixbuf-cache.h"
 
@@ -289,8 +290,12 @@ pixbuf_thread_notify_file_changed (gpointer file_uri)
     }
 
     if (file != NULL) {
-        nemo_file_invalidate_attributes (file,
-                             NEMO_FILE_ATTRIBUTE_INFO);
+        GList *files;
+
+        files = g_list_prepend (NULL, file);
+        nemo_directory_emit_files_changed (file->details->directory, files);
+        g_list_free (files);
+
         nemo_file_unref (file);
     }
 
@@ -527,7 +532,7 @@ pixbuf_thread (GTask        *task,
 
 		/* We need to call nemo_file_changed(), but I don't think that is
 		   thread safe. So add an idle handler and do it from the main loop. */
-        g_idle_add_full (G_PRIORITY_HIGH_IDLE,
+        g_idle_add_full (G_PRIORITY_LOW,
                          pixbuf_thread_notify_file_changed,
                          g_strdup (info->file_uri),
                          NULL);

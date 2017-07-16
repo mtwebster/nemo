@@ -99,7 +99,6 @@ struct NemoFileDetails
     gint thumbnail_throttle_count;
     time_t last_thumbnail_try_mtime;
 
-    GdkPixbuf *scaled_thumbnail;
     double thumbnail_scale;
 
 	GList *mime_list; /* If this is a directory, the list of MIME types in it. */

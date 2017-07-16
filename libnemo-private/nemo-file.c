@@ -43,6 +43,7 @@
 #include "nemo-search-directory.h"
 #include "nemo-search-directory-file.h"
 #include "nemo-thumbnails.h"
+#include "nemo-pixbuf-cache.h"
 #include "nemo-vfs-file.h"
 #include "nemo-file-undo-operations.h"
 #include "nemo-file-undo-manager.h"
@@ -829,9 +830,6 @@ finalize (GObject *object)
 
 	if (file->details->thumbnail) {
 		g_object_unref (file->details->thumbnail);
-	}
-	if (file->details->scaled_thumbnail) {
-		g_object_unref (file->details->scaled_thumbnail);
 	}
 
 	if (file->details->mount) {
@@ -4309,6 +4307,12 @@ get_throttle_count (NemoFile *file)
     return details->thumbnail_throttle_count;
 }
 
+GdkPixbuf *
+nemo_file_get_orig_thumbnail (NemoFile *file)
+{
+    return g_object_ref (file->details->thumbnail);
+}
+
 NemoIconInfo *
 nemo_file_get_icon (NemoFile *file,
 			int size,
@@ -4334,106 +4338,31 @@ nemo_file_get_icon (NemoFile *file,
 
 	DEBUG ("Called file_get_icon(), at size %d, force thumbnail %d", size,
 	       flags & NEMO_FILE_ICON_FLAGS_FORCE_THUMBNAIL_SIZE);
-	
-	if (flags & NEMO_FILE_ICON_FLAGS_FORCE_THUMBNAIL_SIZE) {
-		modified_size = size * scale;
-	} else {
-		modified_size = size * scale * cached_thumbnail_size / NEMO_ICON_SIZE_STANDARD;
-		DEBUG ("Modifying icon size to %d, as our cached thumbnail size is %d",
-		       modified_size, cached_thumbnail_size);
-	}
+
 
 	if (flags & NEMO_FILE_ICON_FLAGS_USE_THUMBNAILS &&
 	    nemo_file_should_show_thumbnail (file)) {
-		if (file->details->thumbnail) {
-			int w, h, s;
-			double thumb_scale;
+        if (file->details->thumbnail) {
+            GdkPixbuf *pixbuf;
 
-			raw_pixbuf = g_object_ref (file->details->thumbnail);
+            pixbuf = nemo_pixbuf_cache_request_pixbuf_for_file (file,
+                                                                size,
+                                                                max_width,
+                                                                scale,
+                                                                flags);
 
-			w = gdk_pixbuf_get_width (raw_pixbuf);
-			h = gdk_pixbuf_get_height (raw_pixbuf);
-
-            if (flags & NEMO_FILE_ICON_FLAGS_PIN_HEIGHT_FOR_DESKTOP) {
-                g_assert (max_width > 0);
-
-                thumb_scale = (gdouble) modified_size / h;
-
-                if (w * thumb_scale > max_width) {
-                    thumb_scale = (gdouble) max_width / w;
-                }
-
-                s = thumb_scale * h;
-            } else {
-                s = MAX (w, h);         
-                /* Don't scale up small thumbnails in the standard view */
-                if (s <= cached_thumbnail_size) {
-                    thumb_scale = (double)size / NEMO_ICON_SIZE_STANDARD;
-                }
-                else {
-                    thumb_scale = (double)modified_size / s;
-                }
-                /* Make sure that icons don't get smaller than NEMO_ICON_SIZE_SMALLEST */
-                if (s*thumb_scale <= NEMO_ICON_SIZE_SMALLEST) {
-                    thumb_scale = (double) NEMO_ICON_SIZE_SMALLEST / s;
-                }
+            if (pixbuf != NULL) {
+                return nemo_icon_info_new_for_pixbuf (pixbuf, scale);
             }
-
-            if (file->details->thumbnail_scale == thumb_scale &&
-                file->details->scaled_thumbnail != NULL) {
-                scaled_pixbuf = file->details->scaled_thumbnail;
-            } else {
-                scaled_pixbuf = gdk_pixbuf_scale_simple (raw_pixbuf,
-                                     MAX (w * thumb_scale, 1),
-                                     MAX (h * thumb_scale, 1),
-                                     GDK_INTERP_BILINEAR);
-                /* We don't want frames around small icons */
-                if (!gdk_pixbuf_get_has_alpha (raw_pixbuf) || s >= 128 * scale) {
-                    nemo_thumbnail_frame_image (&scaled_pixbuf);
-                }
-
-                if (flags & NEMO_FILE_ICON_FLAGS_PIN_HEIGHT_FOR_DESKTOP) {
-                    gint check_height;
-
-                    check_height = gdk_pixbuf_get_height (scaled_pixbuf);
-
-                    if (check_height < size) {
-                        nemo_thumbnail_pad_top_and_bottom (&scaled_pixbuf, size - check_height);
-                    }
-                }
-
-                g_clear_object (&file->details->scaled_thumbnail);
-                file->details->scaled_thumbnail = scaled_pixbuf;
-                file->details->thumbnail_scale = thumb_scale;
-            }
-
-			g_object_unref (raw_pixbuf);
-
-			/* Don't scale up if more than 25%, then read the original
-			   image instead. We don't want to compare to exactly 100%,
-			   since the zoom level 150% gives thumbnails at 144, which is
-			   ok to scale up from 128. */
-			if (modified_size > 128 * 1.25 * scale &&
-			    !file->details->thumbnail_wants_original &&
-			    nemo_can_thumbnail_internally (file)) {
-				/* Invalidate if we resize upward */
-				file->details->thumbnail_wants_original = TRUE;
-				nemo_file_invalidate_attributes (file, NEMO_FILE_ATTRIBUTE_THUMBNAIL);
-			}
-
-			DEBUG ("Returning thumbnailed image, at size %d %d",
-			       (int) (w * thumb_scale), (int) (h * thumb_scale));
-			
-			return nemo_icon_info_new_for_pixbuf (scaled_pixbuf, scale);
-		} else if (file->details->thumbnail_path == NULL &&
-			   file->details->can_read &&				
-			   !file->details->is_thumbnailing &&
-			   !file->details->thumbnailing_failed) {
-			if (nemo_can_thumbnail (file)) {
-				nemo_create_thumbnail (file, get_throttle_count (file));
-			}
-		}
-	}
+    	} else if (file->details->thumbnail_path == NULL &&
+    		   file->details->can_read &&				
+    		   !file->details->is_thumbnailing &&
+    		   !file->details->thumbnailing_failed) {
+    		if (nemo_can_thumbnail (file)) {
+    			nemo_create_thumbnail (file, get_throttle_count (file));
+    		}
+    	}
+    }
 
 	if (file->details->is_thumbnailing &&
 	    flags & NEMO_FILE_ICON_FLAGS_USE_THUMBNAILS)
@@ -8187,14 +8116,14 @@ thumbnail_limit_changed_callback (gpointer user_data)
 static void
 thumbnail_size_changed_callback (gpointer user_data)
 {
-	cached_thumbnail_size = g_settings_get_int (nemo_icon_view_preferences,
-						    NEMO_PREFERENCES_ICON_VIEW_THUMBNAIL_SIZE);
+    cached_thumbnail_size = g_settings_get_int (nemo_icon_view_preferences,
+                            NEMO_PREFERENCES_ICON_VIEW_THUMBNAIL_SIZE);
 
-	/* Tell the world that icons might have changed. We could invent a narrower-scope
-	 * signal to mean only "thumbnails might have changed" if this ends up being slow
-	 * for some reason.
-	 */
-	emit_change_signals_for_all_files_in_all_directories ();
+    /* Tell the world that icons might have changed. We could invent a narrower-scope
+     * signal to mean only "thumbnails might have changed" if this ends up being slow
+     * for some reason.
+     */
+    emit_change_signals_for_all_files_in_all_directories ();
 }
 
 static void
@@ -8324,11 +8253,11 @@ nemo_file_class_init (NemoFileClass *class)
 				  "changed::" NEMO_PREFERENCES_IMAGE_FILE_THUMBNAIL_LIMIT,
 				  G_CALLBACK (thumbnail_limit_changed_callback),
 				  NULL);
-	thumbnail_size_changed_callback (NULL);
-	g_signal_connect_swapped (nemo_preferences,
-				  "changed::" NEMO_PREFERENCES_ICON_VIEW_THUMBNAIL_SIZE,
-				  G_CALLBACK (thumbnail_size_changed_callback),
-				  NULL);
+    thumbnail_size_changed_callback (NULL);
+    g_signal_connect_swapped (nemo_preferences,
+                              "changed::" NEMO_PREFERENCES_ICON_VIEW_THUMBNAIL_SIZE,
+                              G_CALLBACK (thumbnail_size_changed_callback),
+                              NULL);
 	show_thumbnails_changed_callback (NULL);
 	g_signal_connect_swapped (nemo_preferences,
 				  "changed::" NEMO_PREFERENCES_SHOW_IMAGE_FILE_THUMBNAILS,

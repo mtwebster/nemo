@@ -155,6 +155,8 @@ libnemo_private_la_SOURCES = \
 	nemo-module.h \
 	nemo-monitor.c \
 	nemo-monitor.h \
+    nemo-pixbuf-cache.c \
+    nemo-pixbuf-cache.h \
     nemo-placement-grid.c \
     nemo-places-tree-view.c \
     nemo-places-tree-view.h \

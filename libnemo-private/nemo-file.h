@@ -451,7 +451,7 @@ GIcon *                 nemo_file_get_gicon                         (NemoFile   
                                                                      NemoFileIconFlags           flags);
 GIcon *                 nemo_file_get_emblemed_icon                 (NemoFile                   *file,
                                                                      NemoFileIconFlags           flags);
-
+gchar *                 nemo_file_get_thumbnail_path                (NemoFile *file);
 NemoIconInfo *      nemo_file_get_icon                          (NemoFile                   *file,
 									 int                             size,
                                      int                             max_width,

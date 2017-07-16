@@ -53,6 +53,7 @@ static GDebugKey keys[] = {
   { "Actions", NEMO_DEBUG_ACTIONS },
   { "Desktop", NEMO_DEBUG_DESKTOP },
   { "Thumbnails", NEMO_DEBUG_THUMBNAILS },
+  { "PixbufCache", NEMO_DEBUG_PIXBUF_CACHE },
   { 0, }
 };
 

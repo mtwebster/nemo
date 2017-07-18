@@ -101,8 +101,6 @@
 
 #define METADATA_ID_IS_LIST_MASK (1<<31)
 
-#define MAX_THUMBNAIL_TRIES 2
-
 typedef enum {
 	SHOW_HIDDEN = 1 << 0,
 } FilterOptions;
@@ -457,8 +455,6 @@ nemo_file_clear_info (NemoFile *file)
 	g_free (file->details->thumbnail_path);
 	file->details->thumbnail_path = NULL;
 	file->details->thumbnailing_failed = FALSE;
-    file->details->thumbnail_throttle_count = 1;
-    file->details->last_thumbnail_try_mtime = 0;
 	
 	file->details->is_launcher = FALSE;
 	file->details->is_foreign_link = FALSE;
@@ -827,10 +823,6 @@ finalize (GObject *object)
 	g_free (file->details->description);
 	g_free (file->details->activation_uri);
 	g_clear_object (&file->details->custom_icon);
-
-	if (file->details->thumbnail) {
-		g_object_unref (file->details->thumbnail);
-	}
 
 	if (file->details->mount) {
 		g_signal_handlers_disconnect_by_func (file->details->mount, file_mount_unmounted, file);
@@ -2449,25 +2441,10 @@ update_info_internal (NemoFile *file,
 	atime = g_file_info_get_attribute_uint64 (info, G_FILE_ATTRIBUTE_TIME_ACCESS);
 	ctime = g_file_info_get_attribute_uint64 (info, G_FILE_ATTRIBUTE_TIME_CHANGED);
 	mtime = g_file_info_get_attribute_uint64 (info, G_FILE_ATTRIBUTE_TIME_MODIFIED);
-	if (file->details->atime != atime ||
-	    file->details->mtime != mtime ||
-	    file->details->ctime != ctime) {
-		if (file->details->thumbnail == NULL) {
-			file->details->thumbnail_is_up_to_date = FALSE;
-		}
 
-		changed = TRUE;
-	}
 	file->details->atime = atime;
 	file->details->ctime = ctime;
 	file->details->mtime = mtime;
-
-	if (file->details->thumbnail != NULL &&
-	    file->details->thumbnail_mtime != 0 &&
-	    file->details->thumbnail_mtime != mtime) {
-		file->details->thumbnail_is_up_to_date = FALSE;
-		changed = TRUE;
-	}
 
 	icon = g_file_info_get_icon (info);
 	if (!g_icon_equal (icon, file->details->icon)) {
@@ -4289,30 +4266,6 @@ nemo_file_get_emblemed_icon (NemoFile *file,
     return emblemed_icon;
 }
 
-static gint
-get_throttle_count (NemoFile *file)
-{
-    NemoFileDetails *details = file->details;
-
-    gint diff = (gint)(details->mtime - details->last_thumbnail_try_mtime);
-
-    if (diff != 0 && diff <= (THUMBNAIL_CREATION_DELAY_SECS * (details->thumbnail_throttle_count + 1))) {
-        details->thumbnail_throttle_count++;
-    } else {
-        details->thumbnail_throttle_count = 1;
-    }
-
-    details->last_thumbnail_try_mtime = details->mtime;
-
-    return details->thumbnail_throttle_count;
-}
-
-GdkPixbuf *
-nemo_file_get_orig_thumbnail (NemoFile *file)
-{
-    return g_object_ref (file->details->thumbnail);
-}
-
 NemoIconInfo *
 nemo_file_get_icon (NemoFile *file,
 			int size,
@@ -4342,7 +4295,7 @@ nemo_file_get_icon (NemoFile *file,
 
 	if (flags & NEMO_FILE_ICON_FLAGS_USE_THUMBNAILS &&
 	    nemo_file_should_show_thumbnail (file)) {
-        if (file->details->thumbnail) {
+        if (file->details->thumbnail_path != NULL) {
             GdkPixbuf *pixbuf;
 
             pixbuf = nemo_pixbuf_cache_request_pixbuf_for_file (file,
@@ -4359,7 +4312,7 @@ nemo_file_get_icon (NemoFile *file,
     		   !file->details->is_thumbnailing &&
     		   !file->details->thumbnailing_failed) {
     		if (nemo_can_thumbnail (file)) {
-    			nemo_create_thumbnail (file, get_throttle_count (file));
+    			nemo_create_thumbnail (file);
     		}
     	}
     }
@@ -7598,12 +7551,6 @@ invalidate_link_info (NemoFile *file)
 }
 
 static void
-invalidate_thumbnail (NemoFile *file)
-{
-	file->details->thumbnail_is_up_to_date = FALSE;
-}
-
-static void
 invalidate_mount (NemoFile *file)
 {
 	file->details->mount_is_up_to_date = FALSE;
@@ -7656,9 +7603,6 @@ nemo_file_invalidate_attributes_internal (NemoFile *file,
 	}
 	if (REQUEST_WANTS_TYPE (request, REQUEST_EXTENSION_INFO)) {
 		nemo_file_invalidate_extension_info_internal (file);
-	}
-	if (REQUEST_WANTS_TYPE (request, REQUEST_THUMBNAIL)) {
-		invalidate_thumbnail (file);
 	}
 	if (REQUEST_WANTS_TYPE (request, REQUEST_MOUNT)) {
 		invalidate_mount (file);
@@ -7738,7 +7682,6 @@ nemo_file_get_all_attributes (void)
 		NEMO_FILE_ATTRIBUTE_DIRECTORY_ITEM_COUNT | 
 		NEMO_FILE_ATTRIBUTE_DIRECTORY_ITEM_MIME_TYPES | 
 		NEMO_FILE_ATTRIBUTE_EXTENSION_INFO |
-		NEMO_FILE_ATTRIBUTE_THUMBNAIL |
 		NEMO_FILE_ATTRIBUTE_MOUNT;
 }
 

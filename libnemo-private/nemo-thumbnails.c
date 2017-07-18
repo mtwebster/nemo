@@ -46,18 +46,12 @@
 /* Cool-off period between last file modification time and thumbnail creation */
 #define THUMBNAIL_CREATION_DELAY_SECS 3
 
-#define NEMO_THUMBNAIL_FRAME_LEFT 3
-#define NEMO_THUMBNAIL_FRAME_TOP 3
-#define NEMO_THUMBNAIL_FRAME_RIGHT 3
-#define NEMO_THUMBNAIL_FRAME_BOTTOM 3
-
 /* structure used for making thumbnails, associating a uri with where the thumbnail is to be stored */
 
 typedef struct {
 	char *image_uri;
 	char *mime_type;
 	time_t original_file_mtime;
-    gint throttle_count;
 } NemoThumbnailInfo;
 
 /*
@@ -309,9 +303,7 @@ thumbnail_thread_notify_file_changed (gpointer image_uri)
 
     if (file != NULL) {
         nemo_file_set_is_thumbnailing (file, FALSE);
-        nemo_file_invalidate_attributes (file,
-                             NEMO_FILE_ATTRIBUTE_THUMBNAIL |
-                             NEMO_FILE_ATTRIBUTE_INFO);
+        nemo_file_invalidate_attributes (file, NEMO_FILE_ATTRIBUTE_INFO);
         nemo_file_unref (file);
     }
     g_free (image_uri);
@@ -425,16 +417,16 @@ thumbnail_thread (GTask        *task,
 
 		/* Don't try to create a thumbnail if the file was modified recently.
 		   This prevents constant re-thumbnailing of changing files. */ 
-		if (current_time < current_orig_mtime + (THUMBNAIL_CREATION_DELAY_SECS * info->throttle_count) &&
+		if (current_time < current_orig_mtime + (THUMBNAIL_CREATION_DELAY_SECS) &&
 		    current_time >= current_orig_mtime) {
             if (DEBUGGING) {
                 g_message ("(Thumbnail Thread) Skipping for %d seconds: %s",
-                           THUMBNAIL_CREATION_DELAY_SECS * info->throttle_count,
+                           THUMBNAIL_CREATION_DELAY_SECS,
                            info->image_uri);
             }
 
 			/* Reschedule thumbnailing via a change notification */
-			g_timeout_add_seconds (THUMBNAIL_CREATION_DELAY_SECS * info->throttle_count, thumbnail_thread_notify_file_changed,
+			g_timeout_add_seconds (THUMBNAIL_CREATION_DELAY_SECS, thumbnail_thread_notify_file_changed,
 				       g_strdup (info->image_uri));
  			continue;
 		}
@@ -511,7 +503,7 @@ thumbnail_thread_starter_cb (gpointer data)
 }
 
 void
-nemo_create_thumbnail (NemoFile *file, gint throttle_count)
+nemo_create_thumbnail (NemoFile *file)
 {
     time_t file_mtime = 0;
     NemoThumbnailInfo *info;
@@ -523,8 +515,7 @@ nemo_create_thumbnail (NemoFile *file, gint throttle_count)
     info = g_new0 (NemoThumbnailInfo, 1);
     info->image_uri = nemo_file_get_uri (file);
     info->mime_type = nemo_file_get_mime_type (file);
-    info->throttle_count = MIN (10, throttle_count);
-    
+
     /* Hopefully the NemoFile will already have the image file mtime,
        so we can just use that. Otherwise we have to get it ourselves. */
     if (file->details->got_file_info &&

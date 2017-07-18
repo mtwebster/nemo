@@ -124,7 +124,7 @@ typedef char * (*NemoTruncateCallback)    (const char    *string,
 					       void	     *context);
 
 
-#define NEMO_FILE_ATTRIBUTES_FOR_ICON (NEMO_FILE_ATTRIBUTE_INFO | NEMO_FILE_ATTRIBUTE_LINK_INFO | NEMO_FILE_ATTRIBUTE_THUMBNAIL)
+#define NEMO_FILE_ATTRIBUTES_FOR_ICON (NEMO_FILE_ATTRIBUTE_INFO | NEMO_FILE_ATTRIBUTE_LINK_INFO)
 
 typedef void NemoFileListHandle;
 

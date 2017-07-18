@@ -39,7 +39,6 @@ typedef struct DeepCountState DeepCountState;
 typedef struct GetInfoState GetInfoState;
 typedef struct NewFilesState NewFilesState;
 typedef struct MimeListState MimeListState;
-typedef struct ThumbnailState ThumbnailState;
 typedef struct MountState MountState;
 typedef struct FilesystemInfoState FilesystemInfoState;
 
@@ -119,8 +118,6 @@ struct NemoDirectoryDetails
 	NemoInfoProvider *extension_info_provider;
 	NemoOperationHandle *extension_info_in_progress;
 	guint extension_info_idle;
-
-	ThumbnailState *thumbnail_state;
 
 	MountState *mount_state;
 

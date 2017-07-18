@@ -53,7 +53,7 @@
 #define DEBUG_START_STOP
 #endif
 
-#define DIRECTORY_LOAD_ITEMS_PER_CALLBACK 100
+#define DIRECTORY_LOAD_ITEMS_PER_CALLBACK 20
 
 /* Keep async. jobs down to this number for all directories. */
 #define MAX_ASYNC_JOBS 10
@@ -62,14 +62,6 @@ struct LinkInfoReadState {
 	NemoDirectory *directory;
 	GCancellable *cancellable;
 	NemoFile *file;
-};
-
-struct ThumbnailState {
-	NemoDirectory *directory;
-	GCancellable *cancellable;
-	NemoFile *file;
-	gboolean trying_original;
-	gboolean tried_original;
 };
 
 struct MountState {
@@ -523,17 +515,6 @@ link_info_cancel (NemoDirectory *directory)
 }
 
 static void
-thumbnail_cancel (NemoDirectory *directory)
-{
-	if (directory->details->thumbnail_state != NULL) {
-		g_cancellable_cancel (directory->details->thumbnail_state->cancellable);
-		directory->details->thumbnail_state->directory = NULL;
-		directory->details->thumbnail_state = NULL;
-		async_job_end (directory, "thumbnail");
-	}
-}
-
-static void
 mount_cancel (NemoDirectory *directory)
 {
 	if (directory->details->mount_state != NULL) {
@@ -670,11 +651,6 @@ nemo_directory_set_up_request (NemoFileAttributes file_attributes)
 
 	if ((file_attributes & NEMO_FILE_ATTRIBUTE_EXTENSION_INFO) != 0) {
 		REQUEST_SET_TYPE (request, REQUEST_EXTENSION_INFO);
-	}
-
-	if (file_attributes & NEMO_FILE_ATTRIBUTE_THUMBNAIL) {
-		REQUEST_SET_TYPE (request, REQUEST_THUMBNAIL);
-		REQUEST_SET_TYPE (request, REQUEST_FILE_INFO);
 	}
 
 	if (file_attributes & NEMO_FILE_ATTRIBUTE_MOUNT) {
@@ -1556,12 +1532,6 @@ nemo_async_destroying_file (NemoFile *file)
 		changed = TRUE;
 	}
 
-	if (directory->details->thumbnail_state != NULL &&
-	    directory->details->thumbnail_state->file ==  file) {
-		directory->details->thumbnail_state->file = NULL;
-		changed = TRUE;
-	}
-	
 	if (directory->details->mount_state != NULL &&
 	    directory->details->mount_state->file ==  file) {
 		directory->details->mount_state->file = NULL;
@@ -1649,14 +1619,6 @@ lacks_extension_info (NemoFile *file)
 }
 
 static gboolean
-lacks_thumbnail (NemoFile *file)
-{
-	return nemo_file_should_show_thumbnail (file) &&
-		file->details->thumbnail_path != NULL &&
-		!file->details->thumbnail_is_up_to_date;
-}
-
-static gboolean
 lacks_mount (NemoFile *file)
 {
 	return (!file->details->mount_is_up_to_date &&
@@ -1728,12 +1690,6 @@ request_is_satisfied (NemoDirectory *directory,
 		}
 	}
 
-	if (REQUEST_WANTS_TYPE (request, REQUEST_THUMBNAIL)) {
-		if (has_problem (directory, file, lacks_thumbnail)) {
-			return FALSE;
-		}
-	}
-	
 	if (REQUEST_WANTS_TYPE (request, REQUEST_MOUNT)) {
 		if (has_problem (directory, file, lacks_mount)) {
 			return FALSE;
@@ -3537,267 +3493,6 @@ link_info_start (NemoDirectory *directory,
 }
 
 static void
-thumbnail_done (NemoDirectory *directory,
-		NemoFile *file,
-		GdkPixbuf *pixbuf,
-		gboolean tried_original)
-{
-	const char *thumb_mtime_str;
-	time_t thumb_mtime = 0;
-	
-	file->details->thumbnail_is_up_to_date = TRUE;
-	file->details->thumbnail_tried_original  = tried_original;
-	if (file->details->thumbnail) {
-		g_object_unref (file->details->thumbnail);
-		file->details->thumbnail = NULL;
-	}
-
-	if (pixbuf) {
-		if (tried_original) {
-			thumb_mtime = file->details->mtime;
-		} else {
-			thumb_mtime_str = gdk_pixbuf_get_option (pixbuf, "tEXt::Thumb::MTime");
-			if (thumb_mtime_str) {
-				thumb_mtime = atol (thumb_mtime_str);
-			}
-		}
-		
-		if (thumb_mtime == 0 ||
-		    thumb_mtime == file->details->mtime) {
-			file->details->thumbnail = g_object_ref (pixbuf);
-			file->details->thumbnail_mtime = thumb_mtime;
-            file->details->thumbnail_throttle_count = 1;
-		} else {
-			g_free (file->details->thumbnail_path);
-			file->details->thumbnail_path = NULL;
-		}
-
-	}
-	
-	nemo_directory_async_state_changed (directory);
-}
-
-static void
-thumbnail_stop (NemoDirectory *directory)
-{
-	NemoFile *file;
-
-	if (directory->details->thumbnail_state != NULL) {
-		file = directory->details->thumbnail_state->file;
-
-		if (file != NULL) {
-			g_assert (NEMO_IS_FILE (file));
-			g_assert (file->details->directory == directory);
-			if (is_needy (file,
-				      lacks_thumbnail,
-				      REQUEST_THUMBNAIL)) {
-				return;
-			}
-		}
-
-		/* The link info is not wanted, so stop it. */
-		thumbnail_cancel (directory);
-	}
-}
-
-static void
-thumbnail_got_pixbuf (NemoDirectory *directory,
-		      NemoFile *file,
-		      GdkPixbuf *pixbuf,
-		      gboolean tried_original)
-{
-	nemo_directory_ref (directory);
-
-	nemo_file_ref (file);
-	thumbnail_done (directory, file, pixbuf, tried_original);
-	nemo_file_changed (file);
-	nemo_file_unref (file);
-	
-	if (pixbuf) {
-		g_object_unref (pixbuf);
-	}
-
-	nemo_directory_unref (directory);
-}
-
-static void
-thumbnail_state_free (ThumbnailState *state)
-{
-	g_object_unref (state->cancellable);
-	g_free (state);
-}
-
-extern int cached_thumbnail_size;
-
-/* scale very large images down to the max. size we need */
-static void
-thumbnail_loader_size_prepared (GdkPixbufLoader *loader,
-				int width,
-				int height,
-				gpointer user_data)
-{
-	int max_thumbnail_size;
-	double aspect_ratio;
-
-	aspect_ratio = ((double) width) / height;
-
-	/* cf. nemo_file_get_icon() */
-	max_thumbnail_size = NEMO_ICON_SIZE_LARGEST * cached_thumbnail_size / NEMO_ICON_SIZE_STANDARD;
-	if (MAX (width, height) > max_thumbnail_size) {
-		if (width > height) {
-			width = max_thumbnail_size;
-			height = width / aspect_ratio;
-		} else {
-			height = max_thumbnail_size;
-			width = height * aspect_ratio;
-		}
-
-		gdk_pixbuf_loader_set_size (loader, width, height);
-	}
-}
-
-static GdkPixbuf *
-get_pixbuf_for_content (goffset file_len,
-			char *file_contents)
-{
-	gboolean res;
-	GdkPixbuf *pixbuf, *pixbuf2;
-	GdkPixbufLoader *loader;
-	gsize chunk_len;
-	pixbuf = NULL;
-	
-	loader = gdk_pixbuf_loader_new ();
-	g_signal_connect (loader, "size-prepared",
-			  G_CALLBACK (thumbnail_loader_size_prepared),
-			  NULL);
-
-	/* For some reason we have to write in chunks, or gdk-pixbuf fails */
-	res = TRUE;
-	while (res && file_len > 0) {
-		chunk_len = file_len;
-		res = gdk_pixbuf_loader_write (loader, (guchar *) file_contents, chunk_len, NULL);
-		file_contents += chunk_len;
-		file_len -= chunk_len;
-	}
-	if (res) {
-		res = gdk_pixbuf_loader_close (loader, NULL);
-	}
-	if (res) {
-		pixbuf = g_object_ref (gdk_pixbuf_loader_get_pixbuf (loader));
-	}
-	g_object_unref (G_OBJECT (loader));
-
-	if (pixbuf) {
-		pixbuf2 = gdk_pixbuf_apply_embedded_orientation (pixbuf);
-		g_object_unref (pixbuf);
-		pixbuf = pixbuf2;
-	}
-	return pixbuf;
-}
-
-
-static void
-thumbnail_read_callback (GObject *source_object,
-			 GAsyncResult *res,
-			 gpointer user_data)
-{
-	ThumbnailState *state;
-	gsize file_size;
-	char *file_contents;
-	gboolean result;
-	NemoDirectory *directory;
-	GdkPixbuf *pixbuf;
-	GFile *location;
-
-	state = user_data;
-
-	if (state->directory == NULL) {
-		/* Operation was cancelled. Bail out */
-		thumbnail_state_free (state);
-		return;
-	}
-
-	directory = nemo_directory_ref (state->directory);
-
-	result = g_file_load_contents_finish (G_FILE (source_object),
-					      res,
-					      &file_contents, &file_size,
-					      NULL, NULL);
-
-	pixbuf = NULL;
-	if (result) {
-		pixbuf = get_pixbuf_for_content (file_size, file_contents);
-		g_free (file_contents);
-	}
-	
-	if (pixbuf == NULL && state->trying_original) {
-		state->trying_original = FALSE;
-
-		location = g_file_new_for_path (state->file->details->thumbnail_path);
-		g_file_load_contents_async (location,
-					    state->cancellable,
-					    thumbnail_read_callback,
-					    state);
-		g_object_unref (location);
-	} else {
-		state->directory->details->thumbnail_state = NULL;
-		async_job_end (state->directory, "thumbnail");
-		
-		thumbnail_got_pixbuf (state->directory, state->file, pixbuf, state->tried_original);
-	
-		thumbnail_state_free (state);
-	}
-	
-	nemo_directory_unref (directory);
-}
-
-static void
-thumbnail_start (NemoDirectory *directory,
-		 NemoFile *file,
-		 gboolean *doing_io)
-{
-	GFile *location;
-	ThumbnailState *state;
-
-	if (directory->details->thumbnail_state != NULL) {
-		*doing_io = TRUE;
-		return;
-	}
-
-	if (!is_needy (file,
-		       lacks_thumbnail,
-		       REQUEST_THUMBNAIL)) {
-		return;
-	}
-	*doing_io = TRUE;
-
-	if (!async_job_start (directory, "thumbnail")) {
-		return;
-	}
-	
-	state = g_new0 (ThumbnailState, 1);
-	state->directory = directory;
-	state->file = file;
-	state->cancellable = g_cancellable_new ();
-
-	if (file->details->thumbnail_wants_original) {
-		state->tried_original = TRUE;
-		state->trying_original = TRUE;
-		location = nemo_file_get_location (file);
-	} else {
-		location = g_file_new_for_path (file->details->thumbnail_path);
-	}
-	
-	directory->details->thumbnail_state = state;
-
-	g_file_load_contents_async (location,
-				    state->cancellable,
-				    thumbnail_read_callback,
-				    state);
-	g_object_unref (location);
-}
-
-static void
 mount_stop (NemoDirectory *directory)
 {
 	NemoFile *file;
@@ -4302,7 +3997,6 @@ start_or_stop_io (NemoDirectory *directory)
 	link_info_stop (directory);
 	extension_info_stop (directory);
 	mount_stop (directory);
-	thumbnail_stop (directory);
 	filesystem_info_stop (directory);
 
 	doing_io = FALSE;
@@ -4330,7 +4024,6 @@ start_or_stop_io (NemoDirectory *directory)
 		directory_count_start (directory, file, &doing_io);
 		deep_count_start (directory, file, &doing_io);
 		mime_list_start (directory, file, &doing_io);
-		thumbnail_start (directory, file, &doing_io);
 		filesystem_info_start (directory, file, &doing_io);
 
 		if (doing_io) {
@@ -4400,7 +4093,6 @@ nemo_directory_cancel (NemoDirectory *directory)
 	mime_list_cancel (directory);
 	new_files_cancel (directory);
 	extension_info_cancel (directory);
-	thumbnail_cancel (directory);
 	mount_cancel (directory);
 	filesystem_info_cancel (directory);
 
@@ -4448,16 +4140,6 @@ cancel_file_info_for_file (NemoDirectory *directory,
 {
 	if (directory->details->get_info_file == file) {
 		file_info_cancel (directory);
-	}
-}
-
-static void
-cancel_thumbnail_for_file (NemoDirectory *directory,
-			   NemoFile      *file)
-{
-	if (directory->details->thumbnail_state != NULL &&
-	    directory->details->thumbnail_state->file == file) {
-		thumbnail_cancel (directory);
 	}
 }
 
@@ -4522,10 +4204,6 @@ cancel_loading_attributes (NemoDirectory *directory,
 	if (REQUEST_WANTS_TYPE (request, REQUEST_EXTENSION_INFO)) {
 		extension_info_cancel (directory);
 	}
-	
-	if (REQUEST_WANTS_TYPE (request, REQUEST_THUMBNAIL)) {
-		thumbnail_cancel (directory);
-	}
 
 	if (REQUEST_WANTS_TYPE (request, REQUEST_MOUNT)) {
 		mount_cancel (directory);
@@ -4562,9 +4240,6 @@ nemo_directory_cancel_loading_file_attributes (NemoDirectory      *directory,
 	}
 	if (REQUEST_WANTS_TYPE (request, REQUEST_LINK_INFO)) {
 		cancel_link_info_for_file (directory, file);
-	}
-	if (REQUEST_WANTS_TYPE (request, REQUEST_THUMBNAIL)) {
-		cancel_thumbnail_for_file (directory, file);
 	}
 	if (REQUEST_WANTS_TYPE (request, REQUEST_MOUNT)) {
 		cancel_mount_for_file (directory, file);

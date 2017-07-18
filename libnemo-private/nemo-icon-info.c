@@ -643,7 +643,7 @@ nemo_icon_info_get_display_name   (NemoIconInfo  *icon)
 
 const char *
 nemo_icon_info_get_used_name (NemoIconInfo  *icon)
-{
+{g_printerr ("WHAT: %s\n", icon->icon_name);
 	return icon->icon_name;
 }
 

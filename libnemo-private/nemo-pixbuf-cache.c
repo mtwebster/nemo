@@ -42,6 +42,8 @@
 #include "nemo-icon-info.h"
 #include "nemo-pixbuf-cache.h"
 
+#define BATCH_SIZE 100
+
 #define NEMO_THUMBNAIL_FRAME_LEFT 3
 #define NEMO_THUMBNAIL_FRAME_TOP 3
 #define NEMO_THUMBNAIL_FRAME_RIGHT 3
@@ -50,8 +52,8 @@
 /* structure used for generating pixbufs */
 
 typedef struct {
-    char             *file_uri;
-    GdkPixbuf        *original;
+    gchar            *file_uri;
+    gchar            *thumbnail_path;
     gint              size;
     gint              max_width;
     gint              scale;
@@ -72,6 +74,8 @@ static GCancellable *pixbufs_cancellable;
    thumbnail thread, i.e. the thumbnail_thread_is_running flag and the
    thumbnails_to_make list. */
 static GMutex pixbuf_thread_mutex;
+
+static int batch_count = 0;
 /* A flag to indicate whether a thumbnail thread is running, so we don't
    start more than one. Lock thumbnails_mutex when accessing this. */
 static volatile gboolean pixbuf_thread_is_running = FALSE;
@@ -96,12 +100,14 @@ static GHashTable *pixbuf_cache;
 
 extern int cached_thumbnail_size;
 
+static gboolean pixbuf_thread_starter_cb (gpointer data);
+
 static void
 free_pixbuf_info (NemoPixbufInfo *info)
 {
 	g_free (info->file_uri);
     g_free (info->hash_key);
-    g_object_unref (info->original);
+    g_free (info->thumbnail_path);
 	g_slice_free (NemoPixbufInfo, info);
 }
 
@@ -295,8 +301,6 @@ pixbuf_thread_notify_file_changed (gpointer file_uri)
         files = g_list_prepend (NULL, file);
         nemo_directory_emit_files_changed (file->details->directory, files);
         g_list_free (files);
-
-        nemo_file_unref (file);
     }
 
     g_free (file_uri);
@@ -326,6 +330,12 @@ on_pixbuf_thread_finished (GObject      *source,
 
     /* Thread is no longer running, no need to lock mutex */
     pixbuf_thread_is_running = FALSE;
+
+    batch_count = 0;
+
+    if (g_hash_table_size (pixbufs_to_make_hash) > 0) {
+        pixbuf_thread_starter_id = g_idle_add_full (G_PRIORITY_LOW, pixbuf_thread_starter_cb, NULL, NULL);
+    }
 }
 
 static void
@@ -366,12 +376,13 @@ pixbuf_thread (GTask        *task,
     GdkPixbuf *raw_pixbuf, *scaled_pixbuf;
     GList *node;
     gchar *key_copy;
+    GError *error;
 
     info = NULL;
 
 	/* We loop until there are no more pixbufs to make, at which point
 	   we exit the thread. */
-	for (;;) {
+	while (batch_count < BATCH_SIZE) {
         if (DEBUGGING) {
             g_message ("(Pixbuf Thread) Locking thread mutex");
         }
@@ -446,7 +457,34 @@ pixbuf_thread (GTask        *task,
                    modified_size, cached_thumbnail_size);
         }
 
-        raw_pixbuf = g_object_ref (info->original);
+        error = NULL;
+
+        raw_pixbuf = gdk_pixbuf_new_from_file (info->thumbnail_path, &error);
+
+        if (error != NULL) {
+            g_warning ("Could not load pixbuf from file: %s", error->message);
+            g_clear_error (&error);
+            scaled_pixbuf = raw_pixbuf;
+            goto done;
+        }
+
+        if (raw_pixbuf) {
+            GdkPixbuf *tmp;
+
+            tmp = gdk_pixbuf_apply_embedded_orientation (raw_pixbuf);
+            g_object_unref (raw_pixbuf);
+            
+            raw_pixbuf = tmp;
+        }
+
+        /* Don't scale up if more than 25%, then read the original
+           image instead. We don't want to compare to exactly 100%,
+           since the zoom level 150% gives thumbnails at 144, which is
+           ok to scale up from 128. */
+        if (modified_size > 128 * 1.25 * info->scale) {
+            scaled_pixbuf = g_object_ref (raw_pixbuf);
+            goto done;
+        }
 
         w = gdk_pixbuf_get_width (raw_pixbuf);
         h = gdk_pixbuf_get_height (raw_pixbuf);
@@ -498,23 +536,12 @@ pixbuf_thread (GTask        *task,
 
         g_object_unref (raw_pixbuf);
 
-        /* Don't scale up if more than 25%, then read the original
-           image instead. We don't want to compare to exactly 100%,
-           since the zoom level 150% gives thumbnails at 144, which is
-           ok to scale up from 128. */
-        // if (modified_size > 128 * 1.25 * info->scale &&
-        //     !file->details->thumbnail_wants_original &&
-        //     nemo_can_thumbnail_internally (file)) {
-        //     /* Invalidate if we resize upward */
-        //     file->details->thumbnail_wants_original = TRUE;
-        //     nemo_file_invalidate_attributes (file, NEMO_FILE_ATTRIBUTE_THUMBNAIL);
-        // }
-
+done:
         key_copy = g_strdup (info->hash_key);
 
-        g_object_weak_ref (G_OBJECT (info->original),
-                           (GWeakNotify) original_finalized_notify,
-                           key_copy);
+        // g_object_weak_ref (G_OBJECT (info->original),
+        //                    (GWeakNotify) original_finalized_notify,
+        //                    key_copy);
 
         if (DEBUGGING) {
             g_message ("(Pixbuf Thread) Locking cache mutex. Adding %s to cache.", key_copy);
@@ -532,10 +559,12 @@ pixbuf_thread (GTask        *task,
 
 		/* We need to call nemo_file_changed(), but I don't think that is
 		   thread safe. So add an idle handler and do it from the main loop. */
-        g_idle_add_full (G_PRIORITY_LOW,
+        g_idle_add_full (G_PRIORITY_DEFAULT,
                          pixbuf_thread_notify_file_changed,
                          g_strdup (info->file_uri),
                          NULL);
+
+        batch_count++;
     }
 
     g_task_return_boolean (task, TRUE);
@@ -555,6 +584,9 @@ pixbuf_thread_starter_cb (gpointer data)
     if (DEBUGGING) {
         g_message ("(Main Thread) Creating pixbuf thread");
     }
+
+    batch_count = 0;
+    currently_loading = NULL;
 
     pixbuf_task = g_task_new (NULL,
                               pixbufs_cancellable,
@@ -651,7 +683,7 @@ nemo_pixbuf_cache_request_pixbuf_for_file (NemoFile         *file,
 
             info = g_slice_new0 (NemoPixbufInfo);
             info->file_uri = file_uri;
-            info->original = g_object_ref (file->details->thumbnail);
+            info->thumbnail_path = g_strdup (file->details->thumbnail_path);
             info->size = size;
             info->max_width = max_width;
             info->scale = scale;

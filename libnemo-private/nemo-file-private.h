@@ -91,15 +91,9 @@ struct NemoFileDetails
 	goffset deep_size;
 
 	GIcon *icon;
-	
+
 	char *thumbnail_path;
     eel_boolean_bit thumbnail_access_problem : 1;
-	GdkPixbuf *thumbnail;
-	time_t thumbnail_mtime;
-    gint thumbnail_throttle_count;
-    time_t last_thumbnail_try_mtime;
-
-    double thumbnail_scale;
 
 	GList *mime_list; /* If this is a directory, the list of MIME types in it. */
 
@@ -173,11 +167,7 @@ struct NemoFileDetails
 	eel_boolean_bit got_custom_display_name       : 1;
 	eel_boolean_bit got_custom_activation_uri     : 1;
 
-	eel_boolean_bit thumbnail_is_up_to_date       : 1;
-	eel_boolean_bit thumbnail_wants_original      : 1;
-	eel_boolean_bit thumbnail_tried_original      : 1;
 	eel_boolean_bit thumbnailing_failed           : 1;
-	
 	eel_boolean_bit is_thumbnailing               : 1;
 
     eel_boolean_bit is_desktop_orphan             : 1;

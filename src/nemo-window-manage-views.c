@@ -1496,7 +1496,7 @@ update_for_new_location (NemoWindowSlot *slot)
 	}
 
 	nemo_window_slot_update_title (slot);
-	nemo_window_slot_update_icon (slot);
+	// nemo_window_slot_update_icon (slot);
 
 	if (slot == slot->pane->active_slot) {
 		nemo_window_pane_sync_location_widgets (slot->pane);

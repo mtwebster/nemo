@@ -868,8 +868,6 @@ insert_quote (NemoAction *action, GString *str)
         case QUOTE_TYPE_NONE:
         default:
             break;
-        default:
-            break;
     }
 
     return str;

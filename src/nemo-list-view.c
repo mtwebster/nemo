@@ -3236,6 +3236,7 @@ nemo_list_view_set_zoom_level (NemoListView *view,
 
 	/* Make all rows the same size. */
 	icon_size = nemo_get_list_icon_size_for_zoom_level (new_level);
+    g_printerr ("fixed: %d,    %d\n", icon_size, new_level);
 	gtk_cell_renderer_set_fixed_size (GTK_CELL_RENDERER (view->details->pixbuf_cell),
 					  -1, icon_size);
 

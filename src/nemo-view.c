@@ -784,7 +784,7 @@ GList *
 nemo_view_get_selection (NemoView *view)
 {
 	g_return_val_if_fail (NEMO_IS_VIEW (view), NULL);
-
+    // return NULL;
 	return NEMO_VIEW_CLASS (G_OBJECT_GET_CLASS (view))->get_selection (view);
 }
 

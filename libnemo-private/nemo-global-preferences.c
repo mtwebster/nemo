@@ -129,7 +129,7 @@ ignore_view_metadata_cb (GSettings *settings,
 static void
 cache_fileroller_mimetypes (void)
 {
-    if (nemo_is_file_roller_installed ()) {
+    if (FALSE) {
         GAppInfo *app_info;
         gchar ***results;
         gchar **result;

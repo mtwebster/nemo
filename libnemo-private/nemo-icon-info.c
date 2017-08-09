@@ -575,9 +575,11 @@ nemo_icon_info_get_pixbuf_at_size (NemoIconInfo  *icon,
 	h = gdk_pixbuf_get_height (pixbuf) / icon->orig_scale;
 	s = MAX (w, h);
 	if (s == forced_size) {
+        // g_printerr ("forced\n");
 		return pixbuf;
 	}
-
+    // G_BREAKPOINT ();
+    // g_printerr ("not forced %d, %d,  forced: %d\n", w, h, forced_size);
 	scale = (double)forced_size / s;
 	scaled_pixbuf = gdk_pixbuf_scale_simple (pixbuf,
 						 MAX (w * scale, 1), MAX (h * scale, 1),
@@ -591,6 +593,7 @@ nemo_icon_info_get_desktop_pixbuf_at_size (NemoIconInfo  *icon,
                                            gsize          max_height,
                                            gsize          max_width)
 {
+    return g_object_ref (icon->pixbuf);
     GdkPixbuf *pixbuf, *scaled_pixbuf;
     int w, h;
     double scale;

@@ -1,4 +1,4 @@
-/* -*- Mode: C; indent-tabs-mode: t; c-basic-offset: 8; tab-width: 8 -*- */
+/* -*- Mode: C; indent-tabs-mode: f; c-basic-offset: 4; tab-width: 4 -*- */
 
 /* nemo-mime-actions.c - uri-specific versions of mime action functions
 
@@ -339,7 +339,9 @@ nemo_mime_get_default_application_for_file (NemoFile *file)
 	char *uri_scheme;
 
 	if (!nemo_mime_actions_check_if_required_attributes_ready (file)) {
-		return NULL;
+        if (file_has_local_path (file)) {
+            return NULL;
+        }
 	}
 
 	mime_type = nemo_file_get_mime_type (file);
@@ -1401,6 +1403,7 @@ activate_files (ActivateParameters *parameters)
 	launch_desktop_files = NULL;
 	launch_files = NULL;
 	launch_in_terminal_files = NULL;
+    launch_location_is_desktop = FALSE;
 	open_in_app_uris = NULL;
 	open_in_view_files = NULL;
 
@@ -2148,4 +2151,19 @@ nemo_mime_activate_file (GtkWindow *parent_window,
 	files = g_list_prepend (NULL, file);
 	nemo_mime_activate_files (parent_window, slot, files, launch_directory, flags, FALSE);
 	g_list_free (files);
+}
+
+void
+nemo_mime_launch_fm_and_select_file (GFile *file)
+{
+    GAppInfo *info;
+    GList *list;
+
+    info = g_app_info_get_default_for_type ("inode/directory", !g_file_is_native (file));
+
+    list = g_list_prepend (NULL, file);
+
+    g_app_info_launch (info, list, NULL, NULL);
+
+    g_list_free (list);
 }

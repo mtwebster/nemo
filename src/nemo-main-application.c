@@ -490,8 +490,10 @@ nemo_main_application_local_command_line (GApplication *application,
 	gboolean browser = FALSE;
 	gboolean kill_shell = FALSE;
 	gboolean no_default_window = FALSE;
+    gboolean no_desktop_ignored = FALSE;
 	gboolean fix_cache = FALSE;
 	gchar **remaining = NULL;
+    GApplicationFlags init_flags;
 	NemoMainApplication *self = NEMO_MAIN_APPLICATION (application);
 
 	const GOptionEntry options[] = {
@@ -508,6 +510,8 @@ nemo_main_application_local_command_line (GApplication *application,
 		  N_("Create the initial window with the given geometry."), N_("GEOMETRY") },
 		{ "no-default-window", 'n', 0, G_OPTION_ARG_NONE, &no_default_window,
 		  N_("Only create windows for explicitly specified URIs."), NULL },
+        { "no-desktop", '\0', 0, G_OPTION_ARG_NONE, &no_desktop_ignored,
+          N_("Ignored - left for compatibility only."), NULL },
 		{ "fix-cache", '\0', 0, G_OPTION_ARG_NONE, &fix_cache,
 		  N_("Repair the user thumbnail cache - this can be useful if you're having trouble with file thumbnails.  Must be run as root"), NULL },
 		{ "quit", 'q', 0, G_OPTION_ARG_NONE, &kill_shell, 
@@ -569,15 +573,34 @@ nemo_main_application_local_command_line (GApplication *application,
 	       "self checks %d",
 	       no_default_window, kill_shell, perform_self_check);
 
-	g_application_register (application, NULL, &error);
+    /* Keep our original flags handy */
+    init_flags = g_application_get_flags (application);
+
+    /* First try to register as a service (this allows our dbus activation to succeed
+     * if we're not already running */
+    g_application_set_flags (application, init_flags | G_APPLICATION_IS_SERVICE);
+    g_application_register (application, NULL, &error);
 
 	if (error != NULL) {
-		g_printerr ("Could not register the application: %s\n", error->message);
-		g_error_free (error);
+        g_debug ("Could not register nemo as a service, trying as a remote: %s", error->message);
+        g_clear_error (&error);
+    } else {
+        goto post_registration;
+    }
 
-		*exit_status = EXIT_FAILURE;
-		goto out;
-	}
+    /* If service registration failed, try to connect to the existing instance */
+    g_application_set_flags (application, init_flags | G_APPLICATION_IS_LAUNCHER);
+    g_application_register (application, NULL, &error);
+
+    if (error != NULL) {
+        g_printerr ("Could not register nemo as a remote: %s\n", error->message);
+        g_clear_error (&error);
+
+        *exit_status = EXIT_FAILURE;
+        goto out;
+    }
+
+post_registration:
 
 	if (kill_shell) {
 		DEBUG ("Killing application, as requested");
@@ -692,6 +715,12 @@ nemo_main_application_continue_startup (NemoApplication *app)
 	self->priv->dbus_manager = nemo_dbus_manager_new ();
 	self->priv->fdb_manager = nemo_freedesktop_dbus_new ();
 
+    /* Check the user's ~/.config/nemo directory and post warnings
+     * if there are problems.
+     */
+
+    nemo_application_check_required_directory (app, nemo_get_user_directory ());
+
 	/* register views */
 	nemo_icon_view_register ();
 	nemo_list_view_register ();
@@ -758,7 +787,7 @@ nemo_main_application_get_singleton (void)
     return nemo_application_initialize_singleton (NEMO_TYPE_MAIN_APPLICATION,
                                                   "application-id", "org.Nemo",
                                                   "flags", G_APPLICATION_HANDLES_OPEN,
-                                                  "inactivity-timeout", 12000,
+                                                  "inactivity-timeout", 30 * 1000, // seconds
                                                   "register-session", TRUE,
                                                   NULL);
 }

@@ -177,9 +177,9 @@ nemo_file_init (NemoFile *file)
 {
 	file->details = G_TYPE_INSTANCE_GET_PRIVATE ((file), NEMO_TYPE_FILE, NemoFileDetails);
 
-    file->details->position = g_new0 (GdkPoint, 1);
-    file->details->position->x = -1;
-    file->details->position->y = -1;
+    file->details->desktop_monitor = -1;
+    file->details->cached_position_x = -1;
+    file->details->cached_position_y = -1;
 
 	nemo_file_clear_info (file);
 	nemo_file_invalidate_extension_info_internal (file);
@@ -510,8 +510,6 @@ nemo_file_clear_info (NemoFile *file)
 
     file->details->is_desktop_orphan = FALSE;
 
-    file->details->position->x = -1;
-    file->details->position->y = -1;
     file->details->desktop_monitor = -1;
 
 	clear_metadata (file);
@@ -828,8 +826,6 @@ finalize (GObject *object)
 	g_free (file->details->description);
 	g_free (file->details->activation_uri);
 	g_clear_object (&file->details->custom_icon);
-
-    g_clear_pointer (&file->details->position, g_free);
 
 	if (file->details->thumbnail) {
 		g_object_unref (file->details->thumbnail);
@@ -2136,6 +2132,11 @@ update_links_if_target (NemoFile *target_file)
 	nemo_file_list_free (link_files);
 }
 
+
+static guint64 cached_thumbnail_limit;
+int cached_thumbnail_size;
+static int show_image_thumbs;
+
 static gboolean
 access_ok (const gchar *path)
 {
@@ -2485,7 +2486,8 @@ update_info_internal (NemoFile *file,
 	if (g_strcmp0 (file->details->thumbnail_path, thumbnail_path) != 0) {
 		changed = TRUE;
 		g_free (file->details->thumbnail_path);
-        if (!access_ok (thumbnail_path)) {
+
+        if (show_image_thumbs != NEMO_SPEED_TRADEOFF_NEVER && thumbnail_path != NULL && !access_ok (thumbnail_path)) {
             file->details->thumbnail_access_problem = TRUE;
             file->details->thumbnail_path = NULL;
         } else {
@@ -4066,11 +4068,6 @@ get_custom_icon (NemoFile *file)
  
 	return icon;
 }
-
-
-static guint64 cached_thumbnail_limit;
-int cached_thumbnail_size;
-static int show_image_thumbs;
 
 GFilesystemPreviewType
 nemo_file_get_filesystem_use_preview (NemoFile *file)
@@ -7572,12 +7569,12 @@ nemo_file_set_monitor_number (NemoFile *file, gint monitor)
     file->details->desktop_monitor = monitor;
 }
 
-GdkPoint *
-nemo_file_get_position (NemoFile *file)
+void
+nemo_file_get_position (NemoFile *file, GdkPoint *point)
 {
     gint x, y;
 
-    if (file->details->position->x == -1) {
+    if (file->details->cached_position_x == -1) {
         char *position_string;
         gboolean position_good;
         char c;
@@ -7589,12 +7586,19 @@ nemo_file_get_position (NemoFile *file)
         g_free (position_string);
 
         if (position_good) {
-            file->details->position->x = x;
-            file->details->position->y = y;
+            point->x = x;
+            point->y = y;
+        } else {
+            point->x = -1;
+            point->y = -1;
         }
-    }
 
-    return file->details->position;
+        file->details->cached_position_x = x;
+        file->details->cached_position_y = y;
+    } else {
+        point->x = file->details->cached_position_x;
+        point->y = file->details->cached_position_y;
+    }
 }
 
 void
@@ -7609,8 +7613,8 @@ nemo_file_set_position (NemoFile *file, gint x, gint y)
     }
     nemo_file_set_metadata (file, NEMO_METADATA_KEY_ICON_POSITION, NULL, position_string);
 
-    file->details->position->x = x;
-    file->details->position->y = y;
+    file->details->cached_position_x = x;
+    file->details->cached_position_y = y;
 
     g_free (position_string);
 }

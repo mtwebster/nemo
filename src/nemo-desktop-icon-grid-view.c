@@ -121,6 +121,7 @@ static void     real_update_menus                                 (NemoView     
 static void     nemo_desktop_icon_grid_view_update_icon_container_fonts  (NemoDesktopIconGridView      *view);
 static void     font_changed_callback                             (gpointer                callback_data);
 static void     nemo_desktop_icon_grid_view_constructed (NemoDesktopIconGridView *desktop_icon_grid_view);
+static void     grid_adjust_prefs_changed_callback (NemoDesktopIconGridView *view);
 
 G_DEFINE_TYPE (NemoDesktopIconGridView, nemo_desktop_icon_grid_view, NEMO_TYPE_ICON_VIEW)
 
@@ -207,12 +208,21 @@ should_show_file_on_current_monitor (NemoView *view, NemoFile *file)
     NemoDesktopManager *dm = nemo_desktop_manager_get ();
 
     if (current_monitor == file_monitor) {
-        nemo_file_set_is_desktop_orphan (file, FALSE);
         return TRUE;
     }
 
-    if (!g_settings_get_boolean (nemo_desktop_preferences, NEMO_PREFERENCES_SHOW_ORPHANED_DESKTOP_ICONS)) {
+    if (nemo_desktop_manager_get_primary_only (dm)) {
+        return TRUE;
+    }
+
+    if (file_monitor > -1 &&
+        !g_settings_get_boolean (nemo_desktop_preferences, NEMO_PREFERENCES_SHOW_ORPHANED_DESKTOP_ICONS)) {
         return FALSE;
+    }
+
+    if (file_monitor == -1) {
+        /* New file, no previous metadata - this should go on the primary monitor */
+        return nemo_desktop_manager_get_monitor_is_primary (dm, current_monitor);
     }
 
     if (!nemo_desktop_manager_get_monitor_is_active (dm, file_monitor)) {
@@ -360,6 +370,10 @@ nemo_desktop_icon_grid_view_dispose (GObject *object)
 	g_signal_handlers_disconnect_by_func (gnome_lockdown_preferences,
 					      nemo_view_update_menus,
 					      icon_view);
+
+    g_signal_handlers_disconnect_by_func (nemo_desktop_preferences,
+                                          grid_adjust_prefs_changed_callback,
+                                          icon_view);
 
 	G_OBJECT_CLASS (nemo_desktop_icon_grid_view_parent_class)->dispose (object);
 }
@@ -649,6 +663,16 @@ nemo_desktop_icon_grid_view_constructed (NemoDesktopIconGridView *desktop_icon_g
                   "changed::" NEMO_PREFERENCES_LOCKDOWN_COMMAND_LINE,
                   G_CALLBACK (nemo_view_update_menus),
                   desktop_icon_grid_view);
+
+    g_signal_connect_swapped (nemo_desktop_preferences,
+                              "changed::" NEMO_PREFERENCES_DESKTOP_HORIZONTAL_GRID_ADJUST,
+                              G_CALLBACK (grid_adjust_prefs_changed_callback),
+                              desktop_icon_grid_view);
+
+    g_signal_connect_swapped (nemo_desktop_preferences,
+                              "changed::" NEMO_PREFERENCES_DESKTOP_VERTICAL_GRID_ADJUST,
+                              G_CALLBACK (grid_adjust_prefs_changed_callback),
+                              desktop_icon_grid_view);
 }
 
 static void
@@ -702,6 +726,8 @@ action_align_grid_callback (GtkAction *action,
     nemo_icon_view_set_directory_keep_aligned (NEMO_ICON_VIEW (view), file, keep_aligned);
 
     nemo_icon_container_set_keep_aligned (get_icon_container (view), keep_aligned);
+
+    nemo_icon_container_store_layout_timestamps_now (get_icon_container (view));
 }
 
 static void
@@ -726,6 +752,8 @@ action_auto_arrange_callback (GtkAction *action,
     if (new == TRUE) {
         nemo_icon_container_set_keep_aligned (get_icon_container (view), TRUE);
     }
+
+    nemo_icon_container_store_layout_timestamps_now (get_icon_container (view));
 }
 
 static void
@@ -767,6 +795,9 @@ set_sort_type (NemoDesktopIconGridView *view,
                 nemo_file_list_free (selection);
 
                 nemo_view_update_menus (NEMO_VIEW (view));
+
+                nemo_icon_container_store_layout_timestamps_now (get_icon_container (view));
+
                 return;
             }
         }
@@ -780,6 +811,8 @@ set_sort_type (NemoDesktopIconGridView *view,
     nemo_icon_view_set_sort_criterion_by_sort_type (NEMO_ICON_VIEW (view), type);
 
     nemo_view_update_menus (NEMO_VIEW (view));
+
+    nemo_icon_container_store_layout_timestamps_now (get_icon_container (view));
 }
 
 static void
@@ -848,6 +881,8 @@ set_direction (NemoDesktopIconGridView *view,
     nemo_icon_view_set_directory_horizontal_layout (NEMO_ICON_VIEW (view), file, horizontal);
 
     nemo_view_update_menus (NEMO_VIEW (view));
+
+    nemo_icon_container_store_layout_timestamps_now (get_icon_container (view));
 }
 
 static void
@@ -874,10 +909,13 @@ action_desktop_size_callback (GtkAction               *action,
                               NemoDesktopIconGridView *view)
 {
     NemoZoomLevel level;
+    NemoIconContainer *container;
 
     if (view->details->updating_menus) {
         return;
     }
+
+    container = get_icon_container (view);
 
     level = gtk_radio_action_get_current_value (current);
 
@@ -889,11 +927,43 @@ action_desktop_size_callback (GtkAction               *action,
      * into the new slots.  This is complicated, due to how the redo_layout_internal
      * function works. */
 
-    nemo_icon_view_set_sort_reversed (NEMO_ICON_VIEW (view), FALSE, TRUE);
-    nemo_icon_container_set_auto_layout (get_icon_container (view), TRUE);
-    nemo_icon_container_set_keep_aligned (get_icon_container (view), TRUE);
+    NEMO_ICON_VIEW_GRID_CONTAINER (container)->manual_sort_dirty = TRUE;
+    container->details->needs_resort = TRUE;
+    container->details->auto_layout = TRUE;
+
+    nemo_icon_container_redo_layout (container);
 
     nemo_view_update_menus (NEMO_VIEW (view));
+
+    nemo_icon_container_store_layout_timestamps_now (get_icon_container (view));
+}
+
+static void
+grid_adjust_prefs_changed_callback (NemoDesktopIconGridView *view)
+{
+    NemoIconContainer *container;
+
+    if (view->details->updating_menus) {
+        return;
+    }
+
+    container = get_icon_container (view);
+
+    clear_orphan_states (view);
+
+    /* TODO: Instead of switching back to defaults, re-align the existing icons
+     * into the new slots.  This is complicated, due to how the redo_layout_internal
+     * function works. */
+
+    NEMO_ICON_VIEW_GRID_CONTAINER (container)->manual_sort_dirty = TRUE;
+    container->details->needs_resort = TRUE;
+    container->details->auto_layout = TRUE;
+
+    nemo_icon_container_redo_layout (container);
+
+    nemo_view_update_menus (NEMO_VIEW (view));
+
+    nemo_icon_container_store_layout_timestamps_now (get_icon_container (view));
 }
 
 static gboolean

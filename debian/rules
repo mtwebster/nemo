@@ -3,11 +3,11 @@
 TYPELIBDIR=$(shell pkg-config gobject-introspection-1.0 --variable libdir | sed -e 's/.//')
 
 CONFIGURE_EXTRA_FLAGS = --prefix=/usr --libexecdir=/usr/lib/nemo --libdir=/usr/lib
-			# --disable-update-mimedb \
-			# --enable-gtk-doc \
-			# --enable-selinux=no \
-			# --enable-compile-warnings=yes \
-			# --enable-silent-rules
+                        --disable-update-mimedb \
+                        --enable-gtk-doc \
+                        --enable-selinux=no \
+                        --enable-compile-warnings=yes \
+                        --enable-silent-rules
 
 export LDFLAGS+=-Wl,-z,defs -Wl,-O1 -Wl,--as-needed
 

@@ -30,6 +30,7 @@
 #include "nemo-icon-container.h"
 
 #include "nemo-file.h"
+#include "nemo-desktop-icon-file.h"
 #include "nemo-global-preferences.h"
 #include "nemo-icon-private.h"
 #include "nemo-lib-self-check-functions.h"
@@ -138,6 +139,8 @@ static void remove_search_entry_timeout (NemoIconContainer *container);
 static gboolean handle_icon_slow_two_click (NemoIconContainer *container,
                                             NemoIcon *icon,
                                             GdkEventButton *event);
+
+static void schedule_align_icons (NemoIconContainer *container);
 
 static gpointer accessible_parent_class;
 
@@ -4462,6 +4465,7 @@ nemo_icon_container_class_init (NemoIconContainerClass *class)
     class->finish_adding_new_icons = NULL;
     class->icon_get_bounding_box = real_icon_get_bounding_box;
     class->set_zoom_level = real_set_zoom_level;
+    class->is_grid_container = FALSE;
 
 	/* Signals.  */
 
@@ -5667,17 +5671,32 @@ is_old_or_unknown_icon_data (NemoIconContainer *container,
 {
 	time_t timestamp;
 	gboolean success;
+    gboolean is_transient;
 
     /* Undefined at startup */
 	if (container->details->layout_timestamp == UNDEFINED_TIME) {
 		return FALSE;
 	}
 
+    is_transient = NEMO_IS_DESKTOP_ICON_FILE (data);
+
 	g_signal_emit (container,
 		       signals[GET_STORED_LAYOUT_TIMESTAMP], 0,
 		       data, &timestamp, &success);
 
-	return (!success || timestamp < container->details->layout_timestamp);
+	return (!success || is_transient || timestamp < container->details->layout_timestamp);
+}
+
+gboolean
+nemo_icon_container_icon_is_new_for_monitor (NemoIconContainer *container,
+                                             NemoIcon          *icon,
+                                             gint               current_monitor)
+{
+    if (container->details->auto_layout || !container->details->is_desktop) {
+        return FALSE;
+    }
+
+    return nemo_file_get_monitor_number (NEMO_FILE (icon->data)) != current_monitor;
 }
 
 /**
@@ -6821,16 +6840,18 @@ nemo_icon_container_start_renaming_selected_item (NemoIconContainer *container,
 	} 
 
 	/* Set the right font */
-	if (details->font) {
+	if (details->font && g_strcmp0 (details->font, "") != 0) {
 		desc = pango_font_description_from_string (details->font);
 	} else {
 		context = gtk_widget_get_pango_context (GTK_WIDGET (container));
 		desc = pango_font_description_copy (pango_context_get_font_description (context));
 	}
 
-    pango_font_description_set_size (desc,
-                                     pango_font_description_get_size (desc) +
-                                     container->details->font_size_table [container->details->zoom_level]);
+    if (pango_font_description_get_size (desc) > 0) {
+        pango_font_description_set_size (desc,
+                                         pango_font_description_get_size (desc) +
+                                         container->details->font_size_table [container->details->zoom_level]);
+    }
 
 	eel_editable_label_set_font_description (EEL_EDITABLE_LABEL (details->rename_widget),
 						 desc);

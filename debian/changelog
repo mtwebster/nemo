@@ -1,3 +1,101 @@
+nemo (3.4.6) sonya; urgency=medium
+
+  [ Michael Webster ]
+  * nemo-icon-view-grid-container.c: Reset lazy flag when the icon position is stored in auto-layout mode.
+  * nemo-file.c: Don't check for valid thumbnails if thumbnailing is disabled.
+  * nemo-action.c: Use non-blocking checks for a directory.
+  * css: Treat NemoBlankDesktopWindow the same as NemoDesktopWindow with regards to themes, add a couple fixes to our app css to prevent background issues with certain themes (Blackmate, Ambiance)
+  * Add github issue template
+  * move-to/copy-to dialogs - allow remote locations in the sidebar.
+
+ -- Clement Lefebvre <root@linuxmint.com>  Thu, 06 Jul 2017 11:21:28 +0200
+
+nemo (3.4.5) sonya; urgency=medium
+
+  [ Michael Webster ]
+  * search (ctrl-f): Don't search for an empty string.  If the user wants to search for every file, they can use the wildcard (*).
+  * nemo-application: Only check/create the config dir at startup for nemo, and have nemo-desktop check both config and Desktop directories.
+  * nemo-window-menus.c: Fix control-n (new window) action callback when used from the desktop process - it should launch the preferred file manager instead of attempting to spawn a window itself.
+  * configure.ac: suppress deprecated warnings
+  * Add --enable-silent-rules to debian/rules, quiet C90 warnings.
+
+  [ Clement Lefebvre ]
+  * l10n: Generate desktop files
+
+ -- Clement Lefebvre <root@linuxmint.com>  Mon, 26 Jun 2017 12:14:28 +0200
+
+nemo (3.4.4) sonya; urgency=medium
+
+  [ Michael Webster ]
+  * nemo-icon-view-grid-container.c: skip default placement if we're in auto-layout mode.  We get false lazy flags on new icons since the original desktop did not use auto-layout.  We need to handle this because we both store layout timestamps and provide auto-layout.
+  * nemo-window-slot.c: Initialize cache_bar to NULL, this is checked for in nemo-window-manage-views (nemo_window_slot_check_bad_cache_bar)
+
+ -- Clement Lefebvre <root@linuxmint.com>  Thu, 22 Jun 2017 15:00:12 +0200
+
+nemo (3.4.3) sonya; urgency=medium
+
+  [ leigh123linux ]
+  * Remove decoration from desktop window (shows in weston)
+
+  [ Michael Webster ]
+  * Desktop: Relax control of positioning for placed icons.  At startup, they are loaded and set to their stored position, but not force-aligned, allowing the layout to ignore fluctuations in the work area during system startup.  Fix some logic around 'orphan' icons as well to prevent issues with icons not being shown due to being falsely classified as orphans.
+  * icon container: Be more specific about when to flag icons coming from a different monitor due to a desktop configuration change. (see previous commit)
+  * metadata: Add back cached position values in NemoFile.  Be sure to clear the timestamp metadata on files being moved/copied to or from the desktop. This ensures the lazy flag operates correctly.  With the desktop becoming a separate process, transfers that include position info need to be handled slightly differently, as the old way of just setting metadata and reacting to it from a new container won't work - the file gets debuted in the other process sooner than (or not reliably after, at least) the metadata is written, resulting in inconsistent positioning.
+  * Add gvfs-info action for inspecting file metadata (for purposes of debugging) - right-click a file and it will send gvfs-info output on that file to stdout.
+  * nemo-icon-view-grid-container.c: improve updates after thumbnail generation.
+
+ -- Clement Lefebvre <root@linuxmint.com>  Tue, 20 Jun 2017 15:43:53 +0200
+
+nemo (3.4.2) sonya; urgency=medium
+
+  [ Michael Webster ]
+  * nemo-icon-container.c: don't force a native window for the desktop - fixes prelight hover sticking on the desktop when leaving an icon to pass into another window.
+  * nemo-icon-view-grid-container: don't show bracketed empty spots, it's tacky.
+  * nemo-main.c: remove backend requirement (only needed for the desktop)
+  * icon view/desktop: Fix hidpi scaling on the desktop.  This also fixes compact view mode in hidpi, which was semi-broken since hidpi was implemented, and very broken since the desktop grid was added.
+  * nemo-icon-dnd.c: depopulate the dnd grid of the selected icons so insertion marks aren't drawn in the icon's source position.
+  * nemo-window-manager-views.c: simple close the window if the current view has no backward history, instead of jumping home or to the parent folder.  The most common time for this to occur is a folder opened from the desktop - if you delete that folder, the window showing it then shows the desktop in a folder, which doesn't make much sense.
+  * nemo-window-manage-views.c: invalidate file info before reloading the view, not after.  This fixes mount permissions being incorrect.
+  * dnd: Restore capability of 'moving' files from and to the desktop via drag and drop.
+  * Fetch file-roller mimetype info from a GDesktopAppInfo at startup, instead of a static (and woefully out of date) list.
+  * nemo-file.c: followup to previous commit, retain the old mimetype list for fileroller in the event that, for some reason, there is no .desktop file installed for file-roller.  Also added application/x-xz-compressed-tar to the static list.
+  * nemo-file.c: add EFAULT as a valid exception to the access_ok function.  This can throw when the file has just been moved or is in the midst of being moved and the internal async updates have not completed yet (usually during a fairly large transfer.)  As a result, the icon cache problem bar appears needlessly.
+  * desktop: size thumbnails more appropriately - scale them to our icon size in height only, and allow the width to increase as much as our max text width while maintaining the image aspect ratio.
+  * desktop thumbnails: Pad the thumbnail height when it ends up smaller than the desired height due to aspect ratio and width restrictions.  This ensures a nice alignment when keep-aligned is active.
+  * nemo-icon-view-grid-container.c: highlight the current dnd rectangle in debug mode.
+  * desktop grid: use the layout size for determining constraint to the canvas bounds instead of max size - this prevents files with very long names from being pushed out of the grid alignment.
+  * misc: Clean up minor leaks, other issues.
+  * desktop grid: include additional text (Icon Captions) in calculations for the ellipsis limit, and update the desktop when these change - instead of forcing the user to reload or restart to see changes.
+  * cleanup some warnings from recent commits.
+  * nemo-style-application: Remove drop shadow from the selection and pre-light states of desktop icons.  The shadows are drawn outside the calculated bounds of these items, and are problematic to account for without doing frequent full screen repaints (something I want to avoid)
+  * DnD: Draw the highlight box around the entire text when an item is prelit and highlighted as a drop target.  The highlight box was only drawing as if to surround only the normal, ellipsized text, rather than the full, unellipsized height.
+  * Set a default font for the desktop - this is overridden by distros in most cases, but having something is better than leaving it blank - you could set it to "Unicorn poo 15" and it would still show the labels, even though you lack that actual font.
+  * Add a default to our theme - using the default font was always supposed to be a fallback option, however the check in various places for whether the gsettings key is empty or not is incorrect - g_settings_get_string will always return a string, never NULL, so we need to check if the string is not empty instead. (I left the null check also as a safety - it's possible during startup that this may be null prior to the setting being first fetched.
+  * desktop: Fix missing icons when 'show orphans' is disabled (we were incorrectly interpreting a monitor number of -1 (which means, no previous location) and a missing monitor.
+  * Fix visual sort function - sort function was incorrect for the new grid, and the new order was never set after a sort when running the alignment routine.
+
+  [ JosephMcc ]
+  * nemo-places-sidebar: Use folder-recents for the recent icon (#1502)
+
+  [ Michael Webster ]
+  * grid view:  Don't re-enable auto-arrange when changing zoom levels.
+  * desktop dnd - Use more sensible behavior when keep-aligned is active.
+  * Fix dnd for netscape url drops.
+  * nemo-file-operations: limit metadata setting to desktop location only (In a previous commit it was re-enabled, but has the potential to cause traffic jams in dbus during a long copy/move operation.
+  * nemo-mime-actions.c: Don't fail for non-local links (like dragged website links) - the check here is for the foreign url, not the local desktop file (link), so it will never succeed, and is not necessary.
+  * DnD: Fix some positioning issues with auto-align local moves, and non-local icon moves (like nemo->nemo-desktop transfers)
+  * nemo-icon-view-grid-container.c: keep the icon list synced with the visual order of the desktop.
+  * dnd: split out some container-specific code that had bled over a bit
+  * Fix application css - font was breaking Gtk 3.22 and is not needed. Change prelight to hover to fix deprecation warnings.
+
+  [ DaveBlack ]
+  * Modify desktop icon order (#1501)
+
+  [ Michael Webster ]
+  * nemo-file-operations.c: store the desktop location during a duplicate job, to fix DnD duplicate positioning on the desktop.
+
+ -- Clement Lefebvre <root@linuxmint.com>  Tue, 23 May 2017 15:54:04 +0100
+
 nemo (3.4.1) sonya; urgency=medium
 
   * Revert "split executables into separate packages."

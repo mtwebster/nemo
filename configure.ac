@@ -18,7 +18,7 @@ dnl Interface break is not allowed.
 m4_define(nemo_extension_current,  5)
 m4_define(nemo_extension_revision, 0)
 
-AC_INIT(nemo, 3.4.1, https://github.com/linuxmint/nemo)
+AC_INIT(nemo, 3.4.6, https://github.com/linuxmint/nemo)
 
 dnl ===========================================================================
 
@@ -183,9 +183,9 @@ dnl ===========================================================================
 
 AC_ARG_ENABLE(tracker,
               [AS_HELP_STRING([--enable-tracker=@<:@yes/no/auto@:>@],
-                              [build Tracker builtin support [default=auto]])],
+                              [build Tracker builtin support [default=no]])],
               [enable_tracker="$enableval"],
-              [enable_tracker=auto])
+              [enable_tracker=no])
 
 build_tracker=no
 if test "x$enable_tracker" != "xno"; then
@@ -232,13 +232,14 @@ PKG_CHECK_MODULES(NEMO, [
 	gio-2.0 >= glib_minver
 	gio-unix-2.0 >= glib_minver
 	cinnamon-desktop
+    xapp
 	libnotify >= notify_minver
 ])
 
 AC_SUBST(NEMO_CFLAGS)
 AC_SUBST(NEMO_LIBS)
 
-AC_SUBST(DISABLE_DEPRECATED_CFLAGS)
+CFLAGS="$CFLAGS -Wno-deprecated-declarations -Wno-deprecated -Wno-declaration-after-statement"
 
 dnl Multimedia keys
 AC_CHECK_HEADERS([X11/XF86keysym.h])

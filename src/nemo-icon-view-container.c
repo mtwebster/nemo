@@ -453,16 +453,16 @@ nemo_icon_view_container_get_icon_text (NemoIconContainer *container,
  *   1) home link
  *   2) network link
  *   3) mount links
- *   4) other
- *   5) trash link
+ *   4) trash link
+ *   5) other
  */
 typedef enum {
 	SORT_COMPUTER_LINK,
 	SORT_HOME_LINK,
 	SORT_NETWORK_LINK,
 	SORT_MOUNT_LINK,
-	SORT_OTHER,
-	SORT_TRASH_LINK
+	SORT_TRASH_LINK,
+	SORT_OTHER
 } SortCategory;
 
 static SortCategory
@@ -618,7 +618,7 @@ get_stored_icon_position (NemoIconContainer *container,
                           NemoIconData      *data,
                           NemoIconPosition  *position)
 {
-    GdkPoint *point;
+    GdkPoint point;
     char *scale_string;
     NemoIconView *icon_view;
     NemoFile *file;
@@ -636,9 +636,9 @@ get_stored_icon_position (NemoIconContainer *container,
         return FALSE;
     }
 
-    point = nemo_file_get_position (file);
-    position->x = point->x;
-    position->y = point->y;
+    nemo_file_get_position (file, &point);
+    position->x = point.x;
+    position->y = point.y;
 
     /* If it is the desktop directory, maybe the gnome-libs metadata has information about it */
 
@@ -1476,6 +1476,7 @@ nemo_icon_view_container_move_icon (NemoIconContainer *container,
         position.x = icon->saved_ltr_x;
         position.y = icon->y;
         position.scale = scale;
+        position.monitor =  nemo_desktop_utils_get_monitor_for_widget (GTK_WIDGET (container));
         g_signal_emit_by_name (container, "icon_position_changed", icon->data, &position);
     }
     
@@ -1842,9 +1843,12 @@ nemo_icon_view_container_finish_adding_new_icons (NemoIconContainer *container)
     GList *p, *new_icons, *no_position_icons, *semi_position_icons;
     NemoIcon *icon;
     double bottom;
+    gint current_monitor;
 
     new_icons = container->details->new_icons;
     container->details->new_icons = NULL;
+
+    current_monitor = nemo_desktop_utils_get_monitor_for_widget (container);
 
     /* Position most icons (not unpositioned manual-layout icons). */
     new_icons = g_list_reverse (new_icons);
@@ -1852,7 +1856,7 @@ nemo_icon_view_container_finish_adding_new_icons (NemoIconContainer *container)
     for (p = new_icons; p != NULL; p = p->next) {
         icon = p->data;
         nemo_icon_container_update_icon (container, icon);
-        if (icon->has_lazy_position) {
+        if (icon->has_lazy_position || nemo_icon_container_icon_is_new_for_monitor (container, icon, current_monitor)) {
             assign_icon_position (container, icon);
             semi_position_icons = g_list_prepend (semi_position_icons, icon);
         } else if (!assign_icon_position (container, icon)) {
@@ -1902,6 +1906,7 @@ nemo_icon_view_container_finish_adding_new_icons (NemoIconContainer *container)
             position.x = icon->x;
             position.y = icon->y;
             position.scale = icon->scale;
+            position.monitor = current_monitor;
             nemo_placement_grid_mark_icon (grid, icon);
             g_signal_emit_by_name (container, "icon_position_changed",
                                    icon->data, &position);
@@ -2094,6 +2099,7 @@ nemo_icon_view_container_class_init (NemoIconViewContainerClass *klass)
 
 	attribute_none_q = g_quark_from_static_string ("none");
 
+    ic_class->is_grid_container = FALSE;
 	ic_class->get_icon_text = nemo_icon_view_container_get_icon_text;
 	ic_class->get_icon_images = nemo_icon_view_container_get_icon_images;
 	ic_class->get_icon_description = nemo_icon_view_container_get_icon_description;

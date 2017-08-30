@@ -1,4 +1,4 @@
-/* -*- Mode: C; indent-tabs-mode: t; c-basic-offset: 8; tab-width: 8 -*- */
+/* -*- Mode: C; indent-tabs-mode: f; c-basic-offset: 4; tab-width: 4 -*- */
 /*
  * Copyright (C) 2005 Red Hat, Inc.
  *
@@ -1089,7 +1089,7 @@ nemo_query_editor_changed_force (NemoQueryEditor *editor, gboolean force_reload)
 	query = nemo_query_editor_get_query (editor);
 	g_signal_emit (editor, signals[CHANGED], 0,
 		       query, force_reload);
-	g_object_unref (query);
+	g_clear_object (&query);
 }
 
 static void
@@ -1119,6 +1119,7 @@ NemoQuery *
 nemo_query_editor_get_query (NemoQueryEditor *editor)
 {
 	const char *query_text;
+    gchar *cmp;
 	NemoQuery *query;
 	GList *l;
 	NemoQueryEditorRow *row;
@@ -1128,6 +1129,16 @@ nemo_query_editor_get_query (NemoQueryEditor *editor)
 	}
 
 	query_text = gtk_entry_get_text (GTK_ENTRY (editor->details->entry));
+
+    cmp = g_strdup (query_text);
+    g_strstrip (cmp);
+
+    if (g_strcmp0 (cmp, "") == 0) {
+        g_free (cmp);
+        return NULL;
+    }
+
+    g_free (cmp);
 
 	query = nemo_query_new ();
 	nemo_query_set_text (query, query_text);

@@ -1,4 +1,4 @@
-/* -*- Mode: C; indent-tabs-mode: t; c-basic-offset: 8; tab-width: 8 -*- */
+/* -*- Mode: C; indent-tabs-mode: f; c-basic-offset: 4; tab-width: 4 -*- */
 
 /* nemo-file-operations.c - Nemo file operations.
 
@@ -35,6 +35,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <stdlib.h>
+#include <errno.h>
 
 #include "nemo-file-operations.h"
 
@@ -970,6 +971,57 @@ get_parent_name (GFile *file, gchar **name)
     *name = get;
 }
 
+/* adapted from gio/glocalfile.c */
+static gboolean
+_g_local_file_delete (GFile         *file,
+                     GCancellable  *cancellable,
+                     GError       **error)
+{
+    gchar *path;
+
+    path = g_file_get_path (file);
+
+    if (g_remove (path) == -1) {
+        int errsv = errno;
+
+        /* Posix allows EEXIST too, but the more sane error
+           is G_IO_ERROR_NOT_FOUND, and it's what nautilus
+           expects */
+        if (errsv == EEXIST) {
+            errsv = ENOTEMPTY;
+        }
+
+        g_set_error (error, G_IO_ERROR,
+                     g_io_error_from_errno (errsv),
+                     _("Error removing file: %s"),
+                     g_strerror (errsv));
+
+        g_free (path);
+        return FALSE;
+    }
+
+    g_free (path);
+    return TRUE;
+}
+
+static gboolean
+file_delete_wrapper (GFile        *file,
+                     GCancellable *cancellable,
+                     GError      **error)
+{
+    gboolean ret;
+
+    ret = FALSE;
+
+    if (g_file_is_native (file)) {
+        ret = _g_local_file_delete (file, cancellable, error);
+    } else {
+        ret = g_file_delete (file, cancellable, error);
+    }
+
+    return ret;
+}
+
 static void
 generate_initial_job_details (NemoProgressInfo *info,
                               OpKind            kind,
@@ -1727,7 +1779,7 @@ delete_dir (CommonJob *job, GFile *dir,
 	if (!job_aborted (job) &&
 	    /* Don't delete dir if there was a skipped file */
 	    !local_skipped_file) {
-		if (!g_file_delete (dir, job->cancellable, &error)) {
+		if (!file_delete_wrapper (dir, job->cancellable, &error)) {
 			if (job->skip_all_error) {
 				goto skip;
 			}
@@ -1786,7 +1838,7 @@ delete_file (CommonJob *job, GFile *file,
 	}
 	
 	error = NULL;
-	if (g_file_delete (file, job->cancellable, &error)) {
+	if (file_delete_wrapper (file, job->cancellable, &error)) {
 		nemo_file_changes_queue_file_removed (file);
 		transfer_info->num_files ++;
 		report_delete_progress (job, source_info, transfer_info);
@@ -3776,7 +3828,7 @@ copy_move_directory (CopyMoveJob *copy_job,
 	if (!job_aborted (job) && copy_job->is_move &&
 	    /* Don't delete source if there was a skipped file */
 	    !local_skipped_file) {
-		if (!g_file_delete (src, job->cancellable, &error)) {
+		if (!file_delete_wrapper (src, job->cancellable, &error)) {
 			if (job->skip_all_error) {
 				goto skip;
 			}
@@ -3902,7 +3954,7 @@ remove_target_recursively (CommonJob *job,
 
 	error = NULL;
 	
-	if (!g_file_delete (file, job->cancellable, &error)) {
+	if (!file_delete_wrapper (file, job->cancellable, &error)) {
 		if (job->skip_all_error ||
 		    IS_IO_ERROR (error, CANCELLED)) {
 			goto skip2;
@@ -4195,6 +4247,7 @@ copy_move_file (CopyMoveJob *copy_job,
 	gboolean res;
 	int unique_name_nr;
 	gboolean handled_invalid_filename;
+    gboolean target_is_desktop, source_is_desktop;
 
 	job = (CommonJob *)copy_job;
 	
@@ -4202,6 +4255,20 @@ copy_move_file (CopyMoveJob *copy_job,
 		*skipped_file = TRUE;
 		return;
 	}
+
+    target_is_desktop = (copy_job->desktop_location != NULL &&
+                         g_file_equal (copy_job->desktop_location, dest_dir));
+
+    source_is_desktop = FALSE;
+
+    if (src != NULL) {
+        GFile *parent = g_file_get_parent (src);
+
+        if (parent != NULL && g_file_equal (copy_job->desktop_location, parent)) {
+            source_is_desktop = TRUE;
+            g_object_unref (parent);
+        }
+    }
 
 	unique_name_nr = 1;
 
@@ -4323,9 +4390,16 @@ copy_move_file (CopyMoveJob *copy_job,
 		transfer_info->num_files ++;
 		report_copy_progress (copy_job, source_info, transfer_info);
 
-		if (debuting_files) {
-			g_hash_table_replace (debuting_files, g_object_ref (dest), GINT_TO_POINTER (TRUE));
-		}
+        if (debuting_files) {
+            if (target_is_desktop && position) {
+                nemo_file_changes_queue_schedule_position_set (dest, *position, job->monitor_num);
+            } else if (source_is_desktop && copy_job->is_move) {
+                nemo_file_changes_queue_schedule_position_remove (dest);
+            }
+
+            g_hash_table_replace (debuting_files, g_object_ref (dest), GINT_TO_POINTER (TRUE));
+        }
+
 		if (copy_job->is_move) {
 			nemo_file_changes_queue_file_moved (src, dest);
 		} else {
@@ -4460,7 +4534,7 @@ copy_move_file (CopyMoveJob *copy_job,
 			error = NULL;
 			
 			/* Copying a dir onto file, first remove the file */
-			if (!g_file_delete (dest, job->cancellable, &error) &&
+			if (!file_delete_wrapper (dest, job->cancellable, &error) &&
 			    !IS_IO_ERROR (error, NOT_FOUND)) {
 				if (job->skip_all_error) {
 					g_error_free (error);
@@ -4903,6 +4977,21 @@ move_file_prepare (CopyMoveJob *move_job,
 	GFileCopyFlags flags;
 	MoveFileCopyFallback *fallback;
 	gboolean handled_invalid_filename;
+    gboolean target_is_desktop, source_is_desktop;
+
+    target_is_desktop = (move_job->desktop_location != NULL &&
+                         g_file_equal (move_job->desktop_location, dest_dir));
+
+    source_is_desktop = FALSE;
+
+    if (src != NULL) {
+        GFile *parent = g_file_get_parent (src);
+
+        if (parent != NULL && g_file_equal (move_job->desktop_location, parent)) {
+            source_is_desktop = TRUE;
+            g_object_unref (parent);
+        }
+    }
 
 	overwrite = FALSE;
 	handled_invalid_filename = *dest_fs_type != NULL;
@@ -4966,6 +5055,12 @@ move_file_prepare (CopyMoveJob *move_job,
 		}
 
 		nemo_file_changes_queue_file_moved (src, dest);
+
+        if (target_is_desktop && position) {
+            nemo_file_changes_queue_schedule_position_set (dest, *position, job->monitor_num);
+        } else if (source_is_desktop) {
+            nemo_file_changes_queue_schedule_position_remove (dest);
+        }
 
 		if (job->undo_info != NULL) {
 			nemo_file_undo_info_ext_add_origin_target_pair (NEMO_FILE_UNDO_INFO_EXT (job->undo_info),
@@ -5320,6 +5415,7 @@ nemo_file_operations_move (GList *files,
 
 	job = op_job_new (CopyMoveJob, parent_window);
 	job->is_move = TRUE;
+    job->desktop_location = nemo_get_desktop_location ();
 	job->done_callback = done_callback;
 	job->done_callback_data = done_callback_data;
 	job->files = eel_g_object_list_copy (files);
@@ -5418,6 +5514,10 @@ link_file (CopyMoveJob *job,
 	char *primary, *secondary, *details;
 	int response;
 	gboolean handled_invalid_filename;
+    gboolean target_is_desktop;
+
+    target_is_desktop = (job->desktop_location != NULL &&
+                         g_file_equal (job->desktop_location, dest_dir));
 
 	common = (CommonJob *)job;
 
@@ -5456,6 +5556,10 @@ link_file (CopyMoveJob *job,
 		}
 		
 		nemo_file_changes_queue_file_added (dest);
+
+        if (target_is_desktop && position) {
+            nemo_file_changes_queue_schedule_position_set (dest, *position, common->monitor_num);
+        }
 
 		g_object_unref (dest);
 		
@@ -5678,6 +5782,7 @@ nemo_file_operations_duplicate (GList *files,
 	CopyMoveJob *job;
 
 	job = op_job_new (CopyMoveJob, parent_window);
+    job->desktop_location = nemo_get_desktop_location ();
 	job->done_callback = done_callback;
 	job->done_callback_data = done_callback_data;
 	job->files = eel_g_object_list_copy (files);
@@ -6189,8 +6294,6 @@ create_job (GIOSchedulerJob *io_job,
 		nemo_file_changes_queue_file_added (dest);
 		if (job->has_position) {
 			nemo_file_changes_queue_schedule_position_set (dest, job->position, common->monitor_num);
-		} else {
-			nemo_file_changes_queue_schedule_position_remove (dest);
 		}
 	} else {
 		g_assert (error != NULL);
@@ -6463,7 +6566,7 @@ delete_trash_file (CommonJob *job,
 	}
 
 	if (!job_aborted (job) && del_file) {
-		g_file_delete (file, job->cancellable, NULL);
+		file_delete_wrapper (file, job->cancellable, NULL);
 
 		if ((*deletions_since_progress)++ > 100) {
 			nemo_progress_info_pulse_progress (job->progress);

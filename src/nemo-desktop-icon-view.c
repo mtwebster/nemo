@@ -174,12 +174,21 @@ should_show_file_on_current_monitor (NemoView *view, NemoFile *file)
     NemoDesktopManager *dm = nemo_desktop_manager_get ();
 
     if (current_monitor == file_monitor) {
-        nemo_file_set_is_desktop_orphan (file, FALSE);
         return TRUE;
     }
 
-    if (!g_settings_get_boolean (nemo_desktop_preferences, NEMO_PREFERENCES_SHOW_ORPHANED_DESKTOP_ICONS)) {
+    if (nemo_desktop_manager_get_primary_only (dm)) {
+        return TRUE;
+    }
+
+    if (file_monitor > -1 &&
+        !g_settings_get_boolean (nemo_desktop_preferences, NEMO_PREFERENCES_SHOW_ORPHANED_DESKTOP_ICONS)) {
         return FALSE;
+    }
+
+    if (file_monitor == -1) {
+        /* New file, no previous metadata - this should go on the primary monitor */
+        return nemo_desktop_manager_get_monitor_is_primary (dm, current_monitor);
     }
 
     if (!nemo_desktop_manager_get_monitor_is_active (dm, file_monitor)) {

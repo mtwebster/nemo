@@ -163,7 +163,6 @@ nemo_definitions =  [
 
 subdir('cut-n-paste-code/libegg')
 subdir('data')
-subdir('docs')
 subdir('eel')
 subdir('files')
 subdir('libnemo-extension')
@@ -172,6 +171,7 @@ subdir('libnemo-private')
 subdir('src')
 subdir('test')
 
+subdir('docs')
 
 configure_file(input : 'config.h.meson.in',
               output : 'config.h',

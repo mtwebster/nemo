@@ -163,6 +163,7 @@ nemo_definitions =  [
 
 subdir('cut-n-paste-code/libegg')
 subdir('data')
+subdir('docs')
 subdir('eel')
 subdir('files')
 subdir('libnemo-extension')
@@ -170,10 +171,6 @@ subdir('libnemo-private')
 # subdir('po')
 subdir('src')
 subdir('test')
-
-if gtkdoc_enabled
-    subdir('docs')
-endif
 
 
 configure_file(input : 'config.h.meson.in',

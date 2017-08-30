@@ -170,7 +170,7 @@ if enableEmptyView
 endif
 
 nemo_deps = [ cinnamon, exempi, gail, glib, gtk, libexif, libnotify, libxml, math, x11,
-    egg, nemo_extension, nemo_private ]
+    egg, nemo_extension, nemo_private, xapp ]
 
 
 nemo = executable('nemo',

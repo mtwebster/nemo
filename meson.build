@@ -137,6 +137,7 @@ cinnamon= dependency('cinnamon-desktop', version : '>=2.6.1')
 gail    = dependency('gail-3.0')
 libxml  = dependency('libxml-2.0', version : '>=2.7.8')
 x11     = dependency('x11')
+xapp    = dependency('xapp')
 
 gthread = dependency('gthread-2.0', version : '>= 2.37.3')
 gmodule = dependency('gmodule-no-export-2.0', version : '>= 2.37.3')

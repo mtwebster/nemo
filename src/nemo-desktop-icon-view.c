@@ -110,6 +110,9 @@ update_margins (NemoDesktopIconView *icon_view)
     gint current_monitor;
     gint l, r, t, b;
 
+    nemo_icon_container_set_margins (icon_container, 0, 0, 0, 0);
+return;
+
     icon_container = get_icon_container (icon_view);
 
     g_object_get (NEMO_DESKTOP_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET (icon_view))),

@@ -12,6 +12,7 @@
 #include "nemo-cinnamon-dbus.h"
 
 #include <gdk/gdkx.h>
+#include <stdio.h>
 
 #include <libnemo-private/nemo-global-preferences.h>
 #include <libnemo-private/nemo-desktop-utils.h>
@@ -33,24 +34,21 @@ typedef enum {
 } RunState;
 
 typedef struct {
-    GdkScreen *screen;
-    GdkWindow *root_window;
-
-    gulong scale_factor_changed_id;
-    guint update_layout_idle_id;
-
-    gboolean desktop_on_primary_only;
-
+    NemoCinnamonDBus *proxy;
     NemoActionManager *action_manager;
 
     GList *desktops;
 
-    NemoCinnamonDBus *proxy;
-
-    guint other_desktop : 1;
-    guint proxy_owned : 1;
     RunState current_run_state;
 
+    guint desktop_on_primary_only : 1;
+    guint other_desktop : 1;
+    guint proxy_owned : 1;
+    guint startup_complete : 1;
+
+    guint update_layout_idle_id;
+
+    gulong scale_factor_changed_id;
     gulong name_owner_changed_id;
     gulong proxy_signals_id;
 } NemoDesktopManagerPrivate;
@@ -63,6 +61,8 @@ struct _NemoDesktopManager
 };
 
 G_DEFINE_TYPE_WITH_PRIVATE (NemoDesktopManager, nemo_desktop_manager, G_TYPE_OBJECT);
+
+#define FETCH_PRIV(m) NemoDesktopManagerPrivate *priv = NEMO_DESKTOP_MANAGER (m)->priv;
 
 typedef struct {
     GtkWidget *window;
@@ -101,10 +101,8 @@ free_info (DesktopInfo *info)
 static RunState
 get_run_state (NemoDesktopManager *manager)
 {
-    NemoDesktopManagerPrivate *priv;
+    FETCH_PRIV (manager);
     gint ret;
-
-    priv = manager->priv;
 
     if (priv->other_desktop) {
         ret = RUN_STATE_FALLBACK;
@@ -133,12 +131,10 @@ out:
 static gint
 get_n_monitors (NemoDesktopManager *manager)
 {
-    NemoDesktopManagerPrivate *priv;
+    FETCH_PRIV (manager);
     gsize n_monitors;
-    gint *indices;
+    const gint *indices;
     GVariant *monitors;
-
-    priv = manager->priv;
 
     if (priv->other_desktop) {
         return nemo_desktop_utils_get_num_monitors ();
@@ -151,7 +147,24 @@ get_n_monitors (NemoDesktopManager *manager)
         return nemo_desktop_utils_get_num_monitors ();
     }
 
-    indices = (gint *) g_variant_get_fixed_array (monitors, &n_monitors, sizeof(gint));
+    indices = g_variant_get_fixed_array (monitors, &n_monitors, sizeof(gint));
+
+    if (DEBUGGING) {
+        GString *string = g_string_new (NULL);
+        gsize i;
+
+        for (i = 0; i < n_monitors; i++) {
+            gchar *m = g_strdup_printf (" %d", indices[i]);
+
+            string = g_string_append (string, m);
+            g_free (m);
+        }
+
+        DEBUG ("Found %lu monitor(s):%s", n_monitors, string->str);
+
+        g_string_free (string, TRUE);
+    }
+
     g_variant_unref (monitors);
 
     return n_monitors;
@@ -162,12 +175,10 @@ get_window_rect_for_monitor (NemoDesktopManager *manager,
                              gint                monitor,
                              GdkRectangle       *rect)
 {
-    NemoDesktopManagerPrivate *priv;
+    FETCH_PRIV (manager);
     GVariant *out_rect_var;
     GdkRectangle *out_rect;
     gsize n_elem;
-
-    priv = manager->priv;
 
     if (priv->other_desktop) {
         nemo_desktop_utils_get_monitor_geometry (monitor, rect);
@@ -196,19 +207,23 @@ get_window_rect_for_monitor (NemoDesktopManager *manager,
 static void
 close_all_windows (NemoDesktopManager *manager)
 {
-    g_list_foreach (manager->priv->desktops, (GFunc) free_info, NULL);
-    g_clear_pointer (&manager->priv->desktops, g_list_free);
+    FETCH_PRIV (manager);
+
+    g_list_foreach (priv->desktops, (GFunc) free_info, NULL);
+    g_clear_pointer (&priv->desktops, g_list_free);
 }
 
 static void
 queue_update_layout (NemoDesktopManager *manager)
 {
-    if (manager->priv->update_layout_idle_id > 0) {
-        g_source_remove (manager->priv->update_layout_idle_id);
-        manager->priv->update_layout_idle_id = 0;
+    FETCH_PRIV (manager);
+
+    if (priv->update_layout_idle_id > 0) {
+        g_source_remove (priv->update_layout_idle_id);
+        priv->update_layout_idle_id = 0;
     }
 
-    manager->priv->update_layout_idle_id = g_idle_add ((GSourceFunc) layout_changed, manager);
+    priv->update_layout_idle_id = g_idle_add ((GSourceFunc) layout_changed, manager);
 }
 
 static void
@@ -216,7 +231,9 @@ on_window_scale_changed (GtkWidget          *window,
                          GParamSpec         *pspec,
                          NemoDesktopManager *manager)
 {
-    manager->priv->scale_factor_changed_id = 0;
+    FETCH_PRIV (manager);
+
+    priv->scale_factor_changed_id = 0;
 
     queue_update_layout (manager);
 }
@@ -227,6 +244,7 @@ create_new_desktop_window (NemoDesktopManager *manager,
                                      gboolean  primary,
                                      gboolean  show_desktop)
 {
+    FETCH_PRIV (manager);
     GtkWidget *window;
 
     DesktopInfo *info = g_slice_new0 (DesktopInfo);
@@ -243,35 +261,29 @@ create_new_desktop_window (NemoDesktopManager *manager,
 
     info->window = window;
 
-    /* We realize it immediately so that the NEMO_DESKTOP_WINDOW_ID
-       property is set so gnome-settings-daemon doesn't try to set the
-       background. And we do a gdk_flush() to be sure X gets it. */
-
-    gtk_widget_realize (GTK_WIDGET (window));
-    gdk_flush ();
-
-    if (manager->priv->scale_factor_changed_id == 0) {
-        manager->priv->scale_factor_changed_id = g_signal_connect (window,
-                                                                   "notify::scale-factor",
-                                                                   G_CALLBACK (on_window_scale_changed),
-                                                                   manager);
+    if (priv->scale_factor_changed_id == 0) {
+        priv->scale_factor_changed_id = g_signal_connect (window,
+                                                          "notify::scale-factor",
+                                                          G_CALLBACK (on_window_scale_changed),
+                                                          manager);
     }
 
     gtk_application_add_window (GTK_APPLICATION (nemo_application_get_singleton ()),
                                 GTK_WINDOW (window));
 
-    manager->priv->desktops = g_list_append (manager->priv->desktops, info);
+    priv->desktops = g_list_append (priv->desktops, info);
 }
 
 static gboolean
 layout_changed (NemoDesktopManager *manager)
 {
+    FETCH_PRIV (manager);
     gint n_monitors = 0;
     gint x_primary = 0;
     gboolean show_desktop_on_primary = FALSE;
     gboolean show_desktop_on_remaining = FALSE;
 
-    manager->priv->update_layout_idle_id = 0;
+    priv->update_layout_idle_id = 0;
 
     close_all_windows (manager);
 
@@ -300,7 +312,7 @@ layout_changed (NemoDesktopManager *manager)
     show_desktop_on_primary = g_strcmp0 (pref_split[0], "true") == 0;
     show_desktop_on_remaining = g_strcmp0 (pref_split[1], "true") == 0;
 
-    manager->priv->desktop_on_primary_only = show_desktop_on_primary && !show_desktop_on_remaining;
+    priv->desktop_on_primary_only = show_desktop_on_primary && !show_desktop_on_remaining;
 
     gint i = 0;
     gboolean primary_set = FALSE;
@@ -322,70 +334,67 @@ layout_changed (NemoDesktopManager *manager)
     return FALSE;
 }
 
-
-// static GdkFilterReturn
-// gdk_filter_func (GdkXEvent *gdk_xevent,
-//                  GdkEvent  *event,
-//                  gpointer   data)
-// {
-//     XEvent *xevent = gdk_xevent;
-//     NemoDesktopIconGridView *icon_view;
-
-//     icon_view = NEMO_DESKTOP_ICON_GRID_VIEW (data);
-
-//     switch (xevent->type) {
-//         case PropertyNotify:
-//             if (xevent->xproperty.atom == gdk_x11_get_xatom_by_name ("_NET_WORKAREA")) {
-//                 update_margins (icon_view);
-//             }
-//             break;
-//         default:
-//             break;
-//     }
-
-//     return GDK_FILTER_CONTINUE;
-// }
-
 static void
 on_bus_name_owner_changed (NemoDesktopManager *manager)
 {
+    FETCH_PRIV (manager);
     gchar *name_owner;
 
-    g_return_if_fail (manager->priv->proxy != NULL);
+    g_return_if_fail (priv->proxy != NULL);
 
-    name_owner = g_dbus_proxy_get_name_owner (G_DBUS_PROXY (manager->priv->proxy));
+    name_owner = g_dbus_proxy_get_name_owner (G_DBUS_PROXY (priv->proxy));
 
-    manager->priv->proxy_owned = name_owner != NULL;
+    priv->proxy_owned = name_owner != NULL;
 
     DEBUG ("New name owner: %s", name_owner ? name_owner : "unowned");
 
     g_free (name_owner);
 }
 
+
 static void
 on_run_state_changed (NemoDesktopManager *manager)
 {
+    g_return_if_fail (NEMO_IS_DESKTOP_MANAGER (manager));
+
+    FETCH_PRIV (manager);
     RunState new_state;
 
     DEBUG ("New run state...");
 
+    if (priv->current_run_state == RUN_STATE_RUNNING) {
+        return;
+    }
+
     new_state = get_run_state (manager);
 
-    if (new_state != manager->priv->current_run_state) {
-        manager->priv->current_run_state = new_state;
+    if (new_state != priv->current_run_state) {
+        priv->current_run_state = new_state;
 
         if (new_state == RUN_STATE_RUNNING) {
             layout_changed (manager);
+            priv->startup_complete = TRUE;
             g_application_release (G_APPLICATION (nemo_application_get_singleton ()));
         }
     }
-
 }
 
 static void
 on_monitors_changed (NemoDesktopManager *manager)
 {
+    g_return_if_fail (NEMO_IS_DESKTOP_MANAGER (manager));
 
+    FETCH_PRIV (manager);
+    GList *l;
+
+    DEBUG ("Monitors or workarea changed");
+
+    for (l = priv->desktops; l != NULL; l = l->next) {
+        DesktopInfo *info = (DesktopInfo *) l->data;
+        NemoDesktopWindow *window = NEMO_DESKTOP_WINDOW (info->window);
+
+        nemo_desktop_window_update_geometry (window);
+    }
 }
 
 static void
@@ -395,7 +404,6 @@ on_proxy_signal (GDBusProxy *proxy,
                  GVariant   *params,
                  gpointer   *user_data)
 {
-    g_printerr ("signal: %s\n", signal_name);
     if (g_strcmp0 (signal_name, "RunStateChanged") == 0) {
         on_run_state_changed (NEMO_DESKTOP_MANAGER (user_data));
     } 
@@ -411,7 +419,7 @@ on_proxy_created (GObject      *source,
                   gpointer      user_data)
 {
     NemoDesktopManager *manager = NEMO_DESKTOP_MANAGER (user_data);
-    NemoDesktopManagerPrivate *priv = manager->priv;
+    FETCH_PRIV (manager);
 
     priv->proxy = nemo_cinnamon_dbus_proxy_new_for_bus_finish (res, NULL);
 
@@ -424,7 +432,6 @@ on_proxy_created (GObject      *source,
     }
 
     DEBUG ("Cinnamon proxy established, getting owner and state");
-
 
     priv->name_owner_changed_id = g_signal_connect_swapped (priv->proxy,
                                                             "notify::g-name-owner",
@@ -459,8 +466,10 @@ nemo_desktop_manager_dispose (GObject *object)
 static void
 nemo_desktop_manager_finalize (GObject *object)
 {
-    g_object_unref (NEMO_DESKTOP_MANAGER (object)->priv->action_manager);
-    g_object_unref (NEMO_DESKTOP_MANAGER (object)->priv->proxy);
+    FETCH_PRIV (object);
+
+    g_object_unref (priv->action_manager);
+    g_object_unref (priv->proxy);
 
     DEBUG ("Finalizing NemoDesktopManager");
 
@@ -558,12 +567,14 @@ nemo_desktop_manager_get (void)
 gboolean
 nemo_desktop_manager_has_desktop_windows (NemoDesktopManager *manager)
 {
+    FETCH_PRIV (manager);
+
     GList *iter;
     gboolean ret = FALSE;
 
     g_return_val_if_fail (manager != NULL, FALSE);
 
-    for (iter = manager->priv->desktops; iter != NULL; iter = iter->next) {
+    for (iter = priv->desktops; iter != NULL; iter = iter->next) {
         DesktopInfo *info = iter->data;
 
         if (info->shows_desktop) {
@@ -579,12 +590,13 @@ gboolean
 nemo_desktop_manager_get_monitor_is_active (NemoDesktopManager *manager,
                                                           gint  monitor)
 {
+    FETCH_PRIV (manager);
     GList *iter;
     gboolean ret = FALSE;
 
     g_return_val_if_fail (manager != NULL, FALSE);
 
-    for (iter = manager->priv->desktops; iter != NULL; iter = iter->next) {
+    for (iter = priv->desktops; iter != NULL; iter = iter->next) {
         DesktopInfo *info = iter->data;
 
         if (info->monitor_num == monitor) {
@@ -600,12 +612,13 @@ gboolean
 nemo_desktop_manager_get_monitor_is_primary (NemoDesktopManager *manager,
                                                            gint  monitor)
 {
+    FETCH_PRIV (manager);
     GList *iter;
     gboolean ret = FALSE;
 
     g_return_val_if_fail (manager != NULL, FALSE);
 
-    for (iter = manager->priv->desktops; iter != NULL; iter = iter->next) {
+    for (iter = priv->desktops; iter != NULL; iter = iter->next) {
         DesktopInfo *info = iter->data;
 
         if (info->monitor_num == monitor) {
@@ -620,7 +633,9 @@ nemo_desktop_manager_get_monitor_is_primary (NemoDesktopManager *manager,
 gboolean
 nemo_desktop_manager_get_primary_only (NemoDesktopManager *manager)
 {
-    return manager->priv->desktop_on_primary_only;
+    FETCH_PRIV (manager);
+
+    return priv->desktop_on_primary_only;
 }
 
 NemoActionManager *
@@ -639,4 +654,12 @@ nemo_desktop_manager_get_window_rect_for_monitor (NemoDesktopManager *manager,
     g_return_if_fail (manager != NULL);
 
     get_window_rect_for_monitor (manager, monitor, rect);
+}
+
+gboolean
+nemo_desktop_manager_has_good_workarea_info (NemoDesktopManager *manager)
+{
+    FETCH_PRIV (manager);
+
+    return priv->proxy_owned && !priv->other_desktop;
 }

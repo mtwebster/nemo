@@ -27,7 +27,7 @@ gboolean nemo_desktop_manager_get_primary_only (NemoDesktopManager *manager);
 void     nemo_desktop_manager_get_window_rect_for_monitor (NemoDesktopManager *manager,
                                                            gint                monitor,
                                                            GdkRectangle       *rect);
-
+gboolean nemo_desktop_manager_has_good_workarea_info (NemoDesktopManager *manager);
 
 G_END_DECLS
 

@@ -147,6 +147,13 @@ update_margins (NemoDesktopIconGridView *icon_view)
 
     icon_container = get_icon_container (icon_view);
 
+    /* If we have good info over dbus, we can just set the window to the correct size
+     * and have 0 margins */
+    if (nemo_desktop_manager_has_good_workarea_info (nemo_desktop_manager_get ())) {
+        nemo_icon_container_set_margins (icon_container, 0, 0, 0, 0);
+        return;
+    }
+
     g_object_get (NEMO_DESKTOP_WINDOW (gtk_widget_get_toplevel (GTK_WIDGET (icon_view))),
                   "monitor", &current_monitor,
                   NULL);
@@ -154,8 +161,9 @@ update_margins (NemoDesktopIconGridView *icon_view)
     /* _NET_WORKAREA only applies to the primary monitor - use it to adjust
        container margins on the primary icon container only.  For any others,
        add a sane amount of padding for any likely chrome. */
+
     if (current_monitor != nemo_desktop_utils_get_primary_monitor ()) {
-        nemo_icon_container_set_margins (icon_container, 50, 50, 50, 50);
+        nemo_icon_container_set_margins (icon_container, 25, 25, 25, 25);
         return;
     }
 

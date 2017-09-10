@@ -93,7 +93,6 @@ nemo_desktop_window_constructed (GObject *obj)
 {
 	GtkActionGroup *action_group;
 	GtkAction *action;
-    GdkRectangle rect;
 	AtkObject *accessible;
 	NemoDesktopWindow *window = NEMO_DESKTOP_WINDOW (obj);
 	NemoWindow *nwindow = NEMO_WINDOW (obj);
@@ -125,17 +124,7 @@ nemo_desktop_window_constructed (GObject *obj)
 		atk_object_set_name (accessible, _("Desktop"));
 	}
 
-    nemo_desktop_manager_get_window_rect_for_monitor (nemo_desktop_manager_get (),
-                                                      window->details->monitor,
-                                                      &rect);
-
-    DEBUG ("NemoDesktopWindow monitor:%d: x:%d, y:%d, w:%d, h:%d",
-           window->details->monitor,
-           rect.x, rect.y,
-           rect.width, rect.height);
-
-    gtk_window_move (GTK_WINDOW (window), rect.x, rect.y);
-    gtk_widget_set_size_request (GTK_WIDGET (window), rect.width, rect.height);
+    nemo_desktop_window_update_geometry (window);
 
     gtk_window_set_resizable (GTK_WINDOW (window),
                   FALSE);
@@ -353,4 +342,22 @@ gint
 nemo_desktop_window_get_monitor (NemoDesktopWindow *window)
 {
     return window->details->monitor;
+}
+
+void
+nemo_desktop_window_update_geometry (NemoDesktopWindow *window)
+{
+    GdkRectangle rect;
+
+    nemo_desktop_manager_get_window_rect_for_monitor (nemo_desktop_manager_get (),
+                                                      window->details->monitor,
+                                                      &rect);
+
+    DEBUG ("NemoDesktopWindow monitor:%d: x:%d, y:%d, w:%d, h:%d",
+           window->details->monitor,
+           rect.x, rect.y,
+           rect.width, rect.height);
+
+    gtk_window_move (GTK_WINDOW (window), rect.x, rect.y);
+    gtk_widget_set_size_request (GTK_WIDGET (window), rect.width, rect.height);
 }

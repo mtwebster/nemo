@@ -4276,6 +4276,14 @@ extension_info_start (NemoDirectory *directory,
 		 update_complete, 
 		 &handle);
 
+    /* If NEMO_OPERATION_COMPLETE or FAILED is called, make a dummy
+     * handle just to use as a non-NULL so all of our extension_info_in_progress
+     * checks don't get confused */
+
+    if (handle == NULL) {
+        handle = GINT_TO_POINTER (1);
+    }
+
     directory->details->extension_info_in_progress = handle;
     directory->details->extension_info_provider = provider;
     directory->details->extension_info_file = file;

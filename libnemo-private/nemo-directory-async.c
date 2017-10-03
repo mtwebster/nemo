@@ -4276,17 +4276,19 @@ extension_info_start (NemoDirectory *directory,
 		 update_complete, 
 		 &handle);
 
-	g_closure_unref (update_complete);
+    directory->details->extension_info_in_progress = handle;
+    directory->details->extension_info_provider = provider;
+    directory->details->extension_info_file = file;
 
 	if (result == NEMO_OPERATION_COMPLETE ||
 	    result == NEMO_OPERATION_FAILED) {
-		finish_info_provider (directory, file, provider);
-		async_job_end (directory, "extension info");
-	} else {
-		directory->details->extension_info_in_progress = handle;
-		directory->details->extension_info_provider = provider;
-		directory->details->extension_info_file = file;
+        nemo_info_provider_update_complete_invoke (update_complete,
+                                                   provider,
+                                                   handle,
+                                                   result);
 	}
+
+    g_closure_unref (update_complete);
 }
 
 static void

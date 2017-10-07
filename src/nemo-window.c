@@ -1129,6 +1129,7 @@ nemo_window_key_release_event (GtkWidget *widget,
  * Main API
  */
 
+<<<<<<< HEAD
 static void
 sync_view_type_callback (NemoFile *file, 
                          gpointer callback_data)
@@ -1182,6 +1183,8 @@ nemo_window_sync_view_type (NemoWindow *window)
                                slot);
 }
 
+=======
+>>>>>>> Remove some dead code.
 void
 nemo_window_sync_menu_bar (NemoWindow *window)
 {
@@ -1349,11 +1352,14 @@ nemo_window_connect_content_view (NemoWindow *window,
 			  G_CALLBACK (zoom_level_changed_callback),
 			  window);
 
+<<<<<<< HEAD
     /* Update displayed the selected view type in the toolbar and menu. */
     if (slot->pending_location == NULL) {
         nemo_window_sync_view_type (window);
     }
 
+=======
+>>>>>>> Remove some dead code.
 	nemo_view_grab_focus (view);
 }
 
@@ -1463,8 +1469,11 @@ nemo_window_slot_set_viewed_file (NemoWindowSlot *slot,
 
 	nemo_file_ref (file);
 
+<<<<<<< HEAD
 	cancel_sync_view_type_callback (slot);
 
+=======
+>>>>>>> Remove some dead code.
 	if (slot->viewed_file != NULL) {
 		nemo_file_monitor_remove (slot->viewed_file,
 					      slot);

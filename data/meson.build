@@ -6,20 +6,25 @@ dataConf.set('VERSION', meson.project_version())
 autorunFile = configure_file(
     input : 'nemo-autorun-software.desktop.in.in',
     output: 'nemo-autorun-software.desktop',
-    configuration : dataConf)
+    configuration : dataConf
+)
 
 autostartFile = configure_file(
     input : 'nemo-autostart.desktop.in',
     output: 'nemo-autostart.desktop',
-    configuration : dataConf)
+    configuration : dataConf
+)
 
 nemoDesktopFile = configure_file(
     input : 'nemo.desktop.in.in',
     output: 'nemo.desktop',
-    configuration : dataConf)
+    configuration : dataConf
+)
 
-install_data([autorunFile, autostartFile, nemoDesktopFile],
-    install_dir: join_paths(['share','applications']))
+install_data(
+    [autorunFile, autostartFile, nemoDesktopFile],
+    install_dir: join_paths(['share','applications'])
+)
 
 ################################################################################
 dataConf = configuration_data()
@@ -27,14 +32,16 @@ dataConf.set('bindir', join_paths([get_option('prefix'), get_option('bindir')]))
 
 dbusFiles = [
     configure_file(
-        configuration : dataConf),
         input : 'nemo.service.in',
         output: 'nemo.service',
+        configuration : dataConf
+    ),
 
     configure_file(
-        configuration : dataConf)
         input : 'nemo.FileManager1.service.in',
         output: 'nemo.FileManager1.service',
+        configuration : dataConf
+    ),
 ]
 
 install_data(dbusFiles,

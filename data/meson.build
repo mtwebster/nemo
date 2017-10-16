@@ -27,14 +27,14 @@ dataConf.set('bindir', join_paths([get_option('prefix'), get_option('bindir')]))
 
 dbusFiles = [
     configure_file(
-        input : 'org.Nemo.service.in',
-        output: 'org.Nemo.service',
         configuration : dataConf),
+        input : 'nemo.service.in',
+        output: 'nemo.service',
 
     configure_file(
-        input : 'org.nemo.freedesktop.FileManager1.service.in',
-        output: 'org.nemo.freedesktop.FileManager1.service',
         configuration : dataConf)
+        input : 'nemo.FileManager1.service.in',
+        output: 'nemo.FileManager1.service',
 ]
 
 install_data(dbusFiles,
@@ -122,4 +122,3 @@ install_data(rootPolicyFile,
 ################################################################################
 
 subdir('icons')
-

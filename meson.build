@@ -88,14 +88,13 @@ endif
 conf.set('ENABLE_TRACKER', tracker_enabled)
 
 
-gtkdoc_enabled = false
-if build_machine.system() == 'windows'
-  message('Disabling gtk-doc while building on Windows')
-else
-  if find_program('gtkdoc-scan', required : false).found()
-    gtkdoc_enabled = true
+gtkdoc_enabled = get_option('gtk_doc')
+
+if gtkdoc_enabled
+  if build_machine.system() == 'windows'
+    message('Disabling gtk-doc while building on Windows')
   else
-    message('Not building documentation as gtk-doc was not found')
+    find_program('gtkdoc-scan', required : true)
   endif
 endif
 

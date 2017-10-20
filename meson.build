@@ -24,7 +24,7 @@ gnome = import('gnome')
 cc = meson.get_compiler('c')
 prefix = get_option('prefix')
 buildtype = get_option('buildtype')
-deprecation_flags = get_option('deprecation_flags')
+deprecated_warnings = get_option('deprecated_warnings')
 
 
 # Surround the version in quotes to make it a C string
@@ -45,8 +45,14 @@ endforeach
 conf.set10('HAVE_MALLOPT', cc.has_function('mallopt', prefix : '#include <malloc.h>'))
 
 
-if deprecation_flags
-  add_global_arguments('-Wno-deprecated-declarations', language : 'c')
+if not deprecated_warnings
+  add_global_arguments([
+    '-Wno-deprecated-declarations',
+    '-Wno-deprecated',
+    '-Wno-declaration-after-statement',
+    ],
+    language : 'c'
+  )
 endif
 
 ################################################################################

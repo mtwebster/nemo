@@ -1,4 +1,4 @@
-option('deprecation_flags', type : 'boolean', value : false)
+option('deprecated_warnings', type : 'boolean', value : false)
 option('exif',          type : 'boolean', value : true)
 option('xmp',           type : 'boolean', value : true)
 option('selinux',       type : 'boolean', value : false)

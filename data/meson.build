@@ -4,26 +4,26 @@ dataConf = configuration_data()
 dataConf.set('VERSION', meson.project_version())
 
 autorunFile = configure_file(
-    input : 'nemo-autorun-software.desktop.in.in',
-    output: 'nemo-autorun-software.desktop',
-    configuration : dataConf
+  input : 'nemo-autorun-software.desktop.in.in',
+  output: 'nemo-autorun-software.desktop',
+  configuration : dataConf
 )
 
 autostartFile = configure_file(
-    input : 'nemo-autostart.desktop.in',
-    output: 'nemo-autostart.desktop',
-    configuration : dataConf
+  input : 'nemo-autostart.desktop.in',
+  output: 'nemo-autostart.desktop',
+  configuration : dataConf
 )
 
 nemoDesktopFile = configure_file(
-    input : 'nemo.desktop.in.in',
-    output: 'nemo.desktop',
-    configuration : dataConf
+  input : 'nemo.desktop.in.in',
+  output: 'nemo.desktop',
+  configuration : dataConf
 )
 
 install_data(
-    [autorunFile, autostartFile, nemoDesktopFile],
-    install_dir: join_paths(['share','applications'])
+  [autorunFile, autostartFile, nemoDesktopFile],
+  install_dir: join_paths(['share','applications'])
 )
 
 ################################################################################
@@ -31,21 +31,22 @@ dataConf = configuration_data()
 dataConf.set('bindir', join_paths([get_option('prefix'), get_option('bindir')]))
 
 dbusFiles = [
-    configure_file(
-        input : 'nemo.service.in',
-        output: 'nemo.service',
-        configuration : dataConf
-    ),
+  configure_file(
+    input : 'nemo.service.in',
+    output: 'nemo.service',
+    configuration : dataConf
+  ),
 
-    configure_file(
-        input : 'nemo.FileManager1.service.in',
-        output: 'nemo.FileManager1.service',
-        configuration : dataConf
-    ),
+  configure_file(
+    input : 'nemo.FileManager1.service.in',
+    output: 'nemo.FileManager1.service',
+    configuration : dataConf
+  ),
 ]
 
 install_data(dbusFiles,
-    install_dir: join_paths(['share','dbus-1','services']))
+  install_dir: join_paths(['share','dbus-1','services'])
+)
 
 ################################################################################
 # install_data(
@@ -62,12 +63,19 @@ install_data(dbusFiles,
 ################################################################################
 dataConf = configuration_data()
 mimeFile = configure_file(
-    input : 'nemo.xml.in',
-    output: 'nemo.xml',
-    configuration : dataConf)
+  input : 'nemo.xml.in',
+  output: 'nemo.xml.tmp',
+  configuration : dataConf
+)
 
-install_data(mimeFile,
-    install_dir: join_paths(['share','mime','packages']))
+mimeFile_translated = custom_target('nemo.xml',
+  input : mimeFile,
+  output: 'nemo.xml',
+  command : ['intltool-merge', '--quiet', '--xml-style', '--utf8', po_subdir, '@INPUT@', '@OUTPUT@'],
+  install : true,
+  install_dir: join_paths(['share','mime','packages']),
+  build_by_default : true,
+)
 
 ################################################################################
 # dataConf = configuration_data()

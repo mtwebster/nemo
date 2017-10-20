@@ -145,6 +145,8 @@ nemo_definitions =  [
   '-DLIBEXECDIR="' + libExecPath + '"',
 ]
 
+po_subdir = join_paths(meson.source_root(), 'po')
+
 subdir('cut-n-paste-code/libegg')
 subdir('data')
 subdir('eel')

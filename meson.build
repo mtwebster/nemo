@@ -59,14 +59,16 @@ endif
 ################################################################################
 # Find dependencies
 
+glib_version = '>=2.37.3'
+
 math    = cc.find_library('m', required: true)
 
 gtk     = dependency('gtk+-3.0',                    version: '>=3.9.10')
-gio     = dependency('gio-2.0',                     version: '>=2.37.3')
-gio_unix= dependency('gio-unix-2.0',                version: '>=2.37.3')
-glib    = dependency('glib-2.0',                    version: '>=2.37.3')
-gmodule = dependency('gmodule-no-export-2.0',       version: '>=2.37.3')
-gthread = dependency('gthread-2.0',                 version: '>=2.37.3')
+gio     = dependency('gio-2.0',                     version: glib_version)
+gio_unix= dependency('gio-unix-2.0',                version: glib_version)
+glib    = dependency('glib-2.0',                    version: glib_version)
+gmodule = dependency('gmodule-no-export-2.0',       version: glib_version)
+gthread = dependency('gthread-2.0',                 version: glib_version)
 gobject = dependency('gobject-2.0',                 version: '>=2.0')
 go_intr = dependency('gobject-introspection-1.0',   version: '>=1.0')
 libnotif= dependency('libnotify',                   version: '>=0.7.0')
@@ -99,11 +101,7 @@ conf.set('ENABLE_TRACKER', tracker_enabled)
 
 gtkdoc_enabled = get_option('gtk_doc')
 if gtkdoc_enabled
-  if build_machine.system() == 'windows'
-    message('Disabling gtk-doc while building on Windows')
-  else
-    find_program('gtkdoc-scan', required: true)
-  endif
+  find_program('gtkdoc-scan', required: true)
 endif
 
 
@@ -136,7 +134,6 @@ conf.set('ENABLE_NLS', cc.has_header('libintl.h'))
 conf.set('HAVE_GETTEXT', true)
 conf.set('HAVE_LOCALE_H', cc.has_header('locale.h'))
 
-
 configure_file(
   input : 'config.h.meson.in',
   output: 'config.h',
@@ -148,7 +145,8 @@ configure_file(
 rootInclude = include_directories('.')
 nemoDataPath      = join_paths(get_option('prefix'), get_option('datadir'), 'nemo')
 libExecPath       = join_paths(get_option('prefix'), get_option('libdir'), 'nemo')
-nemoExtensionPath = join_paths(get_option('prefix'), get_option('libdir'), 'nemo', 'extensions-3.0')
+# Keep this constant, in case some extensions are behind in being updated...
+nemoExtensionPath = join_paths(get_option('prefix'), 'lib', 'nemo', 'extensions-3.0')
 
 nemo_definitions =  [
   '-DNEMO_DATADIR="@0@"'.format(nemoDataPath),
@@ -165,6 +163,7 @@ subdir('files')
 subdir('libnemo-extension')
 subdir('libnemo-private')
 # subdir('po')
+subdir('gresources')
 subdir('src')
 subdir('test')
 subdir('docs')

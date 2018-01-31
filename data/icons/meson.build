@@ -49,7 +49,6 @@ noInstallIcons = [
   'hicolor/apps/32x32/nemo.svg',
 ]
 
-
 foreach icon : publicIcons
   nameParts = icon.split('/')
   theme   = nameParts[0]
@@ -71,3 +70,5 @@ foreach icon : privateIcons
     install_dir: join_paths(get_option('datadir'), 'nemo', 'icons', theme, size, context)
   )
 endforeach
+
+meson.add_install_script('meson_update_icon_cache.py')

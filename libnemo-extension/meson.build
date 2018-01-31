@@ -56,7 +56,6 @@ nemo_extension = declare_dependency(
   dependencies: nemo_extension_deps,
 )
 
-
 gnome.generate_gir(nemo_extension_lib,
   sources: nemo_extension_sources + nemo_extension_headers,
   nsversion: '3.0',
@@ -65,7 +64,6 @@ gnome.generate_gir(nemo_extension_lib,
   include_directories: [ rootInclude, ],
   install: true,
 )
-
 
 pkgconfig.generate(filebase: 'libnemo-extension',
   name: 'libnemo-extension',
@@ -84,6 +82,6 @@ pkgconfig.generate(filebase: 'libnemo-extension',
     'nemo',
   ],
   variables: [
-    'extensiondir=${prefix}/@0@/nemo/extensions-3.0'.format(get_option('libdir')),
+    'extensiondir=@0@'.format(nemoExtensionPath)
   ],
 )

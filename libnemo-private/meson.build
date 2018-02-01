@@ -1,6 +1,6 @@
 
 dbusBuiltSources = gnome.gdbus_codegen('nemo-generated',
-  join_paths([meson.source_root(), 'data', 'dbus-interfaces.xml']),
+  join_paths(meson.source_root(), 'data', 'dbus-interfaces.xml'),
   interface_prefix: 'org.Nemo.',
   namespace: 'NemoDBus',
   object_manager: true
@@ -102,7 +102,6 @@ nemo_private_lib = static_library('nemo-private',
   include_directories: [ rootInclude, ],
   install: true,
   c_args: nemo_definitions,
-  # link_args: '-version-info @NEMO_private_VERSION_INFO@ -no-undefined',
 )
 
 nemo_private = declare_dependency(
@@ -120,5 +119,5 @@ gschemaFile = configure_file(
 )
 
 install_data(gschemaFile,
-  install_dir: join_paths([ 'share', 'glib-2.0', 'schemas' ])
+  install_dir: join_paths(get_option('datadir'), 'glib-2.0', 'schemas')
 )

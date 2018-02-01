@@ -52,7 +52,7 @@ if not get_option('deprecated_warnings')
       '-Wno-deprecated',
       '-Wno-declaration-after-statement',
     ],
-    language: 'c'
+    language: 'c',
   )
 endif
 
@@ -130,8 +130,8 @@ enableEmptyView = get_option('empty-view')
 conf.set10('ENABLE_EMPTY_VIEW', enableEmptyView)
 
 conf.set_quoted('GETTEXT_PACKAGE', 'nemo')
-conf.set_quoted('LOCALE_DIR',  join_paths([ get_option('prefix'), get_option('localedir') ]))
-conf.set_quoted('LOCALEDIR',   join_paths([ get_option('prefix'), get_option('localedir') ]))
+conf.set_quoted('LOCALE_DIR',  join_paths(get_option('prefix'), get_option('localedir')))
+conf.set_quoted('LOCALEDIR',   join_paths(get_option('prefix'), get_option('localedir')))
 conf.set('ENABLE_NLS', cc.has_header('libintl.h'))
 conf.set('HAVE_GETTEXT', true)
 conf.set('HAVE_LOCALE_H', cc.has_header('locale.h'))
@@ -146,9 +146,9 @@ configure_file(
 ################################################################################
 
 rootInclude = include_directories('.')
-nemoDataPath      = join_paths([get_option('prefix'), get_option('datadir'), 'nemo'])
-libExecPath       = join_paths([get_option('prefix'), get_option('libdir'), 'nemo'])
-nemoExtensionPath = join_paths([get_option('prefix'), get_option('libdir'), 'nemo', 'extensions-3.0'])
+nemoDataPath      = join_paths(get_option('prefix'), get_option('datadir'), 'nemo')
+libExecPath       = join_paths(get_option('prefix'), get_option('libdir'), 'nemo')
+nemoExtensionPath = join_paths(get_option('prefix'), get_option('libdir'), 'nemo', 'extensions-3.0')
 
 nemo_definitions =  [
   '-DNEMO_DATADIR="@0@"'.format(nemoDataPath),

@@ -1183,8 +1183,13 @@ nemo_icon_view_grid_container_finish_adding_new_icons (NemoIconContainer *contai
             int x, y;
 
             icon = p->data;
-            x = icon->x;
-            y = icon->y;
+
+            nemo_centered_placement_grid_icon_position_to_nominal (grid,
+                                                                   icon,
+                                                                   icon->x,
+                                                                   icon->y,
+                                                                   &x, &y);
+
             snap_position (container, grid, icon, x, y, &x, &y);
 
             nemo_centered_placement_grid_nominal_to_icon_position (grid,
@@ -1513,8 +1518,7 @@ update_layout_constants (NemoIconContainer *container)
     constants->snap_size_y = BASE_SNAP_SIZE_Y * scale * v_adjust;
     constants->max_text_width_standard = BASE_MAX_TEXT_WIDTH * scale * h_adjust;
 
-    constants->icon_vertical_adjust = get_vertical_adjustment (container, icon_size);
-
+    constants->icon_vertical_adjust = MIN (get_vertical_adjustment (container, icon_size), constants->snap_size_y / 2);
     /* This isn't what this is intended for, but it's a simple way vs. overriding what
      * icon_get_size() uses to get the icon size in nemo-icon-container.c (it should use
      * nemo_get_desktop_icon_size_for_zoom_level) */

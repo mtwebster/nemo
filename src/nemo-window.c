@@ -74,12 +74,6 @@
 #include <math.h>
 #include <sys/time.h>
 
-/* dock items */
-
-#define NEMO_MENU_PATH_EXTRA_VIEWER_PLACEHOLDER	"/MenuBar/View/View Choices/Extra Viewer"
-#define NEMO_MENU_PATH_SHORT_LIST_PLACEHOLDER  	"/MenuBar/View/View Choices/Short List"
-#define NEMO_MENU_PATH_AFTER_SHORT_LIST_SEPARATOR   "/MenuBar/View/View Choices/After Short List"
-
 #define MAX_TITLE_LENGTH 180
 
 /* Forward and back buttons on the mouse */
@@ -122,11 +116,6 @@ enum {
 
 static guint signals[LAST_SIGNAL] = { 0 };
 static GParamSpec *properties[NUM_PROPERTIES] = { NULL, };
-
-typedef struct  {
-	NemoWindow *window;
-	char *id;
-} ActivateViewData;
 
 G_DEFINE_TYPE (NemoWindow, nemo_window, GTK_TYPE_APPLICATION_WINDOW);
 
@@ -1140,6 +1129,59 @@ nemo_window_key_release_event (GtkWidget *widget,
  * Main API
  */
 
+static void
+sync_view_type_callback (NemoFile *file, 
+                         gpointer callback_data)
+{
+    NemoWindow *window;
+    NemoWindowSlot *slot;
+
+    slot = callback_data;
+    window = nemo_window_slot_get_window (slot);
+
+    if (slot == nemo_window_get_active_slot (window)) {
+        NemoWindowPane *pane;
+        const gchar *view_id;
+
+        if (slot->content_view == NULL) {
+            return;
+        }
+
+        pane = nemo_window_get_active_pane(window);
+        view_id = nemo_window_slot_get_content_view_id (slot);
+
+        toolbar_set_view_button (action_for_view_id (view_id), pane);
+        menu_set_view_selection (action_for_view_id (view_id), window);
+    }
+}
+
+static void
+cancel_sync_view_type_callback (NemoWindowSlot *slot)
+{
+	nemo_file_cancel_call_when_ready (slot->viewed_file, 
+					      sync_view_type_callback,
+					      slot);
+}
+
+void
+nemo_window_sync_view_type (NemoWindow *window)
+{
+    NemoWindowSlot *slot;
+    NemoFileAttributes attributes;
+
+    g_return_if_fail (NEMO_IS_WINDOW (window));
+
+    attributes = nemo_mime_actions_get_required_file_attributes ();
+
+    slot = nemo_window_get_active_slot (window);
+
+    cancel_sync_view_type_callback (slot);
+    nemo_file_call_when_ready (slot->viewed_file,
+                               attributes,
+                               sync_view_type_callback,
+                               slot);
+}
+
 void
 nemo_window_sync_menu_bar (NemoWindow *window)
 {
@@ -1307,6 +1349,11 @@ nemo_window_connect_content_view (NemoWindow *window,
 			  G_CALLBACK (zoom_level_changed_callback),
 			  window);
 
+    /* Update displayed the selected view type in the toolbar and menu. */
+    if (slot->pending_location == NULL) {
+        nemo_window_sync_view_type (window);
+    }
+
 	nemo_view_grab_focus (view);
 }
 
@@ -1415,6 +1462,8 @@ nemo_window_slot_set_viewed_file (NemoWindowSlot *slot,
 	}
 
 	nemo_file_ref (file);
+
+	cancel_sync_view_type_callback (slot);
 
 	if (slot->viewed_file != NULL) {
 		nemo_file_monitor_remove (slot->viewed_file,
@@ -1537,6 +1586,21 @@ window_set_search_action_text (NemoWindow *window,
 	}
 }
 
+static void
+center_pane_divider (GtkWidget  *paned,
+                     GParamSpec *pspec,
+                     gpointer    user_data)
+{
+    /* Make the paned think it's been manually resized, otherwise
+     * things like the trash bar will force unwanted resizes */
+
+    g_object_set (G_OBJECT (paned),
+                  "position-set", TRUE,
+                  NULL);
+
+    g_signal_handlers_disconnect_by_func (G_OBJECT (paned), center_pane_divider, NULL);
+}
+
 static NemoWindowSlot *
 create_extra_pane (NemoWindow *window)
 {
@@ -1549,18 +1613,17 @@ create_extra_pane (NemoWindow *window)
 	window->details->panes = g_list_append (window->details->panes, pane);
 
 	paned = GTK_PANED (window->details->split_view_hpane);
+
+    g_signal_connect_after (paned,
+                            "notify::position",
+                            G_CALLBACK(center_pane_divider),
+                            NULL);
+
 	if (gtk_paned_get_child1 (paned) == NULL) {
 		gtk_paned_pack1 (paned, GTK_WIDGET (pane), TRUE, FALSE);
 	} else {
 		gtk_paned_pack2 (paned, GTK_WIDGET (pane), TRUE, FALSE);
 	}
-
-    /* Make the paned think it's been manually resized, otherwise
-       things like the trash bar will force unwanted resizes */
-
-    int w;
-    w = gtk_widget_get_allocated_width (GTK_WIDGET (paned)) / 2;
-    gtk_paned_set_position (paned, w);
 
 	/* Ensure the toolbar doesn't pop itself into existence (double toolbars suck.) */
 	gtk_widget_hide (pane->tool_bar);
@@ -1923,6 +1986,13 @@ nemo_window_split_view_off (NemoWindow *window)
 			nemo_window_close_pane (window, pane);
 		}
 	}
+
+    /* Reset split view pane's position so the position can be
+     * caught again later */
+    g_object_set (G_OBJECT (window->details->split_view_hpane),
+                  "position", 0,
+                  "position-set", FALSE,
+                  NULL);
 
 	nemo_window_set_active_pane (window, active_pane);
 	nemo_navigation_state_set_master (window->details->nav_state,

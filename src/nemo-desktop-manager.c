@@ -131,8 +131,10 @@ get_run_state (NemoDesktopManager *manager)
                                                      NULL,
                                                      &error)) {
 
-        DEBUG ("Attempting proxy call 'GetRunState' failed, resorting to fallback mode: %s", error->message);
-        g_error_free (error);
+        DEBUG ("Attempting proxy call 'GetRunState' failed, resorting to fallback mode: %s",
+               error ? error->message : NULL);
+
+        g_clear_error (&error);
 
         ret = RUN_STATE_FALLBACK;
         goto out;
@@ -167,8 +169,11 @@ get_n_monitors (NemoDesktopManager *manager)
                                                     &monitors,
                                                     NULL,
                                                     &error)) {
-        DEBUG ("Attempting proxy call 'GetMonitors' failed, retrieving n_monitors via GdkScreen: %s", error->message);
-        g_error_free (error);
+
+        DEBUG ("Attempting proxy call 'GetMonitors' failed, retrieving n_monitors via GdkScreen: %s",
+               error ? error->message : NULL);
+
+        g_clear_error (&error);
 
         n_monitors = nemo_desktop_utils_get_num_monitors ();
 
@@ -208,6 +213,7 @@ get_window_rect_for_monitor (NemoDesktopManager *manager,
     GVariant *out_rect_var;
     GdkRectangle out_rect;
     gsize n_elem;
+    gint scale_factor;
     GError *error;
 
     error = NULL;
@@ -226,7 +232,11 @@ get_window_rect_for_monitor (NemoDesktopManager *manager,
                                                              &out_rect_var,
                                                              NULL,
                                                              &error)) {
-        DEBUG ("Attempting proxy call 'GetMonitorWorkRect' failed, retrieving n_monitors via GdkScreen: %s", error->message);
+
+        DEBUG ("Attempting proxy call 'GetMonitorWorkRect' failed, retrieving n_monitors via GdkScreen: %s",
+               error ? error->message : NULL);
+
+        g_clear_error (&error);
 
         nemo_desktop_utils_get_monitor_geometry (monitor, &out_rect);
 
@@ -234,6 +244,16 @@ get_window_rect_for_monitor (NemoDesktopManager *manager,
     }
 
     out_rect = *( (GdkRectangle *) g_variant_get_fixed_array (out_rect_var, &n_elem, sizeof(gint)) );
+
+    /* GdkScreen sizes are scaled for hidpi already.  But if we've gotten this far, we're using
+     * Cinnamon-provided numbers, which aren't scaled. */
+
+    scale_factor = nemo_desktop_utils_get_scale_factor ();
+
+    out_rect.x /= scale_factor;
+    out_rect.y /= scale_factor;
+    out_rect.width /= scale_factor;
+    out_rect.height /= scale_factor;
 
 out:
 

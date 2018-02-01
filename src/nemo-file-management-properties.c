@@ -197,7 +197,9 @@ static const guint64 thumbnail_limit_values[] = {
 	1073741824,
 	2147483648U,
 	4294967295U,
-	8589934592U
+	8589934592U,
+	17179869184U,
+	34359738368U
 };
 
 static const char * const icon_captions_components[] = {
@@ -316,23 +318,23 @@ icon_captions_changed_callback (GtkComboBox *combo_box,
 {
 	GPtrArray *captions;
 	GtkBuilder *builder;
-	int i;
+	guint i;
 
 	builder = GTK_BUILDER (user_data);
 
 	captions = g_ptr_array_new ();
 
 	for (i = 0; icon_captions_components[i] != NULL; i++) {
-		GtkWidget *combo_box;
 		int active;
 		GPtrArray *column_names;
 		char *name;
+		GtkWidget *c_box;
 
-		combo_box = GTK_WIDGET (gtk_builder_get_object
+		c_box = GTK_WIDGET (gtk_builder_get_object
 					(builder, icon_captions_components[i]));
-		active = gtk_combo_box_get_active (GTK_COMBO_BOX (combo_box));
+		active = gtk_combo_box_get_active (GTK_COMBO_BOX (c_box));
 
-		column_names = g_object_get_data (G_OBJECT (combo_box),
+		column_names = g_object_get_data (G_OBJECT (c_box),
 						  "column_names");
 
 		name = g_ptr_array_index (column_names, active);
@@ -352,7 +354,7 @@ update_caption_combo_box (GtkBuilder *builder,
 			  const char *name)
 {
 	GtkWidget *combo_box;
-	int i;
+	guint i;
 	GPtrArray *column_names;
 
 	combo_box = GTK_WIDGET (gtk_builder_get_object (builder, combo_box_name));
@@ -397,7 +399,7 @@ update_icon_captions_from_settings (GtkBuilder *builder)
 			data = captions[j];
 			++j;
 		} else {
-			data = "none";
+			data = (char *)"none";
 		}
 
 		update_caption_combo_box (builder, 
@@ -769,13 +771,13 @@ nemo_file_management_properties_dialog_setup (GtkBuilder *builder, GtkWindow *wi
 
 	/* setup UI */
 	nemo_file_management_properties_size_group_create (builder,
-							       "views_label",
+							       (char *)"views_label",
 							       5);
 	nemo_file_management_properties_size_group_create (builder,
-							       "captions_label",
+							       (char *)"captions_label",
 							       3);
 	nemo_file_management_properties_size_group_create (builder,
-							       "preview_label",
+							       (char *)"preview_label",
 							       3);
 	create_date_format_menu (builder);
 
@@ -820,6 +822,7 @@ nemo_file_management_properties_dialog_setup (GtkBuilder *builder, GtkWindow *wi
     bind_builder_bool (builder, nemo_preferences,
 			   NEMO_FILE_MANAGEMENT_PROPERTIES_SHOW_COMPACT_VIEW_ICON_TOOLBAR_WIDGET,
 			   NEMO_PREFERENCES_SHOW_COMPACT_VIEW_ICON_TOOLBAR);
+
 	/* setup preferences */
     bind_builder_bool (builder, nemo_icon_view_preferences,
         NEMO_FILE_MANAGEMENT_PROPERTIES_COMPACT_LAYOUT_WIDGET,

@@ -70,6 +70,10 @@
 #define DRAG_EXPAND_CATEGORY_DELAY 500
 #define EJECT_PAD_COLUMN_WIDTH 14
 
+#if (!GLIB_CHECK_VERSION(2,50,0))
+#define g_drive_is_removable g_drive_is_media_removable
+#endif
+
 typedef struct {
 	GtkScrolledWindow  parent;
 	GtkTreeView        *tree_view;
@@ -1046,7 +1050,7 @@ update_places (NemoPlacesSidebar *sidebar)
             }
             g_list_free (volumes);
         } else {
-            if (g_drive_is_media_removable (drive) && !g_drive_is_media_check_automatic (drive)) {
+            if (g_drive_is_removable (drive) && !g_drive_is_media_check_automatic (drive)) {
                 /* If the drive has no mountable volumes and we cannot detect media change.. we
                  * display the drive in the sidebar so the user can manually poll the drive by
                  * right clicking and selecting "Rescan..."
@@ -2164,7 +2168,7 @@ check_visibility (GMount           *mount,
 	check_unmount_and_eject (mount, volume, drive, show_unmount, show_eject);
 
 	if (drive != NULL) {
-		if (g_drive_is_media_removable (drive) &&
+		if (g_drive_is_removable (drive) &&
 		    !g_drive_is_media_check_automatic (drive) && 
 		    g_drive_can_poll_for_media (drive))
 			*show_rescan = TRUE;
@@ -4188,20 +4192,8 @@ nemo_places_sidebar_init (NemoPlacesSidebar *sidebar)
 
     gtk_tree_view_set_model (tree_view, GTK_TREE_MODEL (sidebar->store_filter));
 
-    GtkWidget *stupid = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
-    gtk_widget_set_visible (stupid, TRUE);
-    gtk_box_pack_start (GTK_BOX (stupid), GTK_WIDGET (tree_view), TRUE, TRUE, 0);
-
-    GtkWidget *filler = gtk_drawing_area_new ();
-    gtk_widget_set_visible (filler, TRUE);
-    gtk_box_pack_start (GTK_BOX (stupid), GTK_WIDGET (filler), TRUE, TRUE, 0);
-
-    GtkStyleContext *context = gtk_widget_get_style_context (filler);
-    gtk_style_context_add_class (context, "view");
-
-	gtk_container_add (GTK_CONTAINER (sidebar), GTK_WIDGET (stupid));
-
-	gtk_widget_show (GTK_WIDGET (tree_view));
+    gtk_container_add (GTK_CONTAINER (sidebar), GTK_WIDGET (tree_view));
+    gtk_widget_show (GTK_WIDGET (tree_view));
 
 	gtk_widget_show (GTK_WIDGET (sidebar));
 	sidebar->tree_view = tree_view;

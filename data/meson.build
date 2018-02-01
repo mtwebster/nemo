@@ -6,19 +6,19 @@ dataConf.set('VERSION', meson.project_version())
 autorunFile = configure_file(
   input : 'nemo-autorun-software.desktop.in.in',
   output: 'nemo-autorun-software.desktop',
-  configuration : dataConf
+  configuration: dataConf
 )
 
 autostartFile = configure_file(
   input : 'nemo-autostart.desktop.in',
   output: 'nemo-autostart.desktop',
-  configuration : dataConf
+  configuration: dataConf
 )
 
 nemoDesktopFile = configure_file(
   input : 'nemo.desktop.in.in',
   output: 'nemo.desktop',
-  configuration : dataConf
+  configuration: dataConf
 )
 
 install_data(
@@ -34,13 +34,13 @@ dbusFiles = [
   configure_file(
     input : 'nemo.service.in',
     output: 'nemo.service',
-    configuration : dataConf
+    configuration: dataConf
   ),
 
   configure_file(
     input : 'nemo.FileManager1.service.in',
     output: 'nemo.FileManager1.service',
-    configuration : dataConf
+    configuration: dataConf
   ),
 ]
 
@@ -65,16 +65,16 @@ dataConf = configuration_data()
 mimeFile = configure_file(
   input : 'nemo.xml.in',
   output: 'nemo.xml.tmp',
-  configuration : dataConf
+  configuration: dataConf
 )
 
 mimeFile_translated = custom_target('nemo.xml',
   input : mimeFile,
   output: 'nemo.xml',
-  command : ['intltool-merge', '--quiet', '--xml-style', '--utf8', po_subdir, '@INPUT@', '@OUTPUT@'],
-  install : true,
+  command: ['intltool-merge', '--quiet', '--xml-style', '--utf8', po_subdir, '@INPUT@', '@OUTPUT@'],
+  install: true,
   install_dir: join_paths(['share','mime','packages']),
-  build_by_default : true,
+  build_by_default: true,
 )
 
 ################################################################################
@@ -83,39 +83,39 @@ mimeFile_translated = custom_target('nemo.xml',
 #     configure_file(
 #         input : '90_new-workspace.nemo_action.in',
 #         output: '90_new-workspace.nemo_action',
-#         configuration : dataConf),
+#         configuration: dataConf),
 #     configure_file(
 #         input : '91_delete-workspace.nemo_action.in',
 #         output: '91_delete-workspace.nemo_action',
-#         configuration : dataConf),
+#         configuration: dataConf),
 #     configure_file(
 #         input : '92_show-expo.nemo_action.in',
 #         output: '92_show-expo.nemo_action',
-#         configuration : dataConf),
+#         configuration: dataConf),
 #     configure_file(
 #         input : 'add-desklets.nemo_action.in',
 #         output: 'add-desklets.nemo_action',
-#         configuration : dataConf),
+#         configuration: dataConf),
 #     configure_file(
 #         input : 'change-background.nemo_action.in',
 #         output: 'change-background.nemo_action',
-#         configuration : dataConf),
+#         configuration: dataConf),
 #     configure_file(
 #         input : 'desktop-settings.nemo_action.in',
 #         output: 'desktop-settings.nemo_action',
-#         configuration : dataConf),
+#         configuration: dataConf),
 #     configure_file(
 #         input : 'mount-archive.nemo_action.in',
 #         output: 'mount-archive.nemo_action',
-#         configuration : dataConf),
+#         configuration: dataConf),
 #     configure_file(
 #         input : 'new-launcher.nemo_action.in',
 #         output: 'new-launcher.nemo_action',
-#         configuration : dataConf),
+#         configuration: dataConf),
 #     configure_file(
 #         input : 'set-as-background.nemo_action.in',
 #         output: 'set-as-background.nemo_action',
-#         configuration : dataConf),
+#         configuration: dataConf),
 # ]
 # install_data(actionFiles,
 #     install_dir: join_paths(['share','nemo','actions']))
@@ -129,7 +129,7 @@ dataConf = configuration_data()
 rootPolicyFile = configure_file(
     input : '../src/org.nemo.root.policy.in',
     output: 'org.nemo.root.policy',
-    configuration : dataConf)
+    configuration: dataConf)
 
 install_data(rootPolicyFile,
     install_dir: join_paths(['share','polkit-1','actions']))

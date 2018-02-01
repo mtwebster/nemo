@@ -94,71 +94,6 @@ nemoCommon_sources = [
   'nemo-x-content-bar.c',
 ]
 
-nemoCommon_headers = [
-  'nemo-action-config-widget.h',
-  'nemo-actions.h',
-  'nemo-application.h',
-  'nemo-blank-desktop-window.h',
-  'nemo-bookmark-list.h',
-  'nemo-bookmarks-window.h',
-  'nemo-config-base-widget.h',
-  'nemo-connect-server-dialog.h',
-  'nemo-connect-server-operation.h',
-  'nemo-desktop-icon-grid-view.h',
-  'nemo-desktop-item-properties.h',
-  'nemo-desktop-manager.h',
-  'nemo-desktop-window.h',
-  'nemo-error-reporting.h',
-  'nemo-extension-config-widget.h',
-  'nemo-file-management-properties.h',
-  'nemo-floating-bar.h',
-  'nemo-freedesktop-dbus.h',
-  'nemo-icon-view-container.h',
-  'nemo-icon-view-grid-container.h',
-  'nemo-icon-view.h',
-  'nemo-image-properties-page.h',
-  'nemo-interesting-folder-bar.h',
-  'nemo-list-model.h',
-  'nemo-list-view-private.h',
-  'nemo-list-view.h',
-  'nemo-location-bar.h',
-  'nemo-location-entry.h',
-  'nemo-mime-actions.h',
-  'nemo-navigation-action.h',
-  'nemo-navigation-state.h',
-  'nemo-notebook.h',
-  'nemo-pathbar.h',
-  'nemo-places-sidebar.h',
-  'nemo-plugin-manager.h',
-  'nemo-previewer.h',
-  'nemo-progress-info-widget.h',
-  'nemo-progress-ui-handler.h',
-  'nemo-properties-window.h',
-  'nemo-query-editor.h',
-  'nemo-script-config-widget.h',
-  'nemo-self-check-functions.h',
-  'nemo-statusbar.h',
-  'nemo-thumbnail-problem-bar.h',
-  'nemo-toolbar.h',
-  'nemo-trash-bar.h',
-  'nemo-tree-sidebar-model.h',
-  'nemo-tree-sidebar.h',
-  'nemo-view-dnd.h',
-  'nemo-view-factory.h',
-  'nemo-view.h',
-  'nemo-window-bookmarks.h',
-  'nemo-window-manage-views.h',
-  'nemo-window-menus.h',
-  'nemo-window-pane.h',
-  'nemo-window-private.h',
-  'nemo-window-slot-dnd.h',
-  'nemo-window-slot.h',
-  'nemo-window-types.h',
-  'nemo-window.h',
-  'nemo-x-content-bar.h',
-]
-
-
 nemoWindow_sources = [
   'nemo-main-application.c',
   'nemo-main.c',
@@ -180,7 +115,6 @@ nemoDesktop_headers = [
 
 if enableEmptyView
   nemoCommon_sources += 'nemo-empty-view.c'
-  nemoCommon_headers += 'nemo-empty-view.h'
 endif
 
 nemo_deps = [ cinnamon, exempi, gail, glib, gtk, libexif, libnotif, libxml, math, x11,
@@ -189,25 +123,25 @@ nemo_deps = [ cinnamon, exempi, gail, glib, gtk, libexif, libnotif, libxml, math
 
 nemo = executable('nemo',
   nemoCommon_sources + nemoWindow_sources,
-  include_directories : [ rootInclude ],
-  c_args : nemo_definitions,
-  dependencies : nemo_deps,
+  include_directories: [ rootInclude ],
+  c_args: nemo_definitions,
+  dependencies: nemo_deps,
   install: true
 )
 
 nemoDesktop = executable('nemo-desktop',
   nemoCommon_sources + nemoDesktop_sources,
-  include_directories : [ rootInclude],
-  c_args : nemo_definitions,
-  dependencies : nemo_deps,
+  include_directories: [ rootInclude],
+  c_args: nemo_definitions,
+  dependencies: nemo_deps,
   install: true
 )
 
 nemo_autorun_software = executable('nemo-autorun-software',
   [ 'nemo-autorun-software.c' ],
-  include_directories : [ rootInclude, ],
-  c_args : nemo_definitions,
-  dependencies : nemo_deps,
+  include_directories: [ rootInclude, ],
+  c_args: nemo_definitions,
+  dependencies: nemo_deps,
   install: true
 )
 
@@ -218,26 +152,26 @@ nemo_connect_server = executable('nemo-connect-server',
     'nemo-connect-server-dialog-main.c',
     'nemo-connect-server-operation.c'
   ],
-  include_directories : [ rootInclude, ],
-  c_args : nemo_definitions,
-  dependencies : nemo_deps,
+  include_directories: [ rootInclude, ],
+  c_args: nemo_definitions,
+  dependencies: nemo_deps,
   install: true
 )
 
 nemo_open_with = executable('nemo-open-with',
   [ 'nemo-open-with-main.c' ],
-  include_directories : [ rootInclude, ],
-  c_args : nemo_definitions,
-  dependencies : nemo_deps,
+  include_directories: [ rootInclude, ],
+  c_args: nemo_definitions,
+  dependencies: nemo_deps,
   install: true
 )
 
 # LibExecs
 nemo_convert_metadata = executable('nemo-convert-metadata',
   [ 'nemo-convert-metadata.c' ],
-  include_directories : [ rootInclude, ],
-  c_args : nemo_definitions,
-  dependencies : nemo_deps,
+  include_directories: [ rootInclude, ],
+  c_args: nemo_definitions,
+  dependencies: nemo_deps,
   install: true,
   install_dir: libExecPath,
 )

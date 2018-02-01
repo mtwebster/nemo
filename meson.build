@@ -1,7 +1,7 @@
 # Meson build file
 
 # https://github.com/linuxmint/nemo
-project('nemo', 'c', version : '3.4.1',
+project('nemo', 'c', version : '3.6.5',
   meson_version : '>=0.40.0'
 )
 
@@ -109,30 +109,30 @@ updateMimeDB= find_program('update-mime-database', required : enable_update_mime
 
 math    = cc.find_library('m', required : true)
 
-gtk     = dependency('gtk+-3.0',                   version : '>=3.9.10')
-gio     = dependency('gio-2.0',                    version : '>=2.37.3')
-gio_unix= dependency('gio-unix-2.0',               version : '>=2.37.3')
-glib    = dependency('glib-2.0',                   version : '>=2.37.3')
-gmodule = dependency('gmodule-no-export-2.0',      version : '>=2.37.3')
-gthread = dependency('gthread-2.0',                version : '>=2.37.3')
-gobject = dependency('gobject-2.0',                version : '>=2.0')
-go_intr = dependency('gobject-introspection-1.0',  version : '>=1.0')
-libnotif= dependency('libnotify',                  version : '>=0.7.0')
+gtk     = dependency('gtk+-3.0',                    version : '>=3.9.10')
+gio     = dependency('gio-2.0',                     version : '>=2.37.3')
+gio_unix= dependency('gio-unix-2.0',                version : '>=2.37.3')
+glib    = dependency('glib-2.0',                    version : '>=2.37.3')
+gmodule = dependency('gmodule-no-export-2.0',       version : '>=2.37.3')
+gthread = dependency('gthread-2.0',                 version : '>=2.37.3')
+gobject = dependency('gobject-2.0',                 version : '>=2.0')
+go_intr = dependency('gobject-introspection-1.0',   version : '>=1.0')
+libnotif= dependency('libnotify',                   version : '>=0.7.0')
 
-cinnamon= dependency('cinnamon-desktop',           version : '>=2.6.1')
+cinnamon= dependency('cinnamon-desktop',            version : '>=2.6.1')
 gail    = dependency('gail-3.0')
-libxml  = dependency('libxml-2.0',                 version : '>=2.7.8')
+libxml  = dependency('libxml-2.0',                  version : '>=2.7.8')
 x11     = dependency('x11')
-xapp    = dependency('xapp')
+xapp    = dependency('xapp',                        version : '>=1.0.4')
 
 if libexif_enabled
-  libexif = dependency('libexif',                  version : '>=0.6.20')
+  libexif = dependency('libexif',                   version : '>=0.6.20')
 endif
 if exempi_enabled
-  exempi = dependency('exempi-2.0',                version : '>=2.2.0')
+  exempi = dependency('exempi-2.0',                 version : '>=2.2.0')
 endif
 if libselinux_enabled
-  libselinux = dependency('libselinux',            version : '>=2.0')
+  libselinux = dependency('libselinux',             version : '>=2.0')
 endif
 
 

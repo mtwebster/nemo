@@ -83,108 +83,26 @@ nemo_private_sources = [
   'nemo-widget-menu-item.c',
 ]
 
-nemo_private_headers = [
-  'nemo-action-manager.h',
-  'nemo-action.h',
-  'nemo-bookmark.h',
-  'nemo-cell-renderer-disk.h',
-  'nemo-clipboard-monitor.h',
-  'nemo-clipboard.h',
-  'nemo-column-chooser.h',
-  'nemo-column-utilities.h',
-  'nemo-context-menu-menu-item.h',
-  'nemo-dbus-manager.h',
-  'nemo-debug.h',
-  'nemo-default-file-icon.h',
-  'nemo-desktop-directory-file.h',
-  'nemo-desktop-directory.h',
-  'nemo-desktop-icon-file.h',
-  'nemo-desktop-link-monitor.h',
-  'nemo-desktop-link.h',
-  'nemo-desktop-metadata.h',
-  'nemo-desktop-utils.h',
-  'nemo-directory-notify.h',
-  'nemo-directory-private.h',
-  'nemo-directory.h',
-  'nemo-dnd.h',
-  'nemo-entry.h',
-  'nemo-file-attributes.h',
-  'nemo-file-changes-queue.h',
-  'nemo-file-conflict-dialog.h',
-  'nemo-file-dnd.h',
-  'nemo-file-operations.h',
-  'nemo-file-private.h',
-  'nemo-file-queue.h',
-  'nemo-file-undo-manager.h',
-  'nemo-file-undo-operations.h',
-  'nemo-file-utilities.h',
-  'nemo-file.h',
-  'nemo-generated.h',
-  'nemo-global-preferences.h',
-  'nemo-icon-canvas-item.h',
-  'nemo-icon-container.h',
-  'nemo-icon-dnd.h',
-  'nemo-icon-info.h',
-  'nemo-icon-names.h',
-  'nemo-icon-private.h',
-  'nemo-icon.h',
-  'nemo-job-queue.h',
-  'nemo-lib-self-check-functions.h',
-  'nemo-link.h',
-  'nemo-merged-directory.h',
-  'nemo-metadata.h',
-  'nemo-mime-application-chooser.h',
-  'nemo-module.h',
-  'nemo-monitor.h',
-  'nemo-places-tree-view.h',
-  'nemo-program-choosing.h',
-  'nemo-progress-info-manager.h',
-  'nemo-progress-info.h',
-  'nemo-query.h',
-  'nemo-recent.h',
-  'nemo-saved-search-file.h',
-  'nemo-search-directory-file.h',
-  'nemo-search-directory.h',
-  'nemo-search-engine-simple.h',
-  'nemo-search-engine.h',
-  'nemo-selection-canvas-item.h',
-  'nemo-separator-action.h',
-  'nemo-signaller.h',
-  'nemo-thumbnails.h',
-  'nemo-trash-monitor.h',
-  'nemo-tree-view-drag-dest.h',
-  'nemo-ui-utilities.h',
-  'nemo-undo-manager.h',
-  'nemo-undo-private.h',
-  'nemo-undo-signal-handlers.h',
-  'nemo-undo-transaction.h',
-  'nemo-undo.h',
-  'nemo-vfs-directory.h',
-  'nemo-vfs-file.h',
-  'nemo-widget-action.h',
-  'nemo-widget-menu-item.h',
-]
-
 nemo_private_deps = [
   cinnamon, eel, gail, glib, gmodule, gtk, libexif, libxml, math, nemo_extension, x11,
 ]
 
 if tracker_enabled
-nemo_private_sources += 'nemo-search-engine-tracker.c'
-nemo_private_deps += tracker_sparql
+  nemo_private_sources += 'nemo-search-engine-tracker.c'
+  nemo_private_deps += tracker_sparql
 endif
 
 if libselinux_enabled
-    nemo_private_deps += libselinux
+  nemo_private_deps += libselinux
 endif
 
 nemo_private_lib = static_library('nemo-private',
   nemo_private_sources,
-  dependencies : nemo_private_deps,
-  include_directories : [ rootInclude, ],
+  dependencies: nemo_private_deps,
+  include_directories: [ rootInclude, ],
   install: true,
-  c_args : nemo_definitions,
-  # link_args : '-version-info @NEMO_private_VERSION_INFO@ -no-undefined',
+  c_args: nemo_definitions,
+  # link_args: '-version-info @NEMO_private_VERSION_INFO@ -no-undefined',
 )
 
 nemo_private = declare_dependency(
@@ -198,7 +116,7 @@ dataConf = configuration_data()
 gschemaFile = configure_file(
   input : 'org.nemo.gschema.xml.in',
   output: 'org.nemo.gschema.xml',
-  configuration : dataConf
+  configuration: dataConf
 )
 
 install_data(gschemaFile,

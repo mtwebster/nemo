@@ -17,24 +17,6 @@ eel_sources = [
   'eel-vfs-extensions.c',
 ]
 
-eel_headers = [
-  'eel-accessibility.h',
-  'eel-art-extensions.h',
-  'eel-canvas.h',
-  'eel-debug.h',
-  'eel-editable-label.h',
-  'eel-gdk-extensions.h',
-  'eel-glib-extensions.h',
-  'eel-gnome-extensions.h',
-  'eel-graphic-effects.h',
-  'eel-gtk-extensions.h',
-  'eel-lib-self-check-functions.h',
-  'eel-self-checks.h',
-  'eel-stock-dialogs.h',
-  'eel-string.h',
-  'eel-vfs-extensions.h',
-  'eel.h',
-]
 
 eel_deps = [ gtk, libxml, gail ]
 
@@ -48,18 +30,19 @@ eel_lib = static_library('eel',
 
 eel = declare_dependency(
   include_directories: include_directories('.'),
-  link_with: [ eel_lib ],
+  link_with: [
+    eel_lib
+  ],
   dependencies: eel_deps,
 )
 
-eel_check = executable('check-program',
-  [ 'check-program.c' ],
-  dependencies: eel,
-  include_directories: [ rootInclude, ],
-  install: false
-)
 
 test('Eel test',
-  eel_check,
+  executable('check-program',
+    'check-program.c',
+    dependencies: eel,
+    include_directories: [ rootInclude, ],
+    install: false
+  ),
   args: ['--g-fatal-warnings', '--sm-disable']
 )

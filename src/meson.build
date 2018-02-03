@@ -6,7 +6,10 @@ dbusBuiltSources = gnome.gdbus_codegen(
   join_paths(meson.source_root(), 'data', 'freedesktop-dbus-interfaces.xml'),
   interface_prefix: 'org.freedesktop.',
   namespace: 'NemoFreedesktop',
-  object_manager: true
+  object_manager: true,
+  include_directories: [
+    include_directories('..'),
+  ]
 )
 
 
@@ -15,7 +18,10 @@ nemoBuiltSources = gnome.gdbus_codegen(
   join_paths([meson.source_root(), 'data', 'org.Cinnamon.xml']),
   interface_prefix: 'org.',
   namespace: 'Nemo',
-  object_manager: true
+  object_manager: true,
+  include_directories: [
+    include_directories('..'),
+  ]
 )
 
 nemoCommon_sources = [

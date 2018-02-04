@@ -156,7 +156,7 @@ nemo_definitions =  [
 
 po_subdir = join_paths(meson.source_root(), 'po')
 
-subdir('meson-scripts')
+subdir('install-scripts')
 subdir('cut-n-paste-code/libegg')
 subdir('data')
 subdir('eel')

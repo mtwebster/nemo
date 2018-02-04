@@ -32,21 +32,6 @@ local.properties
 # PDT-specific
 .buildpath
 
-*.lo
-*.la
-*.lai
-*.so.*
-*.so
-*.o
-*.a
-*.valid
-*.pc
-*.log
-*.before
-*.after
-*.m4
-
-
 debian/tmp/*
 debian/nemo/*
 debian/nemo-dbg/*

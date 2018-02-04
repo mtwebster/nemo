@@ -38,7 +38,7 @@ debian/nemo-dbg/*
 debian/nemo-data/*
 debian/libnemo-extension*/*
 debian/gir1.2*/*
-
+debian/*.log
 debian/.debhelper
 debian/debhelper-build-stamp
 debian/files

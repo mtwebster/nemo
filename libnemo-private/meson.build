@@ -113,5 +113,3 @@ nemo_private = declare_dependency(
 install_data('org.nemo.gschema.xml',
     install_dir: join_paths(get_option('datadir'), 'glib-2.0', 'schemas')
 )
-
-meson.add_install_script('meson_install_schemas.py')

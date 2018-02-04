@@ -65,8 +65,6 @@ mimeFile_translated = custom_target('nemo.xml',
   build_by_default: true,
 )
 
-meson.add_install_script('meson_update_mime_database.py')
-
 ################################################################################
 dataConf = configuration_data()
 rootPolicyFile = configure_file(

@@ -71,4 +71,3 @@ foreach icon : privateIcons
   )
 endforeach
 
-meson.add_install_script('meson_update_icon_cache.py')

@@ -3,10 +3,7 @@ dbusBuiltSources = gnome.gdbus_codegen('nemo-generated',
   join_paths(meson.source_root(), 'data', 'dbus-interfaces.xml'),
   interface_prefix: 'org.Nemo.',
   namespace: 'NemoDBus',
-  object_manager: true,
-  include_directories: [
-    include_directories('..'),
-  ]
+  object_manager: true
 )
 
 nemo_private_sources = [

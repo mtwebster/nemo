@@ -776,7 +776,8 @@ update_places (NemoPlacesSidebar *sidebar)
 
     /* home folder */
     mount_uri = nemo_get_home_directory_uri ();
-    icon = get_gicon (mount_uri);
+    // icon = get_gicon (mount_uri);
+    icon = g_themed_icon_new (NEMO_ICON_HOME);
     full = get_disk_full (g_file_new_for_uri (mount_uri), &tooltip_info);
     tooltip = g_strdup_printf (_("Open your personal folder\n%s"), tooltip_info);
     g_free (tooltip_info);
@@ -796,7 +797,8 @@ update_places (NemoPlacesSidebar *sidebar)
         /* desktop */
         desktop_path = nemo_get_desktop_directory ();
         mount_uri = g_filename_to_uri (desktop_path, NULL, NULL);
-        icon = get_gicon (mount_uri);
+        // icon = get_gicon (mount_uri);
+        icon = g_themed_icon_new (NEMO_ICON_DESKTOP);
         cat_iter = add_place (sidebar, PLACES_BUILT_IN,
                                SECTION_COMPUTER,
                                _("Desktop"), icon,

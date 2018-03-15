@@ -6660,6 +6660,15 @@ nemo_file_get_mime_type (NemoFile *file)
 	return g_strdup ("application/octet-stream");
 }
 
+const gchar *
+nemo_file_peek_mime_type (NemoFile *file)
+{
+    if (file != NULL) {
+        g_return_val_if_fail (NEMO_IS_FILE (file), NULL);
+        return file->details->mime_type;
+    }
+}
+
 /**
  * nemo_file_is_mime_type
  *

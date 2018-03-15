@@ -1509,13 +1509,10 @@ get_gicon (ButtonData *button_data)
         case XDG_BUTTON:
             return g_themed_icon_new (button_data->xdg_icon);
         case NORMAL_BUTTON:
-            // if (button_data->is_base_dir) {
-            //     return nemo_file_get_icon (button_data->file,
-            //                        NEMO_PATH_BAR_ICON_SIZE, 0,
-            //                        scale,
-            //                        NEMO_FILE_ICON_FLAGS_NONE);
-            // }
-            // return NULL;
+            if (button_data->is_base_dir) {
+                return g_content_type_get_symbolic_icon (nemo_file_peek_mime_type (button_data->file));
+            }
+            return NULL;
         case DEFAULT_LOCATION_BUTTON:
         case MOUNT_BUTTON:
         default:

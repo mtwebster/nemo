@@ -135,6 +135,9 @@ static GQuark attribute_name_q,
 	attribute_accessed_date_q,
 	attribute_date_accessed_q,
 	attribute_date_accessed_full_q,
+    attribute_creation_date_q,
+    attribute_date_created_q,
+    attribute_date_created_full_q,
 	attribute_mime_type_q,
 	attribute_size_detail_q,
 	attribute_deep_size_q,
@@ -489,6 +492,7 @@ nemo_file_clear_info (NemoFile *file)
 	file->details->mtime = 0;
 	file->details->atime = 0;
 	file->details->ctime = 0;
+    file->details->btime = 0;
 	file->details->trash_time = 0;
 	g_free (file->details->symlink_name);
 	file->details->symlink_name = NULL;
@@ -2229,7 +2233,7 @@ update_info_internal (NemoFile *file,
 	int uid, gid;
 	goffset size;
 	int sort_order;
-	time_t atime, mtime, ctime;
+	time_t atime, mtime, ctime, btime;
 	time_t trash_time;
 	GTimeVal g_trash_time;
 	const char * time_string;
@@ -2514,8 +2518,11 @@ update_info_internal (NemoFile *file,
 	atime = g_file_info_get_attribute_uint64 (info, G_FILE_ATTRIBUTE_TIME_ACCESS);
 	ctime = g_file_info_get_attribute_uint64 (info, G_FILE_ATTRIBUTE_TIME_CHANGED);
 	mtime = g_file_info_get_attribute_uint64 (info, G_FILE_ATTRIBUTE_TIME_MODIFIED);
+    btime = g_file_info_get_attribute_uint64 (info, G_FILE_ATTRIBUTE_TIME_CREATED);
+    g_printerr ("btime: %d,     %lu\n",g_file_info_has_attribute (info, G_FILE_ATTRIBUTE_TIME_CREATED), btime);
 	if (file->details->atime != atime ||
 	    file->details->mtime != mtime ||
+        file->details->btime != btime ||
 	    file->details->ctime != ctime) {
 		if (file->details->thumbnail == NULL) {
 			file->details->thumbnail_is_up_to_date = FALSE;
@@ -2526,6 +2533,7 @@ update_info_internal (NemoFile *file,
 	file->details->atime = atime;
 	file->details->ctime = ctime;
 	file->details->mtime = mtime;
+    file->details->btime = btime;
 
 	if (file->details->thumbnail != NULL &&
 	    file->details->thumbnail_mtime != 0 &&
@@ -2863,6 +2871,7 @@ get_time (NemoFile *file,
 	case NEMO_DATE_TYPE_ACCESSED:
 		time = file->details->atime;
 		break;
+
 	case NEMO_DATE_TYPE_TRASHED:
 		time = file->details->trash_time;
 		break;
@@ -3324,6 +3333,12 @@ nemo_file_compare_for_sort (NemoFile *file_1,
 				result = compare_by_full_path (file_1, file_2);
 			}
 			break;
+        case NEMO_FILE_SORT_BY_BTIME:
+            result = compare_by_time (file_1, file_2, NEMO_DATE_TYPE_ACCESSED);
+            if (result == 0) {
+                result = compare_by_full_path (file_1, file_2);
+            }
+            break;
 		case NEMO_FILE_SORT_BY_TRASHED_TIME:
 			result = compare_by_time (file_1, file_2, NEMO_DATE_TYPE_TRASHED);
 			if (result == 0) {
@@ -3384,12 +3399,17 @@ nemo_file_compare_for_sort_by_attribute_q   (NemoFile                   *file_1,
 						       NEMO_FILE_SORT_BY_MTIME,
 						       directories_first,
 						       reversed);
-        } else if (attribute == attribute_accessed_date_q || attribute == attribute_date_accessed_q || attribute == attribute_date_accessed_full_q) {
+    } else if (attribute == attribute_accessed_date_q || attribute == attribute_date_accessed_q || attribute == attribute_date_accessed_full_q) {
 		return nemo_file_compare_for_sort (file_1, file_2,
 						       NEMO_FILE_SORT_BY_ATIME,
 						       directories_first,
 						       reversed);
-        } else if (attribute == attribute_trashed_on_q || attribute == attribute_trashed_on_full_q) {
+    } else if (attribute == attribute_creation_date_q || attribute == attribute_date_created_q || attribute == attribute_date_created_full_q) {
+        return nemo_file_compare_for_sort (file_1, file_2,
+                               NEMO_FILE_SORT_BY_BTIME,
+                               directories_first,
+                               reversed);
+    } else if (attribute == attribute_trashed_on_q || attribute == attribute_trashed_on_full_q) {
 		return nemo_file_compare_for_sort (file_1, file_2,
 						       NEMO_FILE_SORT_BY_TRASHED_TIME,
 						       directories_first,
@@ -4573,6 +4593,7 @@ nemo_file_get_date (NemoFile *file,
 	g_return_val_if_fail (date_type == NEMO_DATE_TYPE_CHANGED
 			      || date_type == NEMO_DATE_TYPE_ACCESSED
 			      || date_type == NEMO_DATE_TYPE_MODIFIED
+                  || date_type == NEMO_DATE_TYPE_CREATED
 			      || date_type == NEMO_DATE_TYPE_TRASHED
 			      || date_type == NEMO_DATE_TYPE_PERMISSIONS_CHANGED, FALSE);
 
@@ -6294,6 +6315,16 @@ nemo_file_get_string_attribute_q (NemoFile *file, GQuark attribute_q)
 							 NEMO_DATE_TYPE_ACCESSED,
 							 NEMO_DATE_FORMAT_FULL);
 	}
+    if (attribute_q == attribute_date_created_q) {
+        return nemo_file_get_date_as_string (file,
+                             NEMO_DATE_TYPE_CREATED,
+                             NEMO_DATE_FORMAT_REGULAR);
+    }
+    if (attribute_q == attribute_date_created_full_q) {
+        return nemo_file_get_date_as_string (file,
+                             NEMO_DATE_TYPE_CREATED,
+                             NEMO_DATE_FORMAT_FULL);
+    }
 	if (attribute_q == attribute_trashed_on_q) {
 		return nemo_file_get_date_as_string (file,
 							 NEMO_DATE_TYPE_TRASHED,
@@ -7575,6 +7606,14 @@ nemo_file_construct_tooltip (NemoFile *file, NemoFileTooltipFlags flags)
         g_free (tmp);
     }
 
+    if (flags & NEMO_FILE_TOOLTIP_FLAGS_CREATED_DATE) {
+        date = nemo_file_get_date_as_string (file, NEMO_DATE_TYPE_CREATED, TRUE);
+        tmp = g_strdup_printf (_("Created: %s"), date);
+        g_free (date);
+        string = add_line (string, tmp, TRUE);
+        g_free (tmp);
+    }
+
     if (flags & NEMO_FILE_TOOLTIP_FLAGS_PATH) {
         NemoFile *parent = nemo_file_get_parent (file);
         tmp = nemo_file_get_path (parent);
@@ -8318,6 +8357,9 @@ nemo_file_class_init (NemoFileClass *class)
 	attribute_accessed_date_q = g_quark_from_static_string ("accessed_date");
 	attribute_date_accessed_q = g_quark_from_static_string ("date_accessed");
 	attribute_date_accessed_full_q = g_quark_from_static_string ("date_accessed_full");
+    attribute_creation_date_q = g_quark_from_static_string ("creation_date");
+    attribute_date_created_q = g_quark_from_static_string ("date_created");
+    attribute_date_created_full_q = g_quark_from_static_string ("date_created_full");
 	attribute_mime_type_q = g_quark_from_static_string ("mime_type");
 	attribute_size_detail_q = g_quark_from_static_string ("size_detail");
 	attribute_deep_size_q = g_quark_from_static_string ("deep_size");

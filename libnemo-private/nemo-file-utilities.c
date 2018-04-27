@@ -1474,11 +1474,18 @@ gchar *nemo_get_mount_icon_name (GMount *mount)
 
     g_return_val_if_fail (mount != NULL, NULL);
 
-    if (g_mount_can_eject (mount)) {
-        return g_strdup ("media-removable-symbolic");
-    }
+    // if (g_mount_can_eject (mount)) {
+    //     return g_strdup ("media-removable-symbolic");
+    // }
 
-    gicon = g_mount_get_symbolic_icon (mount);
+    GDrive *drive = g_mount_get_drive (mount);
+
+    gicon = g_drive_get_symbolic_icon (drive);
+
+    g_object_unref (drive);
+
+
+    // gicon = g_mount_get_symbolic_icon (mount);
 
     if (G_IS_THEMED_ICON (gicon)) {
         icon_name = g_strdup (g_themed_icon_get_names (G_THEMED_ICON (gicon))[0]);
@@ -1487,7 +1494,7 @@ gchar *nemo_get_mount_icon_name (GMount *mount)
     }
 
     g_object_unref (gicon);
-
+    g_printerr ("%s mount icon name %s\n", g_mount_get_name (mount), icon_name);
     return icon_name;
 }
 
@@ -1498,7 +1505,13 @@ gchar *nemo_get_volume_icon_name (GVolume *volume)
 
     g_return_val_if_fail (volume != NULL, NULL);
 
-    gicon = g_volume_get_symbolic_icon (volume);
+    GDrive *drive = g_volume_get_drive (volume);
+
+    gicon = g_drive_get_symbolic_icon (drive);
+
+    g_object_unref (drive);
+
+    // gicon = g_volume_get_symbolic_icon (volume);
 
     if (G_IS_THEMED_ICON (gicon)) {
         icon_name = g_strdup (g_themed_icon_get_names (G_THEMED_ICON (gicon))[0]);
@@ -1507,6 +1520,7 @@ gchar *nemo_get_volume_icon_name (GVolume *volume)
     }
 
     g_object_unref (gicon);
+    g_printerr ("%s icon name %s\n", g_volume_get_name (volume), icon_name);
 
     return icon_name;
 }
@@ -1527,6 +1541,7 @@ gchar *nemo_get_drive_icon_name (GDrive *drive)
     }
 
     g_object_unref (gicon);
+    g_printerr ("%s drive icon name %s\n", g_drive_get_name (drive), icon_name);
 
     return icon_name;
 }

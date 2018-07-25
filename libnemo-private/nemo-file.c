@@ -4630,7 +4630,7 @@ nemo_file_get_icon (NemoFile *file,
 	if (gicon) {
 		icon = nemo_icon_info_lookup (gicon, size, scale);
 		if (nemo_icon_info_is_fallback (icon)) {
-			g_object_unref (icon);
+			nemo_icon_info_unref (icon);
             GIcon *generic = g_themed_icon_new ("text-x-generic");
 
 			icon = nemo_icon_info_lookup (generic, size, scale);
@@ -4664,7 +4664,7 @@ nemo_file_get_icon_pixbuf (NemoFile *file,
 	} else {
 		pixbuf = nemo_icon_info_get_pixbuf (info);
 	}
-	g_object_unref (info);
+	nemo_icon_info_unref (info);
 
 	return pixbuf;
 }

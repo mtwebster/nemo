@@ -67,6 +67,10 @@ static void find_empty_location (NemoIconContainer *container,
                                  int *x,
                                  int *y);
 
+static void icon_get_size (NemoIconContainer *container,
+           NemoIcon *icon,
+           guint *size);
+
 G_DEFINE_TYPE (NemoIconViewContainer, nemo_icon_view_container, NEMO_TYPE_ICON_CONTAINER);
 
 static GQuark attribute_none_q;
@@ -106,7 +110,8 @@ nemo_icon_view_container_get_icon_images (NemoIconContainer *container,
 	*has_window_open = nemo_file_has_open_window (file);
 
 	flags = NEMO_FILE_ICON_FLAGS_USE_MOUNT_ICON_AS_EMBLEM |
-			NEMO_FILE_ICON_FLAGS_USE_THUMBNAILS;
+			NEMO_FILE_ICON_FLAGS_USE_THUMBNAILS |
+            NEMO_FILE_ICON_FLAGS_FORCE_THUMBNAIL_SIZE;
 
 	if (for_drag_accept) {
 		flags |= NEMO_FILE_ICON_FLAGS_FOR_DRAG_ACCEPT;
@@ -611,6 +616,33 @@ nemo_icon_view_container_icon_get_bounding_box (NemoIcon *icon,
     }
 }
 
+static float
+get_grid_width_for_zoom_level (NemoIconContainer *container,
+                               NemoZoomLevel      zoom_level)
+{
+    float ppu = EEL_CANVAS (container)->pixels_per_unit;
+
+    switch (zoom_level) {
+    case NEMO_ZOOM_LEVEL_SMALLEST:
+        return NEMO_GRID_WIDTH_SMALLEST / ppu;
+    case NEMO_ZOOM_LEVEL_SMALLER:
+        return NEMO_GRID_WIDTH_SMALLER / ppu;
+    case NEMO_ZOOM_LEVEL_SMALL:
+        return NEMO_GRID_WIDTH_SMALL / ppu;
+    case NEMO_ZOOM_LEVEL_STANDARD:
+        return NEMO_GRID_WIDTH_STANDARD / ppu;
+    case NEMO_ZOOM_LEVEL_LARGE:
+        return NEMO_GRID_WIDTH_LARGE / ppu;
+    case NEMO_ZOOM_LEVEL_LARGER:
+        return NEMO_GRID_WIDTH_LARGER / ppu;
+    case NEMO_ZOOM_LEVEL_LARGEST:
+        return NEMO_GRID_WIDTH_LARGEST / ppu;
+    case NEMO_ZOOM_LEVEL_NULL:
+    default:
+        g_return_val_if_reached (NEMO_GRID_WIDTH_STANDARD);
+    }
+}
+
 static gboolean
 get_stored_icon_position (NemoIconContainer *container,
                           NemoIconData      *data,
@@ -690,10 +722,12 @@ lay_down_one_line (NemoIconContainer *container,
             y_offset = position->y_offset;
         }
 
-        nemo_icon_container_icon_set_position
-            (container, icon,
-             is_rtl ? nemo_icon_container_get_mirror_x_position (container, icon, x + position->x_offset) : x + position->x_offset,
-             y + y_offset);
+        nemo_icon_container_icon_set_position (container,
+                                               icon,
+                                               is_rtl ?
+                                                   nemo_icon_container_get_mirror_x_position (container, icon, x + position->x_offset) :
+                                                   x + position->x_offset,
+                                               y + y_offset);
         nemo_icon_canvas_item_set_entire_text (icon->item, whole_text);
 
         icon->saved_ltr_x = is_rtl ? nemo_icon_container_get_mirror_x_position (container, icon, icon->x) : icon->x;
@@ -761,6 +795,7 @@ lay_down_icons_horizontal (NemoIconContainer *container,
     int icon_width;
     int i;
     int num_columns;
+    guint icon_size;
     GtkAllocation allocation;
 
     g_assert (NEMO_IS_ICON_CONTAINER (container));
@@ -774,6 +809,8 @@ lay_down_icons_horizontal (NemoIconContainer *container,
 
     /* Lay out icons a line at a time. */
     canvas_width = nemo_icon_container_get_canvas_width (container, allocation);
+    icon_size = floor (nemo_get_icon_size_for_zoom_level (container->details->zoom_level) / EEL_CANVAS (container)->pixels_per_unit);
+
     max_icon_width = max_text_width = 0.0;
 
     if (container->details->label_position == NEMO_ICON_LABEL_POSITION_BESIDE) {
@@ -790,7 +827,7 @@ lay_down_icons_horizontal (NemoIconContainer *container,
 
         grid_width = max_icon_width + max_text_width + GET_VIEW_CONSTANT (container, icon_pad_left) + GET_VIEW_CONSTANT (container, icon_pad_right);
     } else {
-        num_columns = floor(canvas_width / GET_VIEW_CONSTANT (container, standard_icon_grid_width));
+        num_columns = floor(canvas_width / get_grid_width_for_zoom_level (container, container->details->zoom_level));
         num_columns = fmax(num_columns, 1);
         /* Minimum of one column */
         grid_width = canvas_width / num_columns - 1;
@@ -818,7 +855,7 @@ lay_down_icons_horizontal (NemoIconContainer *container,
         text_bounds = nemo_icon_canvas_item_get_text_rectangle (icon->item, TRUE);
 
         if (gridded_layout) {
-           icon_width = ceil ((bounds.x1 - bounds.x0)/grid_width) * grid_width;
+            icon_width = ceil (icon_size / grid_width) * grid_width;
         } else {
            icon_width = (bounds.x1 - bounds.x0) + GET_VIEW_CONSTANT (container, icon_pad_right) + 8; /* 8 pixels extra for fancy selection box */
         }

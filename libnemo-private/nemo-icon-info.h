@@ -34,8 +34,24 @@ typedef enum {
 #define NEMO_ICON_SIZE_SMALL	32
 #define NEMO_ICON_SIZE_STANDARD	48
 #define NEMO_ICON_SIZE_LARGE	72
-#define NEMO_ICON_SIZE_LARGER	96
-#define NEMO_ICON_SIZE_LARGEST     192
+#define NEMO_ICON_SIZE_LARGER	128
+#define NEMO_ICON_SIZE_LARGEST  256
+
+#define NEMO_GRID_WIDTH_SMALLEST 26
+#define NEMO_GRID_WIDTH_SMALLER 70
+#define NEMO_GRID_WIDTH_SMALL 70
+#define NEMO_GRID_WIDTH_STANDARD 120
+#define NEMO_GRID_WIDTH_LARGE 92
+#define NEMO_GRID_WIDTH_LARGER 148
+#define NEMO_GRID_WIDTH_LARGEST 276
+
+#define NEMO_TEXT_WIDTH_SMALLEST 26
+#define NEMO_TEXT_WIDTH_SMALLER 68
+#define NEMO_TEXT_WIDTH_SMALL 65
+#define NEMO_TEXT_WIDTH_STANDARD 110
+#define NEMO_TEXT_WIDTH_LARGE 82
+#define NEMO_TEXT_WIDTH_LARGER 138
+#define NEMO_TEXT_WIDTH_LARGEST 250
 
 #define NEMO_DESKTOP_ICON_SIZE_SMALL 32
 #define NEMO_DESKTOP_ICON_SIZE_STANDARD 48
@@ -84,6 +100,7 @@ void                  nemo_icon_info_clear_caches                 (void);
 
 /* Relationship between zoom levels and icons sizes. */
 guint nemo_get_icon_size_for_zoom_level          (NemoZoomLevel  zoom_level);
+guint nemo_get_text_width_for_zoom_level          (NemoZoomLevel  zoom_level);
 guint nemo_get_list_icon_size_for_zoom_level     (NemoZoomLevel  zoom_level);
 
 guint nemo_get_desktop_icon_size_for_zoom_level  (NemoZoomLevel  zoom_level);

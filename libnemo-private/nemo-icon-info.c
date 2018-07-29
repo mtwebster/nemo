@@ -396,7 +396,7 @@ nemo_icon_info_lookup (GIcon *icon,
                                                              (const char **)names,
                                                              size,
                                                              scale,
-                                                             0);
+                                                             GTK_ICON_LOOKUP_FORCE_SIZE);
 
 		if (gtkicon_info == NULL) {
 			return nemo_icon_info_new_for_pixbuf (NULL, scale);
@@ -433,7 +433,7 @@ nemo_icon_info_lookup (GIcon *icon,
                                                                   icon,
                                                                   size,
                                                                   scale,
-                                                                  0);
+                                                                  GTK_ICON_LOOKUP_FORCE_SIZE);
         if (gtk_icon_info != NULL) {
                 pixbuf = gtk_icon_info_load_icon (gtk_icon_info, NULL);
                 g_object_unref (gtk_icon_info);
@@ -688,6 +688,30 @@ nemo_get_list_icon_size_for_zoom_level (NemoZoomLevel zoom_level)
     }
 }
 
+guint
+nemo_get_text_width_for_zoom_level (NemoZoomLevel zoom_level)
+{
+    switch (zoom_level) {
+    case NEMO_ZOOM_LEVEL_SMALLEST:
+        return NEMO_TEXT_WIDTH_SMALLEST;
+    case NEMO_ZOOM_LEVEL_SMALLER:
+        return NEMO_TEXT_WIDTH_SMALLER;
+    case NEMO_ZOOM_LEVEL_SMALL:
+        return NEMO_TEXT_WIDTH_SMALL;
+    case NEMO_ZOOM_LEVEL_STANDARD:
+        return NEMO_TEXT_WIDTH_STANDARD;
+    case NEMO_ZOOM_LEVEL_LARGE:
+        return NEMO_TEXT_WIDTH_LARGE;
+    case NEMO_ZOOM_LEVEL_LARGER:
+        return NEMO_TEXT_WIDTH_LARGER;
+    case NEMO_ZOOM_LEVEL_LARGEST:
+        return NEMO_TEXT_WIDTH_LARGEST;
+    case NEMO_ZOOM_LEVEL_NULL:
+    default:
+        g_return_val_if_reached (NEMO_GRID_WIDTH_STANDARD);
+    }
+}
+
 gint
 nemo_get_icon_size_for_stock_size (GtkIconSize size)
 {
@@ -703,8 +727,8 @@ nemo_get_icon_size_for_stock_size (GtkIconSize size)
 guint
 nemo_icon_get_emblem_size_for_icon_size (guint size)
 {
-	if (size >= 96)
-		return 48;
+	// if (size >= 96)
+		// return 48;
 	if (size >= 64)
 		return 32;
 	if (size >= 48)

@@ -1943,24 +1943,21 @@ nemo_icon_canvas_item_get_max_text_width (NemoIconCanvasItem *item)
 
 	canvas_item = EEL_CANVAS_ITEM (item);
 	container = NEMO_ICON_CONTAINER (canvas_item->canvas);
-    if (nemo_icon_container_is_tighter_layout (container)) {
-       return GET_VIEW_CONSTANT (container, max_text_width_tighter) * canvas_item->canvas->pixels_per_unit;
-    } else {
-        if (container->details->label_position == NEMO_ICON_LABEL_POSITION_BESIDE) {
-           if (container->details->layout_mode == NEMO_ICON_LAYOUT_T_B_L_R ||
-               container->details->layout_mode == NEMO_ICON_LAYOUT_T_B_R_L) {
-               if (container->details->all_columns_same_width) {
-                   return GET_VIEW_CONSTANT (container, max_text_width_beside_top_to_bottom) * canvas_item->canvas->pixels_per_unit;
-               } else {
-                   return -1;
-               }
-            } else {
-                return GET_VIEW_CONSTANT (container, max_text_width_beside) * canvas_item->canvas->pixels_per_unit;
-            }
+
+    if (container->details->label_position == NEMO_ICON_LABEL_POSITION_BESIDE) {
+       if (container->details->layout_mode == NEMO_ICON_LAYOUT_T_B_L_R ||
+           container->details->layout_mode == NEMO_ICON_LAYOUT_T_B_R_L) {
+           if (container->details->all_columns_same_width) {
+               return GET_VIEW_CONSTANT (container, max_text_width_beside_top_to_bottom) * canvas_item->canvas->pixels_per_unit;
+           } else {
+               return -1;
+           }
         } else {
-           return nemo_get_text_width_for_zoom_level (nemo_icon_container_get_zoom_level (container));
+            return GET_VIEW_CONSTANT (container, max_text_width_beside) * canvas_item->canvas->pixels_per_unit;
         }
-	}
+    } else {
+       return nemo_get_text_width_for_zoom_level (nemo_icon_container_get_zoom_level (container));
+    }
 }
 
 void

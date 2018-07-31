@@ -117,7 +117,7 @@ static const char * const default_view_values[] = {
 	NULL
 };
 
-static const char * const zoom_values[] = {
+static const char * const list_view_zoom_values[] = {
 	"smallest",
 	"smaller",
 	"small",
@@ -126,6 +126,16 @@ static const char * const zoom_values[] = {
 	"larger",
 	"largest",
 	NULL
+};
+
+static const char * const icon_view_zoom_values[] = {
+    "smaller",
+    "small",
+    "standard",
+    "large",
+    "larger",
+    "largest",
+    NULL
 };
 
 static const char * const sort_order_values[] = {
@@ -864,15 +874,15 @@ nemo_file_management_properties_dialog_setup (GtkBuilder *builder, GtkWindow *wi
 	bind_builder_enum (builder, nemo_icon_view_preferences,
 			   NEMO_FILE_MANAGEMENT_PROPERTIES_ICON_VIEW_ZOOM_WIDGET,
 			   NEMO_PREFERENCES_ICON_VIEW_DEFAULT_ZOOM_LEVEL,
-			   (const char **) zoom_values);
+			   (const char **) icon_view_zoom_values);
 	bind_builder_enum (builder, nemo_compact_view_preferences,
 			   NEMO_FILE_MANAGEMENT_PROPERTIES_COMPACT_VIEW_ZOOM_WIDGET,
 			   NEMO_PREFERENCES_COMPACT_VIEW_DEFAULT_ZOOM_LEVEL,
-			   (const char **) zoom_values);
+			   (const char **) icon_view_zoom_values);
 	bind_builder_enum (builder, nemo_list_view_preferences,
 			   NEMO_FILE_MANAGEMENT_PROPERTIES_LIST_VIEW_ZOOM_WIDGET,
 			   NEMO_PREFERENCES_LIST_VIEW_DEFAULT_ZOOM_LEVEL,
-			   (const char **) zoom_values);
+			   (const char **) list_view_zoom_values);
 	bind_builder_enum (builder, nemo_preferences,
 			   NEMO_FILE_MANAGEMENT_PROPERTIES_SORT_ORDER_WIDGET,
 			   NEMO_PREFERENCES_DEFAULT_SORT_ORDER,

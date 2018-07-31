@@ -892,7 +892,7 @@ get_default_zoom_level (NemoIconView *icon_view)
 	default_compact_zoom_level = g_settings_get_enum (nemo_compact_view_preferences,
 							  NEMO_PREFERENCES_COMPACT_VIEW_DEFAULT_ZOOM_LEVEL);
 
-	return CLAMP (DEFAULT_ZOOM_LEVEL(icon_view), NEMO_ZOOM_LEVEL_SMALLEST, NEMO_ZOOM_LEVEL_LARGEST);
+	return CLAMP (DEFAULT_ZOOM_LEVEL(icon_view), NEMO_ZOOM_LEVEL_SMALLER, NEMO_ZOOM_LEVEL_LARGEST);
 }
 
 static void
@@ -1058,8 +1058,8 @@ nemo_icon_view_set_zoom_level (NemoIconView *view,
 	NemoIconContainer *icon_container;
 
 	g_return_if_fail (NEMO_IS_ICON_VIEW (view));
-	g_return_if_fail (new_level >= NEMO_ZOOM_LEVEL_SMALLEST &&
-			  new_level <= NEMO_ZOOM_LEVEL_LARGEST);
+
+    new_level = CLAMP (new_level, NEMO_ZOOM_LEVEL_SMALLER, NEMO_ZOOM_LEVEL_LARGEST);
 
 	icon_container = get_icon_container (view);
 	if (nemo_icon_container_get_zoom_level (icon_container) == new_level) {
@@ -1105,7 +1105,7 @@ nemo_icon_view_bump_zoom_level (NemoView *view, int zoom_increment)
 
 	new_level = nemo_icon_view_get_zoom_level (view) + zoom_increment;
 
-	if (new_level >= NEMO_ZOOM_LEVEL_SMALLEST &&
+	if (new_level >= NEMO_ZOOM_LEVEL_SMALLER &&
 	    new_level <= NEMO_ZOOM_LEVEL_LARGEST) {
 		nemo_view_zoom_to_level (view, new_level);
 	}
@@ -1158,7 +1158,7 @@ nemo_icon_view_can_zoom_out (NemoView *view)
 	g_return_val_if_fail (NEMO_IS_ICON_VIEW (view), FALSE);
 
 	return nemo_icon_view_get_zoom_level (view)
-		> NEMO_ZOOM_LEVEL_SMALLEST;
+		> NEMO_ZOOM_LEVEL_SMALLER;
 }
 
 static gboolean
@@ -1305,11 +1305,7 @@ layout_changed_callback (NemoIconContainer *container,
 static gboolean
 nemo_icon_view_can_rename_file (NemoView *view, NemoFile *file)
 {
-	if (!(nemo_icon_view_get_zoom_level (view) > NEMO_ZOOM_LEVEL_SMALLEST)) {
-		return FALSE;
-	}
-
-	return NEMO_VIEW_CLASS(nemo_icon_view_parent_class)->can_rename_file (view, file);
+    return NEMO_VIEW_CLASS(nemo_icon_view_parent_class)->can_rename_file (view, file);
 }
 
 static void
@@ -2437,7 +2433,7 @@ set_compact_view (NemoIconView *icon_view,
                                                                                                      NEMO_ICON_LAYOUT_T_B_R_L :
                                                                                                      NEMO_ICON_LAYOUT_T_B_L_R);
         nemo_icon_container_set_forced_icon_size (get_icon_container (icon_view),
-                                                  NEMO_ICON_SIZE_SMALLEST);
+                                                  NEMO_ICON_SIZE_SMALLER);
     } else {
         nemo_icon_container_set_layout_mode (get_icon_container (icon_view),
                                              gtk_widget_get_direction (GTK_WIDGET(icon_view)) == GTK_TEXT_DIR_RTL ?

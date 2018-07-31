@@ -29,7 +29,14 @@ typedef enum {
  * be square. Since individual icons can be stretched,
  * each icon is not constrained to this nominal size.
  */
-#define NEMO_ICON_SIZE_SMALLEST	16
+
+#define NEMO_LIST_ICON_SIZE_SMALLEST 16
+#define NEMO_LIST_ICON_SIZE_SMALLER  24
+#define NEMO_LIST_ICON_SIZE_SMALL    32
+#define NEMO_LIST_ICON_SIZE_STANDARD 48
+#define NEMO_LIST_ICON_SIZE_LARGE    72
+#define NEMO_LIST_ICON_SIZE_LARGER   96
+
 #define NEMO_ICON_SIZE_SMALLER	24
 #define NEMO_ICON_SIZE_SMALL	32
 #define NEMO_ICON_SIZE_STANDARD	48

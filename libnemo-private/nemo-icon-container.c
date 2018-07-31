@@ -277,7 +277,7 @@ icon_get_size (NemoIconContainer *container,
 {
 	if (size != NULL) {
 		*size = MAX (nemo_get_icon_size_for_zoom_level (container->details->zoom_level)
-			       * icon->scale, NEMO_ICON_SIZE_SMALLEST);
+			       * icon->scale, NEMO_ICON_SIZE_SMALLER);
 	}
 }
 
@@ -4870,7 +4870,6 @@ nemo_icon_container_init (NemoIconContainer *container)
 	details->layout_timestamp = UNDEFINED_TIME;
 	details->zoom_level = NEMO_ZOOM_LEVEL_STANDARD;
 
-	details->font_size_table[NEMO_ZOOM_LEVEL_SMALLEST] = -2 * PANGO_SCALE;
 	details->font_size_table[NEMO_ZOOM_LEVEL_SMALLER] = -2 * PANGO_SCALE;
 	details->font_size_table[NEMO_ZOOM_LEVEL_SMALL] = -0 * PANGO_SCALE;
 	details->font_size_table[NEMO_ZOOM_LEVEL_STANDARD] = 0 * PANGO_SCALE;
@@ -6394,7 +6393,7 @@ compute_stretch (StretchState *start,
 		y_stretch = - y_stretch;
 	}
 	current->icon_size = MAX ((int) start->icon_size + MIN (x_stretch, y_stretch),
-				  (int) NEMO_ICON_SIZE_SMALLEST);
+				  (int) NEMO_ICON_SIZE_SMALLER);
 
 	/* Figure out where the corner of the icon should be. */
 	current->icon_x = start->icon_x;

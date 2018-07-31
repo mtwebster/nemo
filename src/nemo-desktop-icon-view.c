@@ -392,7 +392,7 @@ get_default_zoom_level (void)
 	default_zoom_level = g_settings_get_enum (nemo_icon_view_preferences,
 						  NEMO_PREFERENCES_ICON_VIEW_DEFAULT_ZOOM_LEVEL);
 
-	return CLAMP (default_zoom_level, NEMO_ZOOM_LEVEL_SMALLEST, NEMO_ZOOM_LEVEL_LARGEST);
+	return CLAMP (default_zoom_level, NEMO_ZOOM_LEVEL_SMALLER, NEMO_ZOOM_LEVEL_LARGEST);
 }
 
 static void

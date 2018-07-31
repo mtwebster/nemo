@@ -350,7 +350,6 @@ nemo_icon_view_container_get_icon_text_attribute_names (NemoIconContainer *conta
 	int piece_count;
 
 	const int pieces_by_level[] = {
-		0,	/* NEMO_ZOOM_LEVEL_SMALLEST */
 		0,	/* NEMO_ZOOM_LEVEL_SMALLER */
 		0,	/* NEMO_ZOOM_LEVEL_SMALL */
 		1,	/* NEMO_ZOOM_LEVEL_STANDARD */
@@ -394,14 +393,8 @@ nemo_icon_view_container_get_icon_text (NemoIconContainer *container,
 
 	use_additional = (additional_text != NULL);
 
-	/* In the smallest zoom mode, no text is drawn. */
-	if (nemo_icon_container_get_zoom_level (container) == NEMO_ZOOM_LEVEL_SMALLEST &&
-            !include_invisible) {
-		*editable_text = NULL;
-	} else {
-		/* Strip the suffix for nemo object xml files. */
-		*editable_text = nemo_file_get_display_name (file);
-	}
+    /* Strip the suffix for nemo object xml files. */
+    *editable_text = nemo_file_get_display_name (file);
 
 	if (!use_additional) {
 		return;
@@ -623,8 +616,6 @@ get_grid_width_for_zoom_level (NemoIconContainer *container,
     float ppu = EEL_CANVAS (container)->pixels_per_unit;
 
     switch (zoom_level) {
-    case NEMO_ZOOM_LEVEL_SMALLEST:
-        return NEMO_GRID_WIDTH_SMALLEST / ppu;
     case NEMO_ZOOM_LEVEL_SMALLER:
         return NEMO_GRID_WIDTH_SMALLER / ppu;
     case NEMO_ZOOM_LEVEL_SMALL:
@@ -1525,7 +1516,7 @@ icon_get_size (NemoIconContainer *container,
 {
     if (size != NULL) {
         *size = MAX (nemo_get_icon_size_for_zoom_level (container->details->zoom_level)
-                   * icon->scale, NEMO_ICON_SIZE_SMALLEST);
+                   * icon->scale, NEMO_ICON_SIZE_SMALLER);
     }
 }
 
@@ -1959,8 +1950,8 @@ nemo_icon_view_container_set_zoom_level (NemoIconContainer *container, gint new_
     nemo_icon_container_end_renaming_mode (container, TRUE);
 
     pinned_level = new_level;
-    if (pinned_level < NEMO_ZOOM_LEVEL_SMALLEST) {
-        pinned_level = NEMO_ZOOM_LEVEL_SMALLEST;
+    if (pinned_level < NEMO_ZOOM_LEVEL_SMALLER) {
+        pinned_level = NEMO_ZOOM_LEVEL_SMALLER;
     } else if (pinned_level > NEMO_ZOOM_LEVEL_LARGEST) {
         pinned_level = NEMO_ZOOM_LEVEL_LARGEST;
     }
@@ -2012,7 +2003,6 @@ get_text_ellipsis_limit_for_zoom (char **strs,
 }
 
 static const char * zoom_level_names[] = {
-    "smallest",
     "smaller",
     "small",
     "standard",

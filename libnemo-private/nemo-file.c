@@ -4559,8 +4559,8 @@ nemo_file_get_icon (NemoFile *file,
                     thumb_scale = (double)modified_size / s;
                 }
                 /* Make sure that icons don't get smaller than NEMO_ICON_SIZE_SMALLEST */
-                if (s*thumb_scale <= NEMO_ICON_SIZE_SMALLEST) {
-                    thumb_scale = (double) NEMO_ICON_SIZE_SMALLEST / s;
+                if (s*thumb_scale <= NEMO_ICON_SIZE_SMALLER) {
+                    thumb_scale = (double) NEMO_ICON_SIZE_SMALLER / s;
                 }
             }
 

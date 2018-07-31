@@ -1527,8 +1527,8 @@ nemo_icon_view_grid_container_set_zoom_level (NemoIconContainer *container, gint
     nemo_icon_container_end_renaming_mode (container, TRUE);
 
     pinned_level = new_level;
-    if (pinned_level < NEMO_ZOOM_LEVEL_SMALLEST) {
-        pinned_level = NEMO_ZOOM_LEVEL_SMALLEST;
+    if (pinned_level < NEMO_ZOOM_LEVEL_SMALLER) {
+        pinned_level = NEMO_ZOOM_LEVEL_SMALLER;
     } else if (pinned_level > NEMO_ZOOM_LEVEL_LARGEST) {
         pinned_level = NEMO_ZOOM_LEVEL_LARGEST;
     }

@@ -1101,7 +1101,6 @@ real_update_menus (NemoView *view)
         case NEMO_ZOOM_LEVEL_STANDARD:
         case NEMO_ZOOM_LEVEL_NULL:
         case NEMO_ZOOM_LEVEL_SMALLER:
-        case NEMO_ZOOM_LEVEL_SMALLEST:
         case NEMO_ZOOM_LEVEL_LARGER:
         case NEMO_ZOOM_LEVEL_LARGEST:
         default:

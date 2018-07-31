@@ -164,7 +164,7 @@ on_slider_scroll_event (GtkWidget *widget, GdkEventScroll *event, gpointer user_
         if (val < NEMO_ZOOM_LEVEL_LARGEST)
             val++;
     } else {
-        if (val > NEMO_ZOOM_LEVEL_SMALLEST)
+        if (val > NEMO_ZOOM_LEVEL_SMALLER)
             val--;
     }
 
@@ -240,7 +240,7 @@ nemo_status_bar_constructed (GObject *object)
     gtk_widget_set_margin_bottom (GTK_WIDGET (statusbar), 0);
 
     GtkWidget *zoom_slider = gtk_scale_new_with_range (GTK_ORIENTATION_HORIZONTAL,
-                                                       (gdouble) NEMO_ZOOM_LEVEL_SMALLEST,
+                                                       (gdouble) NEMO_ZOOM_LEVEL_SMALLER,
                                                        (gdouble) NEMO_ZOOM_LEVEL_LARGEST,
                                                        1.0);
     gtk_widget_set_tooltip_text (GTK_WIDGET (zoom_slider), _("Adjust zoom level"));

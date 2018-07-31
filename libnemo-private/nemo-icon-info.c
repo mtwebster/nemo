@@ -617,15 +617,13 @@ nemo_icon_info_get_used_name (NemoIconInfo  *icon)
 /* Return nominal icon size for given zoom level.
  * @zoom_level: zoom level for which to find matching icon size.
  *
- * Return value: icon size between NEMO_ICON_SIZE_SMALLEST and
+ * Return value: icon size between NEMO_ICON_SIZE_SMALLER and
  * NEMO_ICON_SIZE_LARGEST, inclusive.
  */
 guint
 nemo_get_icon_size_for_zoom_level (NemoZoomLevel zoom_level)
 {
 	switch (zoom_level) {
-	case NEMO_ZOOM_LEVEL_SMALLEST:
-		return NEMO_ICON_SIZE_SMALLEST;
 	case NEMO_ZOOM_LEVEL_SMALLER:
 		return NEMO_ICON_SIZE_SMALLER;
 	case NEMO_ZOOM_LEVEL_SMALL:
@@ -654,7 +652,6 @@ nemo_get_desktop_icon_size_for_zoom_level (NemoZoomLevel zoom_level)
             return NEMO_DESKTOP_ICON_SIZE_STANDARD;
         case NEMO_ZOOM_LEVEL_LARGE:
             return NEMO_DESKTOP_ICON_SIZE_LARGE;
-        case NEMO_ZOOM_LEVEL_SMALLEST:
         case NEMO_ZOOM_LEVEL_SMALLER:
         case NEMO_ZOOM_LEVEL_LARGER:
         case NEMO_ZOOM_LEVEL_LARGEST:
@@ -668,20 +665,18 @@ guint
 nemo_get_list_icon_size_for_zoom_level (NemoZoomLevel zoom_level)
 {
     switch (zoom_level) {
-    case NEMO_ZOOM_LEVEL_SMALLEST:
-        return NEMO_ICON_SIZE_SMALLEST;
     case NEMO_ZOOM_LEVEL_SMALLER:
-        return NEMO_ICON_SIZE_SMALLEST;
+        return NEMO_LIST_ICON_SIZE_SMALLEST;
     case NEMO_ZOOM_LEVEL_SMALL:
-        return NEMO_ICON_SIZE_SMALLER;
+        return NEMO_LIST_ICON_SIZE_SMALLER;
     case NEMO_ZOOM_LEVEL_STANDARD:
-        return NEMO_ICON_SIZE_SMALL;
+        return NEMO_LIST_ICON_SIZE_SMALL;
     case NEMO_ZOOM_LEVEL_LARGE:
-        return NEMO_ICON_SIZE_STANDARD;
+        return NEMO_LIST_ICON_SIZE_STANDARD;
     case NEMO_ZOOM_LEVEL_LARGER:
-        return NEMO_ICON_SIZE_LARGE;
+        return NEMO_LIST_ICON_SIZE_LARGE;
     case NEMO_ZOOM_LEVEL_LARGEST:
-        return NEMO_ICON_SIZE_LARGER;
+        return NEMO_LIST_ICON_SIZE_LARGER;
     case NEMO_ZOOM_LEVEL_NULL:
     default:
         g_return_val_if_reached (NEMO_ICON_SIZE_STANDARD);
@@ -692,8 +687,6 @@ guint
 nemo_get_text_width_for_zoom_level (NemoZoomLevel zoom_level)
 {
     switch (zoom_level) {
-    case NEMO_ZOOM_LEVEL_SMALLEST:
-        return NEMO_TEXT_WIDTH_SMALLEST;
     case NEMO_ZOOM_LEVEL_SMALLER:
         return NEMO_TEXT_WIDTH_SMALLER;
     case NEMO_ZOOM_LEVEL_SMALL:

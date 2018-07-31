@@ -2325,7 +2325,7 @@ create_and_set_up_tree_view (NemoListView *view)
 			gtk_tree_view_column_pack_start (view->details->file_name_column, cell, FALSE);
 			gtk_tree_view_column_set_attributes (view->details->file_name_column,
 							     cell,
-							     "surface", NEMO_LIST_MODEL_SMALLEST_ICON_COLUMN,
+							     "surface", NEMO_LIST_MODEL_SMALLER_ICON_COLUMN,
 							     NULL);
 
 			cell = gtk_cell_renderer_text_new ();
@@ -2606,7 +2606,7 @@ get_default_zoom_level (void) {
 	default_zoom_level = g_settings_get_enum (nemo_list_view_preferences,
 						  NEMO_PREFERENCES_LIST_VIEW_DEFAULT_ZOOM_LEVEL);
 
-	if (default_zoom_level <  NEMO_ZOOM_LEVEL_SMALLEST
+	if (default_zoom_level <  NEMO_ZOOM_LEVEL_SMALLER
 	    || NEMO_ZOOM_LEVEL_LARGEST < default_zoom_level) {
 		default_zoom_level = NEMO_ZOOM_LEVEL_SMALL;
 	}
@@ -3287,8 +3287,8 @@ nemo_list_view_set_zoom_level (NemoListView *view,
 	int column;
 
 	g_return_if_fail (NEMO_IS_LIST_VIEW (view));
-	g_return_if_fail (new_level >= NEMO_ZOOM_LEVEL_SMALLEST &&
-			  new_level <= NEMO_ZOOM_LEVEL_LARGEST);
+
+    new_level = CLAMP (new_level, NEMO_ZOOM_LEVEL_SMALLER, NEMO_ZOOM_LEVEL_LARGEST);
 
 	if (view->details->zoom_level == new_level) {
 		if (always_emit) {
@@ -3341,7 +3341,7 @@ nemo_list_view_bump_zoom_level (NemoView *view, int zoom_increment)
 	list_view = NEMO_LIST_VIEW (view);
 	new_level = list_view->details->zoom_level + zoom_increment;
 
-	if (new_level >= NEMO_ZOOM_LEVEL_SMALLEST &&
+	if (new_level >= NEMO_ZOOM_LEVEL_SMALLER &&
 	    new_level <= NEMO_ZOOM_LEVEL_LARGEST) {
 		nemo_list_view_set_zoom_level (list_view, new_level, FALSE);
 	}
@@ -3405,7 +3405,7 @@ nemo_list_view_can_zoom_out (NemoView *view)
 {
 	g_return_val_if_fail (NEMO_IS_LIST_VIEW (view), FALSE);
 
-	return NEMO_LIST_VIEW (view)->details->zoom_level > NEMO_ZOOM_LEVEL_SMALLEST;
+	return NEMO_LIST_VIEW (view)->details->zoom_level > NEMO_ZOOM_LEVEL_SMALLER;
 }
 
 static void
@@ -3900,7 +3900,7 @@ nemo_list_view_init (NemoListView *list_view)
 	nemo_list_view_sort_directories_first_changed (NEMO_VIEW (list_view));
 
 	/* ensure that the zoom level is always set in begin_loading */
-	list_view->details->zoom_level = NEMO_ZOOM_LEVEL_SMALLEST - 1;
+	list_view->details->zoom_level = NEMO_ZOOM_LEVEL_SMALLER - 1;
 
 	list_view->details->hover_path = NULL;
 	list_view->details->clipboard_handler_id =

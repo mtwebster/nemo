@@ -153,7 +153,6 @@ nemo_list_model_get_column_type (GtkTreeModel *tree_model, int index)
 		return NEMO_TYPE_FILE;
 	case NEMO_LIST_MODEL_SUBDIRECTORY_COLUMN:
 		return NEMO_TYPE_DIRECTORY;
-	case NEMO_LIST_MODEL_SMALLEST_ICON_COLUMN:
 	case NEMO_LIST_MODEL_SMALLER_ICON_COLUMN:
 	case NEMO_LIST_MODEL_SMALL_ICON_COLUMN:
 	case NEMO_LIST_MODEL_STANDARD_ICON_COLUMN:
@@ -299,7 +298,6 @@ nemo_list_model_get_value (GtkTreeModel *tree_model, GtkTreeIter *iter, int colu
 
 		g_value_set_object (value, file_entry->subdirectory);
 		break;
-	case NEMO_LIST_MODEL_SMALLEST_ICON_COLUMN:
 	case NEMO_LIST_MODEL_SMALLER_ICON_COLUMN:
 	case NEMO_LIST_MODEL_SMALL_ICON_COLUMN:
 	case NEMO_LIST_MODEL_STANDARD_ICON_COLUMN:
@@ -1423,8 +1421,6 @@ NemoZoomLevel
 nemo_list_model_get_zoom_level_from_column_id (int column)
 {
 	switch (column) {
-	case NEMO_LIST_MODEL_SMALLEST_ICON_COLUMN:
-		return NEMO_ZOOM_LEVEL_SMALLEST;
 	case NEMO_LIST_MODEL_SMALLER_ICON_COLUMN:
 		return NEMO_ZOOM_LEVEL_SMALLER;
 	case NEMO_LIST_MODEL_SMALL_ICON_COLUMN:
@@ -1448,8 +1444,6 @@ int
 nemo_list_model_get_column_id_from_zoom_level (NemoZoomLevel zoom_level)
 {
 	switch (zoom_level) {
-	case NEMO_ZOOM_LEVEL_SMALLEST:
-		return NEMO_LIST_MODEL_SMALLEST_ICON_COLUMN;
 	case NEMO_ZOOM_LEVEL_SMALLER:
 		return NEMO_LIST_MODEL_SMALLER_ICON_COLUMN;
 	case NEMO_ZOOM_LEVEL_SMALL:

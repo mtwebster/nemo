@@ -92,9 +92,6 @@
     </columns>
     <data>
       <row>
-        <col id="0" translatable="yes">33%</col>
-      </row>
-      <row>
         <col id="0" translatable="yes">50%</col>
       </row>
       <row>
@@ -107,10 +104,10 @@
         <col id="0" translatable="yes">150%</col>
       </row>
       <row>
-        <col id="0" translatable="yes">200%</col>
+        <col id="0" translatable="yes">266%</col>
       </row>
       <row>
-        <col id="0" translatable="yes">400%</col>
+        <col id="0" translatable="yes">533%</col>
       </row>
     </data>
   </object>
@@ -168,9 +165,6 @@
     </columns>
     <data>
       <row>
-        <col id="0" translatable="yes">33%</col>
-      </row>
-      <row>
         <col id="0" translatable="yes">50%</col>
       </row>
       <row>
@@ -183,10 +177,10 @@
         <col id="0" translatable="yes">150%</col>
       </row>
       <row>
-        <col id="0" translatable="yes">200%</col>
+        <col id="0" translatable="yes">266%</col>
       </row>
       <row>
-        <col id="0" translatable="yes">400%</col>
+        <col id="0" translatable="yes">533%</col>
       </row>
     </data>
   </object>
@@ -196,9 +190,6 @@
       <column type="gchararray"/>
     </columns>
     <data>
-      <row>
-        <col id="0" translatable="yes">33%</col>
-      </row>
       <row>
         <col id="0" translatable="yes">50%</col>
       </row>

@@ -40,7 +40,6 @@
   </enum>
 
   <enum id="org.nemo.ZoomLevel">
-    <value nick="smallest" value="0"/>
     <value nick="smaller" value="1"/>
     <value nick="small" value="2"/>
     <value nick="standard" value="3"/>
@@ -422,12 +421,12 @@
 	     Examples:
 	     0 - always display overlong file names;
 	     3 - shorten file names if they exceed three lines;
-	     smallest:5,smaller:4,0 - shorten file names if they exceed five lines
-	     for zoom level "smallest". Shorten file names if they exceed four lines
-	     for zoom level "smaller". Do not shorten file names for other zoom levels.
+	     smaller:5,small:4,0 - shorten file names if they exceed five lines
+	     for zoom level "smaller". Shorten file names if they exceed four lines
+	     for zoom level "small". Do not shorten file names for other zoom levels.
 
 	     Available zoom levels:
-	     smallest (33%), smaller (50%), small (66%), standard (100%), large (150%),
+	     smaller (50%), small (66%), standard (100%), large (150%),
 	     larger (200%), largest (400%)</description>
     </key>
   </schema>

@@ -1282,7 +1282,7 @@ nemo_window_sync_zoom_widgets (NemoWindow *window)
 		supports_zooming = nemo_view_supports_zooming (view);
 		zoom_level = nemo_view_get_zoom_level (view);
 		can_zoom = supports_zooming &&
-			   zoom_level >= NEMO_ZOOM_LEVEL_SMALLEST &&
+			   zoom_level >= NEMO_ZOOM_LEVEL_SMALLER &&
 			   zoom_level <= NEMO_ZOOM_LEVEL_LARGEST;
 		can_zoom_in = can_zoom && nemo_view_can_zoom_in (view);
 		can_zoom_out = can_zoom && nemo_view_can_zoom_out (view);

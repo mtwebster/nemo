@@ -74,6 +74,7 @@
 #include <gio/gio.h>
 #include <eel/eel-gtk-extensions.h>
 #include <eel/eel-stock-dialogs.h>
+#include <eel/eel-string.h>
 #include <libnotify/notify.h>
 
 #define GNOME_DESKTOP_USE_UNSTABLE_API
@@ -118,12 +119,33 @@ css_provider_load_from_resource (GtkCssProvider *provider,
    return retval;
 }
 
+static gchar *
+load_file_contents_from_resource (const char     *resource_path,
+                                  GError        **error)
+{
+   GBytes  *data;
+   gchar *retval;
+
+   data = NULL;
+
+   data = g_resources_lookup_data (resource_path, 0, error);
+
+   if (!data) {
+       return FALSE;
+   }
+
+   retval = g_strdup ((gchar *) g_bytes_get_data (data, NULL));
+
+   g_bytes_unref (data);
+
+   return retval;
+}
+
 static void
-add_app_css_provider (void)
+add_fallback_css_provider (void)
 {
   GtkCssProvider *provider;
   GError *error = NULL;
-  GdkScreen *screen;
 
   provider = gtk_css_provider_new ();
 
@@ -132,37 +154,95 @@ add_app_css_provider (void)
       g_warning ("Failed to load fallback css file: %s", error->message);
       if (error->message != NULL)
         g_error_free (error);
-      goto out_a;
+      goto out;
     }
 
-  screen = gdk_screen_get_default ();
-
-  gtk_style_context_add_provider_for_screen (screen,
+  gtk_style_context_add_provider_for_screen (gdk_screen_get_default (),
                                              GTK_STYLE_PROVIDER (provider),
                                              GTK_STYLE_PROVIDER_PRIORITY_FALLBACK);
 
-out_a:
-  g_object_unref (provider);
-
-  provider = gtk_css_provider_new ();
-
-  if (!css_provider_load_from_resource (provider, "/org/nemo/nemo-style-application.css", &error))
-    {
-      g_warning ("Failed to load application css file: %s", error->message);
-      if (error->message != NULL)
-        g_error_free (error);
-      goto out_b;
-    }
-
-  screen = gdk_screen_get_default ();
-
-  gtk_style_context_add_provider_for_screen (screen,
-                                             GTK_STYLE_PROVIDER (provider),
-                                             GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-
-out_b:
+out:
   g_object_unref (provider);
 }
+
+static void
+add_app_css_provider (void)
+{
+    GtkCssProvider *current_provider, *fallback_provider;
+    gchar *css, *init_fallback_css, *final_fallback_css, *theme_name;
+    GError *error = NULL;
+
+    g_object_get (gtk_settings_get_default (),
+                  "gtk-theme-name", &theme_name,
+                  NULL);
+
+    current_provider = gtk_css_provider_get_named (theme_name, NULL);
+
+    css = gtk_css_provider_to_string (current_provider);
+
+    init_fallback_css = NULL;
+
+    if (!g_strstr_len (css, -1, "nemo")) {
+        g_warning ("No support for nemo found in the current gtk3 theme (%s).  Adding some...", theme_name);
+
+        init_fallback_css = load_file_contents_from_resource ("/org/nemo/nemo-style-application.css", &error);
+
+        if (!init_fallback_css) {
+            g_warning ("Failed to load application css file: %s", error->message);
+            g_clear_error (&error);
+
+            goto out;
+        }
+    } else {
+        goto out;
+    }
+
+    final_fallback_css = NULL;
+
+    /* Our fallback uses @theme_ prefixed names for colors. If the active theme does also, skip
+     * to apply */
+    if (g_strstr_len (css, -1, "theme_selected_bg_color")) {
+        final_fallback_css = g_strdup (init_fallback_css);
+
+        goto apply;
+    }
+
+    /* Some themes don't prefix colors with theme_ - remove this from our fallback css */
+    if (g_strstr_len (css, -1, "@define-color selected_bg_color")) {
+        g_warning ("Replacing theme_selected_bg_color with selected_bg_color");
+        final_fallback_css = eel_str_replace_substring (init_fallback_css,
+                                                        "@theme_",
+                                                        "@");
+    } else {
+        /* If we can find neither, just bail out */
+        goto out;
+    }
+
+apply:
+    g_free (init_fallback_css);
+
+    fallback_provider = gtk_css_provider_new ();
+
+    gtk_css_provider_load_from_data (fallback_provider,
+                                     final_fallback_css,
+                                     -1,
+                                     &error);
+
+    if (error) {
+        g_warning ("Failed to create a fallback provider: %s", error->message);
+        g_clear_error (&error);
+        goto out;
+    }
+
+    gtk_style_context_add_provider_for_screen (gdk_screen_get_default (),
+                                               GTK_STYLE_PROVIDER (fallback_provider),
+                                               GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+    g_object_unref (fallback_provider);
+out:
+    g_free (theme_name);
+    g_free (css);
+}
+
 
 static void
 init_icons_and_styles (void)
@@ -176,6 +256,7 @@ init_icons_and_styles (void)
                             NEMO_STATUSBAR_ICON_SIZE);
 
     add_app_css_provider ();
+    add_fallback_css_provider ();
 }
 
 static gboolean

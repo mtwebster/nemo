@@ -187,11 +187,22 @@ nemo_file_init (NemoFile *file)
     file->details->desktop_monitor = -1;
     file->details->cached_position_x = -1;
     file->details->cached_position_y = -1;
+    file->details->free_space = -1;
 
-	nemo_file_clear_info (file);
+    file->details->type = NEMO_FILE_GET_CLASS (file)->default_file_type;
+    file->details->thumbnail_throttle_count = 1;
+    file->details->uid = -1;
+    file->details->gid = -1;
+    file->details->can_read = TRUE;
+    file->details->can_write = TRUE;
+    file->details->can_execute = TRUE;
+    file->details->can_delete = TRUE;
+    file->details->can_trash = TRUE;
+    file->details->can_rename = TRUE;
+    file->details->start_stop_type = G_DRIVE_START_STOP_TYPE_UNKNOWN;
+    file->details->size = -1;
+
 	nemo_file_invalidate_extension_info_internal (file);
-
-	file->details->free_space = -1;
 }
 
 static GObject*

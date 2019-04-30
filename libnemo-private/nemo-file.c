@@ -2204,6 +2204,7 @@ update_links_if_target (NemoFile *target_file)
 static guint64 cached_thumbnail_limit;
 int cached_thumbnail_size;
 double scaled_cached_thumbnail_size;
+int max_thumbnail_size;
 static int show_image_thumbs;
 
 static gboolean
@@ -2570,6 +2571,42 @@ update_info_internal (NemoFile *file,
 		changed = TRUE;
 		file->details->thumbnailing_failed = thumbnailing_failed;
 	}
+
+    if (!file->details->thumbnail_is_up_to_date &&
+        !thumbnailing_failed &&
+        (thumbnail_path != NULL)) {
+        GdkPixbuf *pixbuf;
+        time_t thumb_mtime = 0;
+
+        pixbuf = gdk_pixbuf_new_from_file_at_size (thumbnail_path,
+                                                   max_thumbnail_size,
+                                                   max_thumbnail_size,
+                                                   NULL);
+
+        if (pixbuf != NULL) {
+            const gchar *thumb_mtime_str;
+
+            file->details->thumbnail_is_up_to_date = TRUE;
+
+            thumb_mtime_str = gdk_pixbuf_get_option (pixbuf, "tEXt::Thumb::MTime");
+
+            if (thumb_mtime_str) {
+                thumb_mtime = atol (thumb_mtime_str);
+            }
+        }
+        
+        if (thumb_mtime == 0 || thumb_mtime == file->details->mtime) {
+            g_clear_object (&file->details->thumbnail);
+            file->details->thumbnail = pixbuf;
+
+            file->details->thumbnail_mtime = thumb_mtime;
+            file->details->thumbnail_throttle_count = 1;
+        } else {
+            g_object_unref (pixbuf);
+            g_free (file->details->thumbnail_path);
+            file->details->thumbnail_path = NULL;
+        }
+    }
 
 	symlink_name = g_file_info_get_symlink_target (info);
 	if (g_strcmp0 (file->details->symlink_name, symlink_name) != 0) {
@@ -8477,6 +8514,8 @@ thumbnail_size_changed_callback (gpointer user_data)
 	 * signal to mean only "thumbnails might have changed" if this ends up being slow
 	 * for some reason.
 	 */
+    max_thumbnail_size = NEMO_ICON_SIZE_LARGEST * cached_thumbnail_size / NEMO_ICON_SIZE_STANDARD;
+
 	emit_change_signals_for_all_files_in_all_directories ();
 }
 

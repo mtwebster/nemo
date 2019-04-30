@@ -3818,7 +3818,7 @@ thumbnail_state_free (ThumbnailState *state)
 	g_free (state);
 }
 
-extern int cached_thumbnail_size;
+extern int max_thumbnail_size;
 
 /* scale very large images down to the max. size we need */
 static void
@@ -3827,13 +3827,11 @@ thumbnail_loader_size_prepared (GdkPixbufLoader *loader,
 				int height,
 				gpointer user_data)
 {
-	int max_thumbnail_size;
 	double aspect_ratio;
 
 	aspect_ratio = ((double) width) / height;
 
 	/* cf. nemo_file_get_icon() */
-	max_thumbnail_size = NEMO_ICON_SIZE_LARGEST * cached_thumbnail_size / NEMO_ICON_SIZE_STANDARD;
 	if (MAX (width, height) > max_thumbnail_size) {
 		if (width > height) {
 			width = max_thumbnail_size;

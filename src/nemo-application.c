@@ -482,6 +482,8 @@ nemo_application_init (NemoApplication *application)
 {
 	GSimpleAction *action;
 
+    // gtk_window_set_interactive_debugging (TRUE);
+
 	application->priv = G_TYPE_INSTANCE_GET_PRIVATE (application,
                                                      NEMO_TYPE_APPLICATION,
                                                      NemoApplicationPriv);

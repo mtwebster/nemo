@@ -63,6 +63,8 @@ nemo_entry_init (NemoEntry *entry)
 	
 	entry->details->user_edit = TRUE;
 
+    gtk_entry_set_invisible_char (GTK_ENTRY (entry), '.');
+
 	nemo_undo_set_up_nemo_entry_for_undo (entry);
 }
 

@@ -1453,8 +1453,14 @@ update_layout_constants (NemoIconContainer *container)
     constants->snap_size_x = BASE_SNAP_SIZE_X * scale * h_adjust;
     constants->snap_size_y = BASE_SNAP_SIZE_Y * scale * v_adjust;
     constants->max_text_width_standard = BASE_MAX_TEXT_WIDTH * scale * h_adjust;
+g_printerr ("adjust?\n");
+    if (constants->icon_vertical_adjust == 0) {
+g_printerr ("yes\n");
 
-    constants->icon_vertical_adjust = MIN (get_vertical_adjustment (container, icon_size), constants->snap_size_y / 2);
+        constants->icon_vertical_adjust = MIN (get_vertical_adjustment (container, icon_size),
+                                               constants->snap_size_y / 2);
+
+    }
     /* This isn't what this is intended for, but it's a simple way vs. overriding what
      * icon_get_size() uses to get the icon size in nemo-icon-container.c (it should use
      * nemo_get_desktop_icon_size_for_zoom_level) */
@@ -1619,7 +1625,7 @@ nemo_icon_view_grid_container_construct (NemoIconViewGridContainer *icon_contain
     constants->max_text_width_standard = BASE_MAX_TEXT_WIDTH;
     constants->max_text_width_beside = 90; // Not used
     constants->max_text_width_beside_top_to_bottom = 150; // Not used
-    constants->icon_vertical_adjust = 20;
+    constants->icon_vertical_adjust = 0;
 
     g_signal_connect_swapped (nemo_desktop_preferences,
                               "changed::" NEMO_PREFERENCES_DESKTOP_TEXT_ELLIPSIS_LIMIT,

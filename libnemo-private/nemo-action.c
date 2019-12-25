@@ -1158,6 +1158,9 @@ find_token_type (const gchar *str, TokenType *token_type)
             *token_type = TOKEN_DEVICE;
             return ptr;
         }
+
+        *token_type = TOKEN_LITERAL;
+        return ptr;
     }
 
     return NULL;
@@ -1353,6 +1356,9 @@ default_parent_display_name:
                 goto default_parent_path;
             }
             break;
+        case TOKEN_LITERAL:
+            str = g_string_append (str, "%");
+            break;
         case TOKEN_NONE:
         default:
             break; 
@@ -1377,7 +1383,7 @@ expand_action_string (NemoAction *action, GList *selection, NemoFile *parent, GS
         gint shift = ptr - str->str;
 
         gchar *insertion = get_insertion_string (action, token_type, selection, parent);
-        str = g_string_erase (str, shift, 2);
+        str = g_string_erase (str, shift, token_type == TOKEN_LITERAL ? 1 : 2);
         str = g_string_insert (str, shift, insertion);
 
         token_type = TOKEN_NONE;

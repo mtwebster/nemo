@@ -97,7 +97,8 @@ typedef enum {
     TOKEN_FILE_DISPLAY_NAME,
     TOKEN_PARENT_DISPLAY_NAME,
     TOKEN_PARENT_PATH,
-    TOKEN_DEVICE
+    TOKEN_DEVICE,
+    TOKEN_LITERAL
 } TokenType;
 
 struct _NemoAction {

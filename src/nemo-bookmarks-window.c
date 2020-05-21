@@ -60,7 +60,6 @@ static gboolean		     text_changed = FALSE;
 static gboolean		     name_text_changed = FALSE;
 static GtkWidget	    *uri_field = NULL;
 static int		     uri_field_changed_signal_id;
-static int		     row_changed_signal_id;
 static int		     row_deleted_signal_id;
 static int                   row_activated_signal_id;
 static int                   button_pressed_signal_id;
@@ -84,10 +83,6 @@ static void     on_jump_button_clicked                      (GtkButton          
 							     gpointer              user_data);
 static void     on_sort_button_clicked                      (GtkButton            *button,
 							     gpointer              user_data);
-static void	on_row_changed				    (GtkListStore	  *store,
-							     GtkTreePath	  *path,
-							     GtkTreeIter	  *iter,
-							     gpointer		   user_data);
 static void	on_row_deleted				    (GtkListStore	  *store,
 							     GtkTreePath	  *path,
 							     gpointer		   user_data);
@@ -324,9 +319,6 @@ create_bookmarks_window (NemoBookmarkList *list, GObject *undo_manager_source)
 	bookmark_list_changed_signal_id =
 		g_signal_connect (bookmarks, "changed",
 				  G_CALLBACK (on_bookmark_list_changed), NULL);
-	row_changed_signal_id =
-		g_signal_connect (bookmark_list_store, "row_changed",
-				  G_CALLBACK (on_row_changed), NULL);
 	row_deleted_signal_id =
 		g_signal_connect (bookmark_list_store, "row_deleted",
 				  G_CALLBACK (on_row_deleted), NULL);
@@ -472,16 +464,16 @@ get_selection_is_separator (void)
 {
     GtkTreeIter iter;
     GtkTreeModel *model;
-    gboolean is_separator;
+    gboolean is_separator = FALSE;
 
     model = GTK_TREE_MODEL (bookmark_list_store);
-    gtk_tree_selection_get_selected (bookmark_selection,
-                                     &model,
-                                     &iter);
-
-    gtk_tree_model_get (model, &iter,
-                        BOOKMARK_LIST_COLUMN_IS_SEPARATOR, &is_separator,
-                        -1);
+    if (gtk_tree_selection_get_selected (bookmark_selection,
+                                         &model,
+                                         &iter)) {
+        gtk_tree_model_get (model, &iter,
+                            BOOKMARK_LIST_COLUMN_IS_SEPARATOR, &is_separator,
+                            -1);
+    }
 
     return is_separator;
 }
@@ -633,19 +625,6 @@ bookmarks_delete_bookmark (void)
 	gtk_tree_path_free (path);
 
 	gtk_list_store_remove (bookmark_list_store, &iter);
-
-	/* Try to select the same row, or the last one in the list. */
-	rows = gtk_tree_model_iter_n_children (GTK_TREE_MODEL (bookmark_list_store), NULL);
-	if (row >= rows)
-		row = rows - 1;
-
-	if (row < 0) {
-		bookmarks_set_empty (TRUE);
-	} else {
-		gtk_tree_model_iter_nth_child (GTK_TREE_MODEL (bookmark_list_store),
-					       &iter, NULL, row);
-		gtk_tree_selection_select_iter (bookmark_selection, &iter);
-	}
 }
 
 static void
@@ -655,68 +634,47 @@ on_remove_button_clicked (GtkButton *button,
         bookmarks_delete_bookmark ();
 }
 
-
-/* This is a bit of a kludge to get DnD to work. We check if the row in the
-   GtkListStore matches the one in the bookmark list. If it doesn't, we assume
-   the bookmark has just been dragged here and we insert it into the bookmark
-   list. */
 static void
-on_row_changed (GtkListStore *store,
-		GtkTreePath *path,
-		GtkTreeIter *iter,
-		gpointer user_data)
+on_row_deleted (GtkListStore *store,
+        GtkTreePath *path,
+        gpointer user_data)
 {
-	NemoBookmark *bookmark = NULL, *bookmark_in_list;
-	gint *indices, row, breakpoint;
-	gboolean insert_bookmark = TRUE;
+	NemoBookmark *bookmark = NULL;
 
 	store = bookmark_list_store;
+    GtkTreeIter row_iter;
+    gint row = 0, new_index = 0;
 
-	indices = gtk_tree_path_get_indices (path);
-	row = indices[0];
-	gtk_tree_model_get (GTK_TREE_MODEL (store), iter,
-			    BOOKMARK_LIST_COLUMN_BOOKMARK, &bookmark,
-			    -1);
+    g_signal_handler_block (bookmarks,
+                            bookmark_list_changed_signal_id);
 
-    breakpoint = g_settings_get_int (nemo_window_state, NEMO_PREFERENCES_SIDEBAR_BOOKMARK_BREAKPOINT);
+    if (gtk_tree_model_get_iter_first (GTK_TREE_MODEL (store), &row_iter)) {
+        do {
+            gtk_tree_model_get (GTK_TREE_MODEL (store), &row_iter,
+                                BOOKMARK_LIST_COLUMN_BOOKMARK, &bookmark,
+                                -1);
+            if (bookmark != NULL) {
+                gint i;
 
-    if (row > breakpoint) {
-        row--;
+                for (i = 0; i < nemo_bookmark_list_length (bookmarks); i++) {
+                    NemoBookmark *old_bm = nemo_bookmark_list_item_at (bookmarks, i);
+
+                    if (old_bm == bookmark) {
+                        nemo_bookmark_list_move_item (bookmarks, i, new_index++);
+                    }
+                }
+            } else {
+                g_settings_set_int (nemo_window_state, NEMO_PREFERENCES_SIDEBAR_BOOKMARK_BREAKPOINT, row);
+            }
+
+            row++;
+        } while (gtk_tree_model_iter_next (GTK_TREE_MODEL (store), &row_iter));
     }
 
-    if (!bookmark) {
-        /* Separator */
-        g_settings_set_int (nemo_window_state, NEMO_PREFERENCES_SIDEBAR_BOOKMARK_BREAKPOINT, row);
+    g_signal_handler_unblock (bookmarks,
+                              bookmark_list_changed_signal_id);
 
-        repopulate ();
-        return;
-    }
-
-	/* If the bookmark in the list doesn't match the changed one, it must
-	   have been dragged here, so we insert it into the list. */
-	if (row < (gint) nemo_bookmark_list_length (bookmarks)) {
-		bookmark_in_list = nemo_bookmark_list_item_at (bookmarks,
-								   row);
-		if (bookmark_in_list == bookmark)
-			insert_bookmark = FALSE;
-	}
-
-	if (insert_bookmark) {
-		g_signal_handler_block (bookmarks,
-					bookmark_list_changed_signal_id);
-		nemo_bookmark_list_insert_item (bookmarks, bookmark, row);
-		g_signal_handler_unblock (bookmarks,
-					  bookmark_list_changed_signal_id);
-
-		/* The bookmark will be copied when inserted into the list, so
-		   we have to update the pointer in the list store. */
-		bookmark = nemo_bookmark_list_item_at (bookmarks, row);
-		g_signal_handler_block (store, row_changed_signal_id);
-		gtk_list_store_set (store, iter,
-				    BOOKMARK_LIST_COLUMN_BOOKMARK, bookmark,
-				    -1);
-		g_signal_handler_unblock (store, row_changed_signal_id);
-	}
+    repopulate ();
 }
 
 /* The update_bookmark_from_text() calls in the
@@ -766,25 +724,6 @@ on_row_activated (GtkTreeView       *view,
 
 	screen = gtk_widget_get_screen (GTK_WIDGET (view));
 	open_selected_bookmark (user_data, screen);
-}
-
-static void
-on_row_deleted (GtkListStore *store,
-		GtkTreePath *path,
-		gpointer user_data)
-{
-	gint *indices, row;
-
-	indices = gtk_tree_path_get_indices (path);
-	row = indices[0];
-
-    if (row > g_settings_get_int (nemo_window_state, NEMO_PREFERENCES_SIDEBAR_BOOKMARK_BREAKPOINT)) {
-        row--;
-    }
-
-	g_signal_handler_block (bookmarks, bookmark_list_changed_signal_id);
-	nemo_bookmark_list_delete_item_at (bookmarks, row);
-	g_signal_handler_unblock (bookmarks, bookmark_list_changed_signal_id);
 }
 
 static void
@@ -862,6 +801,10 @@ update_bookmark_from_text (void)
 
 		selected_row = get_selected_row ();
 
+        if (selected_row > g_settings_get_int (nemo_window_state, NEMO_PREFERENCES_SIDEBAR_BOOKMARK_BREAKPOINT)) {
+            selected_row--;
+        }
+
 		/* turn off list updating 'cuz otherwise the list-reordering code runs
 		 * after repopulate(), thus reordering the correctly-ordered list.
 		 */
@@ -877,8 +820,6 @@ update_bookmark_from_text (void)
 		   store. */
 		gtk_tree_selection_get_selected (bookmark_selection,
 						 NULL, &iter);
-		g_signal_handler_block (bookmark_list_store,
-					row_changed_signal_id);
 
 		bookmark_in_list = nemo_bookmark_list_item_at (bookmarks,
 								   selected_row);
@@ -891,8 +832,6 @@ update_bookmark_from_text (void)
 				    BOOKMARK_LIST_COLUMN_NAME, name,
 				    BOOKMARK_LIST_COLUMN_ICON, icon_name,
 				    -1);
-		g_signal_handler_unblock (bookmark_list_store,
-					  row_changed_signal_id);
 
 		g_free (icon_name);
 	}
@@ -1026,9 +965,6 @@ repopulate (void)
 				  row_deleted_signal_id);
 	g_signal_handler_unblock (bookmark_selection,
 				  selection_changed_id);
-	
-	/* Fill the list in with the bookmark names. */
-	g_signal_handler_block (store, row_changed_signal_id);
 
     bookmarks_length = nemo_bookmark_list_length (bookmarks);
     breakpoint = g_settings_get_int (nemo_window_state, NEMO_PREFERENCES_SIDEBAR_BOOKMARK_BREAKPOINT);
@@ -1091,8 +1027,6 @@ repopulate (void)
 
         add_breakpoint (store, &iter);
     }
-
-	g_signal_handler_unblock (store, row_changed_signal_id);
 
 	if (reference != NULL) {
 		/* restore old selection */

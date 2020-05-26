@@ -473,6 +473,7 @@ drag_motion_callback (GtkWidget *widget,
 	GdkWindow *bin_window;
 	guint action;
 	gboolean res = TRUE;
+    gchar drop_target;
 
 	dest = NEMO_TREE_VIEW_DRAG_DEST (data);
 
@@ -488,6 +489,18 @@ drag_motion_callback (GtkWidget *widget,
 	}
 
 	drop_path = get_drop_path (dest, path);
+    // drop_target = get_drop_target_uri_for_path (dest, drop_path);
+
+    if (gtk_tree_view_is_blank_at_pos (dest->details->tree_view,
+                                       x, y,
+                                       NULL, NULL, NULL, NULL)) {
+        g_printerr ("BLANK\n");
+        // g_free (drop_target);
+        if (drop_path && gtk_tree_path_get_depth (drop_path) > 0) {
+            gtk_tree_path_up (drop_path);
+        }
+        // drop_target = get_root_uri (dest);
+    }
 
 	action = 0;
 	bin_window = gtk_tree_view_get_bin_window (GTK_TREE_VIEW (widget));
@@ -572,13 +585,22 @@ get_drop_target_uri_at_pos (NemoTreeViewDragDest *dest, int x, int y)
 	GtkTreePath *path;
 	GtkTreePath *drop_path;
 	GtkTreeViewDropPosition pos;
-
+    g_printerr ("get target\n");
 	gtk_tree_view_get_dest_row_at_pos (dest->details->tree_view, x, y,
 					   &path, &pos);
 
 	drop_path = get_drop_path (dest, path);
 
 	drop_target = get_drop_target_uri_for_path (dest, drop_path);
+
+    if (gtk_tree_view_is_blank_at_pos (dest->details->tree_view,
+                                       x, y,
+                                       NULL, NULL, NULL, NULL)) {
+        g_printerr ("BLANK\n");
+        g_free (drop_target);
+
+        drop_target = get_root_uri (dest);
+    }
 
 	if (path != NULL) {
 		gtk_tree_path_free (path);

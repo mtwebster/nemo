@@ -295,7 +295,7 @@ nemo_desktop_application_local_command_line (GApplication *application,
         g_setenv ("G_MESSAGES_DEBUG", "all", TRUE);
     }
 
-    if (geteuid () == 0) {
+    if (nemo_user_is_root () && !nemo_treating_root_as_normal ()) {
         g_printerr ("nemo-desktop cannot be run as root, please try again as a normal user\n");
         goto out;
     }

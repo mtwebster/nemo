@@ -48,7 +48,7 @@ static void     nemo_action_constructed (GObject *object);
 static void     nemo_action_finalize (GObject *gobject);
 
 static gchar   *find_token_type (const gchar *str, TokenType *token_type);
-
+static void     initialize_replace_funcs (void);
 static gpointer parent_class;
 
 enum 
@@ -295,6 +295,8 @@ nemo_action_class_init (NemoActionClass *klass)
                                                0, NULL, NULL,
                                                g_cclosure_marshal_VOID__VOID,
                                                G_TYPE_NONE, 0);
+
+    initialize_replace_funcs ();
 }
 
 static gboolean
@@ -816,9 +818,10 @@ nemo_action_constructed (GObject *object)
 
     TokenType token_type;
 
-    action->show_in_blank_desktop = is_desktop &&
-                                    type == SELECTION_NONE &&
-                                    find_token_type (exec, &token_type) == NULL;
+    action->show_in_blank_desktop = FALSE;
+    // action->show_in_blank_desktop = is_desktop &&
+    //                                 type == SELECTION_NONE &&
+    //                                 find_token_type (exec, &token_type) == NULL;
 
     GFile *file = g_file_new_for_path (action->key_file_path);
     GFile *parent = g_file_get_parent (file);
@@ -1152,63 +1155,6 @@ nemo_action_get_property (GObject    *object,
     }
 }
 
-static gchar *
-find_token_type (const gchar *str, TokenType *token_type)
-{
-    gchar *ptr = NULL;
-    *token_type = TOKEN_NONE;
-
-    ptr = g_strstr_len (str, -1, "%");
-
-    if (ptr != NULL) {
-        if (g_str_has_prefix (ptr, TOKEN_EXEC_FILE_LIST)) {
-            *token_type = TOKEN_PATH_LIST;
-            return ptr;
-        }
-        if (g_str_has_prefix (ptr, TOKEN_EXEC_URI_LIST)) {
-            *token_type = TOKEN_URI_LIST;
-            return ptr;
-        }
-        if (g_str_has_prefix (ptr, TOKEN_EXEC_LOCATION_PATH)) {
-            *token_type = TOKEN_PARENT_PATH;
-            return ptr;
-        }
-        if (g_str_has_prefix (ptr, TOKEN_EXEC_LOCATION_URI)) {
-            *token_type = TOKEN_PARENT_URI;
-            return ptr;
-        }
-        if (g_str_has_prefix (ptr, TOKEN_EXEC_FILE_NAME)) {
-            *token_type = TOKEN_FILE_DISPLAY_NAME;
-            return ptr;
-        }
-        if (g_str_has_prefix (ptr, TOKEN_EXEC_PARENT_NAME)) {
-            *token_type = TOKEN_PARENT_DISPLAY_NAME;
-            return ptr;
-        }
-        if (g_str_has_prefix (ptr, TOKEN_LABEL_FILE_NAME)) {
-            *token_type = TOKEN_FILE_DISPLAY_NAME;
-            return ptr;
-        }
-        if (g_str_has_prefix (ptr, TOKEN_EXEC_DEVICE)) {
-            *token_type = TOKEN_DEVICE;
-            return ptr;
-        }
-        if (g_str_has_prefix (ptr, TOKEN_EXEC_FILE_NO_EXT)) {
-            *token_type = TOKEN_FILE_DISPLAY_NAME_NO_EXT;
-            return ptr;
-        }
-        if (g_str_has_prefix (ptr, TOKEN_EXEC_LITERAL_PERCENT)) {
-            *token_type = TOKEN_LITERAL_PERCENT;
-            return ptr;
-        }
-        if (g_str_has_prefix (ptr, TOKEN_EXEC_XID)) {
-            *token_type = TOKEN_XID;
-            return ptr;
-        }
-    }
-
-    return NULL;
-}
 
 static gchar *
 get_path (NemoAction *action, NemoFile *file)
@@ -1303,199 +1249,331 @@ get_device_path (NemoAction *action, NemoFile *file)
     return ret;
 }
 
-static gchar *
-get_insertion_string (NemoAction *action,
-                      TokenType   token_type,
-                      GList      *selection,
-                      NemoFile   *parent,
-                      GtkWindow  *window)
-{
-    GList *l;
 
-    GString *str = g_string_new("");
-    gboolean first = TRUE;
 
-    switch (token_type) {
-        case TOKEN_LITERAL_PERCENT:
-            str = g_string_append(str, "%");
-            break;
-        case TOKEN_XID:
-            g_string_append_printf (str, "%lu", eel_gtk_get_window_xid (window));
-            break;
-        case TOKEN_PATH_LIST:
-            if (g_list_length (selection) > 0) {
-                for (l = selection; l != NULL; l = l->next) {
-                    if (!first)
-                        str = insert_separator (action, str);
-                    str = insert_quote (action, str);
-                    gchar *path = get_path (action, NEMO_FILE (l->data));
-                    if (path)
-                        str = score_append (action, str, path);
-                    g_free (path);
-                    str = insert_quote (action, str);
-                    first = FALSE;
-                }
-            } else {
-                goto default_parent_path;
-            }
-            break;
-        case TOKEN_URI_LIST:
-            if (g_list_length (selection) > 0) {
-                for (l = selection; l != NULL; l = l->next) {
-                    if (!first)
-                        str = insert_separator (action, str);
-                    str = insert_quote (action, str);
-                    gchar *uri = nemo_file_get_uri (NEMO_FILE (l->data));
-                    str = score_append (action, str, uri);
-                    g_free (uri);
-                    str = insert_quote (action, str);
-                    first = FALSE;
-                }
-            } else {
-                goto default_parent_uri;
-            }
-            break;
-        case TOKEN_PARENT_PATH:
-            ;
-default_parent_path:
-            ;
-            gchar *path = get_path (action, parent);
-            if (path == NULL) {
-                gchar *name = nemo_file_get_display_name (parent);
-                if (g_strcmp0 (name, "x-nemo-desktop") == 0)
-                    path = nemo_get_desktop_directory ();
-                else
-                    path = g_strdup ("");
-                g_free (name);
-            }
-            str = insert_quote (action, str);
-            str = score_append (action, str, path);
-            str = insert_quote (action, str);
-            g_free (path);
-            break;
-        case TOKEN_PARENT_URI:
-            ;
-default_parent_uri:
-            ;
-            gchar *uri;
-            gchar *name = nemo_file_get_display_name (parent);
-            if (g_strcmp0 (name, "x-nemo-desktop") == 0) {
-                gchar *real_desktop_path = nemo_get_desktop_directory ();
-                if (real_desktop_path) {
-                    GFile *file;
-                    file = g_file_new_for_path (real_desktop_path);
-                    uri = g_file_get_uri (file);
-                    g_object_unref (file);
-                    g_free (real_desktop_path);
-                } else {
-                    uri = NULL;
-                }
-            } else {
-                uri = nemo_file_get_uri (parent);
-            }
+static GRegex *U_replace_regex = NULL;
+static GRegex *F_replace_regex = NULL;
+static GRegex *P_replace_regex = NULL;
+static GRegex *R_replace_regex = NULL;
+static GRegex *f_replace_regex = NULL;
+static GRegex *N_replace_regex = NULL;
+static GRegex *p_replace_regex = NULL;
+static GRegex *D_replace_regex = NULL;
+static GRegex *e_replace_regex = NULL;
+static GRegex *X_replace_regex = NULL;
 
-            str = insert_quote (action, str);
-            str = score_append (action, str, uri);
-            str = insert_quote (action, str);
-            g_free (name);
-            g_free (uri);
-            break;
-        case TOKEN_FILE_DISPLAY_NAME:
-            if (g_list_length (selection) > 0) {
-                gchar *file_display_name = nemo_file_get_display_name (NEMO_FILE (selection->data));
-                str = score_append (action, str, file_display_name);
-                g_free (file_display_name);
-            } else {
-                goto default_parent_display_name;
-            }
-            break;
-        case TOKEN_PARENT_DISPLAY_NAME:
-            ;
-default_parent_display_name:
-            ;
-            gchar *parent_display_name;
-            gchar *real_display_name = nemo_file_get_display_name (parent);
-            if (g_strcmp0 (real_display_name, "x-nemo-desktop") == 0)
-                parent_display_name = g_strdup_printf (_("Desktop"));
-            else
-                parent_display_name = nemo_file_get_display_name (parent);
-            g_free (real_display_name);
-            str = insert_quote (action, str);
-            str = score_append (action, str, parent_display_name);
-            str = insert_quote (action, str);
-            g_free (parent_display_name);
-            break;
-        case TOKEN_DEVICE:
-            if (g_list_length (selection) > 0) {
-                for (l = selection; l != NULL; l = l->next) {
-                    if (!first)
-                        str = insert_separator (action, str);
-                    str = insert_quote (action, str);
-                    gchar *dev = get_device_path (action, NEMO_FILE (l->data));
-                    if (dev)
-                        str = score_append (action, str, dev);
-                    g_free (dev);
-                    str = insert_quote (action, str);
-                    first = FALSE;
-                }
-            } else {
-                goto default_parent_path;
-            }
-            break;
-        case TOKEN_FILE_DISPLAY_NAME_NO_EXT:
-            if (g_list_length (selection) > 0) {
-                gchar *file_display_name = nemo_file_get_display_name (NEMO_FILE (selection->data));
-                str = score_append (action, str, eel_filename_strip_extension (file_display_name));
-                g_free (file_display_name);
-            } else {
-                goto default_parent_path;
-            }
-            break;
-        case TOKEN_NONE:
-        default:
-            break; 
-    }
+static void
+init_replace_func (const gchar *pattern, GRegex **replace_regex) {
+    // Escape the pattern so we match literally
+    gchar *escaped = g_regex_escape_string (pattern, -1);
 
-    gchar *ret = str->str;
+    *replace_regex = g_regex_new (escaped,
+                                  G_REGEX_OPTIMIZE,
+                                  0,
+                                  NULL);
 
-    g_string_free (str, FALSE);
-
-    return ret;
+    g_free (escaped);
 }
 
-static GString *
-expand_action_string (NemoAction *action,
-                      GList      *selection,
-                      NemoFile   *parent,
-                      GString    *str,
-                      GtkWindow  *window)
+static void
+initialize_replace_funcs (void)
 {
-    gchar *ptr;
-    TokenType token_type;
+    static gboolean run_once = FALSE;
 
-    ptr = find_token_type (str->str, &token_type);
+    if (!run_once) {
+        init_replace_func ("%U", &U_replace_regex);
+        init_replace_func ("%F", &F_replace_regex);
+        init_replace_func ("%P", &P_replace_regex);
+        init_replace_func ("%R", &R_replace_regex);
+        init_replace_func ("%f", &f_replace_regex);
+        init_replace_func ("%N", &N_replace_regex); // deprecated
+        init_replace_func ("%p", &p_replace_regex);
+        init_replace_func ("%D", &D_replace_regex);
+        init_replace_func ("%e", &e_replace_regex);
+        init_replace_func ("%X", &X_replace_regex);
 
-    while (ptr != NULL) {
-        gint shift = ptr - str->str;
+        run_once = TRUE;
+    }
+}
 
-        gchar *insertion = get_insertion_string (action, token_type, selection, parent, window);
-        str = g_string_erase (str, shift, 2);
-        str = g_string_insert (str, shift, insertion);
 
-        token_type = TOKEN_NONE;
+typedef gchar *  (*NemoFileStringGetterFunc) (NemoFile *file);
 
-        /* The string may have expanded, and since we modify-in-place using GString, make sure
-         * our continuation begins just beyond what we inserted, not the original match position.
-         * Otherwise we may get confused by uri escape codes that happen to match *our* replacement
-         * tokens (%U, %F, etc...).
-         *
-         * See: https://github.com/linuxmint/nemo/issues/1956
-         */
-        ptr = find_token_type (str->str + shift + strlen(insertion), &token_type);
-        g_free  (insertion);
+typedef struct {
+    NemoAction *action;
+    NemoFile   *parent;
+    GtkWindow  *window;
+    GList      *selection;
+} ReplaceData;
+
+static void
+iter_selection_list (ReplaceData              *data,
+                     GString                  *res,
+                     NemoFileStringGetterFunc  func)
+{
+    GList *l;
+    gboolean first = TRUE;
+
+    for (l = data->selection; l != NULL; l = l->next) {
+        if (!first)
+            res = insert_separator (data->action, res);
+        res = insert_quote (data->action, res);
+        gchar *func_result = (gchar *) func (NEMO_FILE (l->data));
+        res = score_append (data->action, res, func_result);
+        g_free (func_result);
+        res = insert_quote (data->action, res);
+        first = FALSE;
+    }
+}
+
+static gboolean
+R_replace_func (const GMatchInfo *info,
+                GString          *res,
+                gpointer          user_data)
+{
+    ReplaceData *data = (ReplaceData *) user_data;
+
+    gchar *uri;
+    gchar *name = nemo_file_get_display_name (data->parent);
+    if (g_strcmp0 (name, "x-nemo-desktop") == 0) {
+        gchar *real_desktop_path = nemo_get_desktop_directory ();
+        if (real_desktop_path) {
+            GFile *file;
+            file = g_file_new_for_path (real_desktop_path);
+            uri = g_file_get_uri (file);
+            g_object_unref (file);
+            g_free (real_desktop_path);
+        } else {
+            uri = NULL;
+        }
+    } else {
+        uri = nemo_file_get_uri (data->parent);
     }
 
-    return str;
+    res = insert_quote (data->action, res);
+    res = score_append (data->action, res, uri);
+    res = insert_quote (data->action, res);
+    g_free (name);
+    g_free (uri);
+
+    return TRUE;
+}
+
+static gboolean
+U_replace_func (const GMatchInfo *info,
+                GString          *res,
+                gpointer          user_data)
+{
+    ReplaceData *data = (ReplaceData *) user_data;
+
+    if (g_list_length (data->selection) > 0) {
+        iter_selection_list (data, res, nemo_file_get_uri);
+    } else {
+        return R_replace_func (info, res, user_data);
+    }
+
+    return TRUE;
+}
+
+static gboolean
+P_replace_func (const GMatchInfo *info,
+                GString          *res,
+                gpointer          user_data)
+{
+    ReplaceData *data = (ReplaceData *) user_data;
+
+    gchar *path = get_path (data->action, data->parent);
+    if (path == NULL) {
+        gchar *name = nemo_file_get_display_name (data->parent);
+        if (g_strcmp0 (name, "x-nemo-desktop") == 0)
+            path = nemo_get_desktop_directory ();
+        else
+            path = g_strdup ("");
+        g_free (name);
+    }
+
+    res = insert_quote (data->action, res);
+    res = score_append (data->action, res, path);
+    res = insert_quote (data->action, res);
+    g_free (path);
+
+    return TRUE;
+}
+
+static gboolean
+F_replace_func (const GMatchInfo *info,
+                GString          *res,
+                gpointer          user_data)
+{
+    ReplaceData *data = (ReplaceData *) user_data;
+ 
+    if (g_list_length (data->selection) > 0) {
+        iter_selection_list (data, res, nemo_file_get_path);
+    } else {
+        return P_replace_func (info, res, user_data);
+    }
+
+    return TRUE;
+}
+
+static gboolean
+p_replace_func (const GMatchInfo *info,
+                GString          *res,
+                gpointer          user_data)
+{
+    ReplaceData *data = (ReplaceData *) user_data;
+
+    gchar *parent_display_name;
+    gchar *real_display_name = nemo_file_get_display_name (data->parent);
+    if (g_strcmp0 (real_display_name, "x-nemo-desktop") == 0)
+        parent_display_name = g_strdup_printf (_("Desktop"));
+    else
+        parent_display_name = nemo_file_get_display_name (data->parent);
+    g_free (real_display_name);
+    res = insert_quote (data->action, res);
+    res = score_append (data->action, res, parent_display_name);
+    res = insert_quote (data->action, res);
+    g_free (parent_display_name);
+
+    return TRUE;
+}
+
+static gboolean
+f_replace_func (const GMatchInfo *info,
+                GString          *res,
+                gpointer          user_data)
+{
+    ReplaceData *data = (ReplaceData *) user_data;
+
+    if (g_list_length (data->selection) > 0) {
+        gchar *file_display_name = nemo_file_get_display_name (NEMO_FILE (data->selection->data));
+        res = score_append (data->action, res, file_display_name);
+        g_free (file_display_name);
+    } else {
+        return p_replace_func (info, res, user_data);
+    }
+
+    return TRUE;
+}
+
+static gboolean
+D_replace_func (const GMatchInfo *info,
+                GString          *res,
+                gpointer          user_data)
+{
+    ReplaceData *data = (ReplaceData *) user_data;
+    GList *l;
+    gboolean first = TRUE;
+
+    if (g_list_length (data->selection) > 0) {
+        for (l = data->selection; l != NULL; l = l->next) {
+            if (!first)
+                res = insert_separator (data->action, res);
+            res = insert_quote (data->action, res);
+            gchar *dev = get_device_path (data->action, NEMO_FILE (l->data));
+            if (dev)
+                res = score_append (data->action, res, dev);
+            g_free (dev);
+            res = insert_quote (data->action, res);
+            first = FALSE;
+        }
+    } else {
+        return P_replace_func (info, res, user_data);
+    }
+
+    return TRUE;
+}
+
+static gboolean
+e_replace_func (const GMatchInfo *info,
+                GString          *res,
+                gpointer          user_data)
+{
+    ReplaceData *data = (ReplaceData *) user_data;
+
+    if (g_list_length (data->selection) > 0) {
+        gchar *file_display_name = nemo_file_get_display_name (NEMO_FILE (data->selection->data));
+        res = score_append (data->action, res, eel_filename_strip_extension (file_display_name));
+        g_free (file_display_name);
+    } else {
+        return R_replace_func (info, res, user_data);
+    }
+
+    return TRUE;
+}
+
+static gboolean
+X_replace_func (const GMatchInfo *info,
+                GString          *res,
+                gpointer          user_data)
+{
+    ReplaceData *data = (ReplaceData *) user_data;
+
+    g_string_append_printf (res, "%lu", eel_gtk_get_window_xid (data->window));
+
+    return TRUE;
+}
+
+static void
+replace (NemoAction         *action,
+         GList              *selection,
+         NemoFile           *parent,
+         GtkWindow          *window,
+         gchar             **str,
+         GRegex             *re,
+         GRegexEvalCallback  replace_func,
+         GError            **error)
+{
+    if (*error != NULL) {
+        return;
+    }
+
+    ReplaceData data;
+
+    data.action = action;
+    data.selection = selection;
+    data.parent = parent;
+    data.window = GTK_WINDOW (window);
+
+    *str = g_regex_replace_eval (re, *str, -1, 0, 0, replace_func, &data, error);
+}
+
+static gboolean
+process_formatting (NemoAction  *action,
+                    GList       *selection,
+                    NemoFile    *parent,
+                    GtkWindow   *window,
+                    gchar      **str)
+{
+    GError *error = NULL;
+    g_printerr ("Start: %s\n", *str);
+    replace (action, selection, parent, window, str, U_replace_regex, U_replace_func, &error);
+    g_printerr ("U: %s\n", *str);
+    replace (action, selection, parent, window, str, F_replace_regex, F_replace_func, &error);
+    g_printerr ("F: %s\n", *str);
+    replace (action, selection, parent, window, str, P_replace_regex, P_replace_func, &error);
+    g_printerr ("P: %s\n", *str);
+    replace (action, selection, parent, window, str, R_replace_regex, R_replace_func, &error);
+    g_printerr ("R: %s\n", *str);
+    replace (action, selection, parent, window, str, f_replace_regex, f_replace_func, &error);
+    g_printerr ("f: %s\n", *str);
+    replace (action, selection, parent, window, str, N_replace_regex, f_replace_func, &error);
+    g_printerr ("N: %s\n", *str);
+    replace (action, selection, parent, window, str, p_replace_regex, p_replace_func, &error);
+    g_printerr ("p: %s\n", *str);
+    replace (action, selection, parent, window, str, D_replace_regex, D_replace_func, &error);
+    g_printerr ("D: %s\n", *str);
+    replace (action, selection, parent, window, str, e_replace_regex, e_replace_func, &error);
+    g_printerr ("e: %s\n", *str);
+    replace (action, selection, parent, window, str, X_replace_regex, X_replace_func, &error);
+    g_printerr ("Finished: %s\n", *str);
+
+    if (error != NULL) {
+        g_critical ("Failed to parse action strings for '%s': %s", action->key_file_path, error->message);
+        return FALSE;
+    }
+
+    return TRUE;
 }
 
 void
@@ -1505,13 +1583,21 @@ nemo_action_activate (NemoAction *action,
                       GtkWindow  *window)
 {
     GError *error;
-    GString *exec = g_string_new (action->exec);
+    GString *exec;
 
     error = NULL;
 
     action->escape_underscores = FALSE;
 
-    exec = expand_action_string (action, selection, parent, exec, window);
+    gchar *str = g_strdup (action->exec);
+
+    if (!process_formatting (action, selection, parent, window, &str)) {
+        g_free (str);
+        return;
+    }
+
+    exec = g_string_new (str);
+    g_free (str);
 
     if (action->use_parent_dir) {
         exec = g_string_prepend (exec, G_DIR_SEPARATOR_S);
@@ -1558,7 +1644,6 @@ nemo_action_get_orig_tt (NemoAction *action)
     return action->orig_tt;
 }
 
-
 gchar *
 nemo_action_get_label (NemoAction *action,
                        GList      *selection,
@@ -1572,15 +1657,16 @@ nemo_action_get_label (NemoAction *action,
 
     action->escape_underscores = TRUE;
 
-    GString *str = g_string_new (orig_label);
+    gchar *str = g_strdup (orig_label);
 
-    str = expand_action_string (action, selection, parent, str, window);
+    if (!process_formatting (action, selection, parent, window, &str)) {
+        g_free (str);
+        return g_strdup (orig_label);
+    }
 
-    DEBUG ("Action Label: %s", str->str);
+    DEBUG ("Action Label: %s", str);
 
-    gchar *ret = str->str;
-    g_string_free (str, FALSE);
-    return ret;
+    return str;
 }
 
 gchar *
@@ -1596,15 +1682,16 @@ nemo_action_get_tt (NemoAction *action,
 
     action->escape_underscores = FALSE;
 
-    GString *str = g_string_new (orig_tt);
+    gchar *str = g_strdup (orig_tt);
 
-    str = expand_action_string (action, selection, parent, str, window);
+    if (!process_formatting (action, selection, parent, window, &str)) {
+        g_free (str);
+        return g_strdup (orig_tt);
+    }
 
-    DEBUG ("Action Tooltip: %s", str->str);
+    DEBUG ("Action Tooltip: %s", str);
 
-    gchar *ret = str->str;
-    g_string_free (str, FALSE);
-    return ret;
+    return str;
 }
 
 static gboolean
@@ -1617,7 +1704,7 @@ check_exec_condition (NemoAction  *action,
     GString *exec;
     GError *error;
     gint return_code;
-    gchar *exec_str;
+    gchar *str;
     gchar **split;
     gboolean use_parent_dir;
 
@@ -1633,19 +1720,20 @@ check_exec_condition (NemoAction  *action,
         return FALSE;
     }
 
-    strip_custom_modifier (split[1], &use_parent_dir, &exec_str);
+    strip_custom_modifier (split[1], &use_parent_dir, &str);
 
     g_strfreev (split);
 
-    exec = g_string_new (exec_str);
-
-    g_free (exec_str);
-
     error = NULL;
-
     action->escape_underscores = FALSE;
 
-    exec = expand_action_string (action, selection, parent, exec, window);
+    if (!process_formatting (action, selection, parent, window, &str)) {
+        g_free (str);
+        return FALSE;
+    }
+
+    exec = g_string_new (str);
+    g_free (str);
 
     if (use_parent_dir) {
         exec = g_string_prepend (exec, G_DIR_SEPARATOR_S);

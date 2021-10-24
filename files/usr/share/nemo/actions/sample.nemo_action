@@ -12,7 +12,7 @@
 
 # Whether this action is active.  For troubleshooting.
 # Optional - if this field is omitted, the action will be active
-Active=false
+Active=true
 
 # Standard tokens that can be used in the Name, Comment (tooltip) and Exec fields:
 #

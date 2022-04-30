@@ -1,3 +1,0 @@
-# Used by gnome-session
-# https://wiki.gnome.org/Projects/SessionManagement/GnomeSession
-nemo: desktop-entry-contains-unknown-key * AutostartCondition

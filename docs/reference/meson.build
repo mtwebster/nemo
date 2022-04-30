@@ -1,1 +1,0 @@
-subdir('libnemo-extension')

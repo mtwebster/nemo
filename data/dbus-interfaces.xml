@@ -41,5 +41,12 @@
       <arg type='s' name='DestinationDirectoryURI' direction='in'/>
       <arg type='s' name='DestinationDisplayName' direction='in'/>
     </method>
+    <!-- MRU nemo window's active view location -->
+    <property name="ActiveWindowURI" type="s" access="read"/>
+    <!-- MRU nemo window's active view selection. This only gets set if
+    only a single file is selected - it would be too heavy to try and handle
+    a large selection for now. If more than one item is selected, this gets
+    cleared. -->
+    <property name="ActiveWindowSelection" type="as" access="read"/>
   </interface>
 </node>

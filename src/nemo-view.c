@@ -91,6 +91,7 @@
 #include <libnemo-private/nemo-separator-action.h>
 #include <libnemo-private/nemo-action-manager.h>
 #include <libnemo-private/nemo-mime-application-chooser.h>
+#include <libnemo-private/nemo-dbus-manager.h>
 
 #define DEBUG_FLAG NEMO_DEBUG_DIRECTORY_VIEW
 #include <libnemo-private/nemo-debug.h>
@@ -3268,6 +3269,16 @@ nemo_view_send_selection_change (NemoView *view)
 	view->details->send_selection_change_to_shell = FALSE;
 }
 
+static gboolean
+view_is_current_or_mru (NemoView *view)
+{
+    NemoWindowSlot *slot = nemo_window_get_active_slot (view->details->window);
+    GtkApplication *app = GTK_APPLICATION (g_application_get_default ());
+
+    return gtk_application_get_active_window (app) == GTK_WINDOW (view->details->window) &&
+           nemo_window_slot_get_current_view (slot) == view;
+}
+
 void
 nemo_view_load_location (NemoView *nemo_view,
 			     GFile        *location)
@@ -3280,6 +3291,11 @@ nemo_view_load_location (NemoView *nemo_view,
 	directory = nemo_directory_get (location);
 	load_directory (directory_view, directory);
 	nemo_directory_unref (directory);
+
+    if (!NEMO_IS_DESKTOP_DIRECTORY (directory_view->details->model) && view_is_current_or_mru (directory_view)) {
+        NemoDBusManager *dbus = nemo_dbus_manager_get_singleton ();
+        nemo_dbus_manager_set_active_window_selection (dbus, NULL);
+    }
 }
 
 static gboolean
@@ -3328,6 +3344,16 @@ done_loading (NemoView *view,
 		schedule_update_menus (view);
 		schedule_update_status (view);
 		reset_update_interval (view);
+
+        if (!NEMO_IS_DESKTOP_DIRECTORY (view->details->model) && view_is_current_or_mru (view)) {
+            gchar *uri;
+
+            NemoDBusManager *dbus = nemo_dbus_manager_get_singleton ();
+
+            uri = nemo_view_get_uri (view);
+            nemo_dbus_manager_set_active_window_uri (dbus, uri);
+            g_free (uri);
+        }
 
 		selection = view->details->pending_selection;
 		if (selection != NULL && all_files_seen) {
@@ -3832,6 +3858,24 @@ display_selection_info_idle_callback (gpointer data)
 	if (view->details->send_selection_change_to_shell) {
 		nemo_view_send_selection_change (view);
 	}
+
+    if (!NEMO_IS_DESKTOP_DIRECTORY (view->details->model) && view_is_current_or_mru (view)) {
+        NemoDBusManager *dbus = nemo_dbus_manager_get_singleton ();
+
+        GList *selection = nemo_view_get_selection (view);
+
+        if (selection && selection->next == NULL) {
+            gchar *uri = nemo_file_get_uri (NEMO_FILE (selection->data));
+
+            const gchar *uri_list[] = { uri, NULL };
+            nemo_dbus_manager_set_active_window_selection (dbus, uri_list);
+            g_free (uri);
+        } else {
+            nemo_dbus_manager_set_active_window_selection (dbus, NULL);
+        }
+
+        nemo_file_list_free (selection);
+    }
 
 	g_object_unref (G_OBJECT (view));
 

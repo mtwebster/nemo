@@ -201,8 +201,36 @@ nemo_dbus_manager_class_init (NemoDBusManagerClass *klass)
 }
 
 NemoDBusManager *
-nemo_dbus_manager_new (void)
+nemo_dbus_manager_get_singleton (void)
 {
-  return g_object_new (nemo_dbus_manager_get_type (),
-                       NULL);
+    static gsize once_init = 0;
+    static NemoDBusManager *manager = NULL;
+
+    // We only need to set this at startup then cache the result, as we check
+    // quite a bit in various parts of the code.
+    if (g_once_init_enter (&once_init)) {
+        manager = g_object_new (nemo_dbus_manager_get_type (), NULL);
+
+        g_once_init_leave (&once_init, 1);
+    }
+
+    return manager;
+}
+
+void
+nemo_dbus_manager_set_active_window_uri (NemoDBusManager         *manager,
+                                         const gchar             *uri)
+{
+    g_return_if_fail (NEMO_IS_DBUS_MANAGER (manager));
+
+    nemo_dbus_file_operations_set_active_window_uri (manager->file_operations, uri);
+}
+
+void
+nemo_dbus_manager_set_active_window_selection (NemoDBusManager         *manager,
+                                               const gchar            **selection)
+{
+    g_return_if_fail (NEMO_IS_DBUS_MANAGER (manager));
+    g_printerr ("set %s\n", selection ? selection[0] : NULL);
+    nemo_dbus_file_operations_set_active_window_selection (manager->file_operations, selection);
 }

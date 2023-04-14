@@ -603,6 +603,15 @@ on_menu_selection_done (GtkMenuShell *menushell,
 }
 
 static void
+on_window_active_changed (GtkWindow  *window,
+                          GParamSpec *pspec,
+                          gpoiner     user_data)
+{
+    if 
+}
+
+
+static void
 nemo_window_constructed (GObject *self)
 {
 	NemoWindow *window;
@@ -763,6 +772,10 @@ nemo_window_constructed (GObject *self)
                               "notify::scale-factor",
                               G_CALLBACK (nemo_window_reload),
                               window);
+
+    g_signal_connect (GTK_APPLICATION (g_application_get_default (),
+                      "notify::active-window",
+                      G_CALLBACK (on_app_window_active_changed), NULL);
 }
 
 static void
@@ -866,6 +879,10 @@ nemo_window_finalize (GObject *object)
 
     g_signal_handlers_disconnect_by_func (nemo_preferences,
                                           nemo_window_sync_thumbnail_action,
+                                          window);
+
+    g_signal_handlers_disconnect_by_func (GTK_APPLICATION (g_application_get_default ()),
+                                          on_app_window_active_changed,
                                           window);
 
     clear_menu_hide_delay (window);

@@ -27,10 +27,10 @@
 #include <glib-object.h>
 #include <gio/gio.h>
 
-typedef struct _NemoDBusManager NemoDBusManager;
-typedef struct _NemoDBusManagerClass NemoDBusManagerClass;
+#define NEMO_TYPE_DBUS_MANAGER nemo_dbus_manager_get_type ()
+G_DECLARE_FINAL_TYPE (NemoDBusManager, nemo_dbus_manager, NEMO, DBUS_MANAGER, GObject)
 
-GType nemo_dbus_manager_get_type (void);
-NemoDBusManager * nemo_dbus_manager_new (void);
-
+NemoDBusManager * nemo_dbus_manager_get_singleton (void);
+void nemo_dbus_manager_set_active_window_uri (NemoDBusManager *manager, const gchar *uri);
+void nemo_dbus_manager_set_active_window_selection (NemoDBusManager *manager, const gchar **selection);
 #endif /* __NEMO_DBUS_MANAGER_H__ */

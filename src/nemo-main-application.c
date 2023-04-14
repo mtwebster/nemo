@@ -896,7 +896,7 @@ nemo_main_application_continue_startup (NemoApplication *app)
 	NemoMainApplication *self = NEMO_MAIN_APPLICATION (app);
 
 	/* create DBus manager */
-	self->priv->dbus_manager = nemo_dbus_manager_new ();
+	self->priv->dbus_manager = nemo_dbus_manager_get_singleton ();
 	self->priv->fdb_manager = nemo_freedesktop_dbus_new ();
 
     /* Check the user's ~/.config/nemo directory and post warnings

@@ -168,6 +168,7 @@ enum {
 	SELECTION_CHANGED,
 	TRASH,
 	DELETE,
+    SHOW_DROP_BAR,
 	LAST_SIGNAL
 };
 
@@ -10785,6 +10786,14 @@ nemo_view_get_uri (NemoView *view)
 	return nemo_directory_get_uri (view->details->model);
 }
 
+gboolean
+nemo_view_contains_pointer (NemoView *view)
+{
+    g_return_val_if_fail (NEMO_IS_VIEW (view), FALSE);
+
+    return NEMO_VIEW_CLASS (G_OBJECT_GET_CLASS (view))->contains_pointer (view);
+}
+
 void
 nemo_view_move_copy_items (NemoView *view,
 			       const GList *item_uris,
@@ -11187,6 +11196,14 @@ nemo_view_class_init (NemoViewClass *klass)
 			      g_signal_accumulator_true_handled, NULL,
 			      g_cclosure_marshal_generic,
 			      G_TYPE_BOOLEAN, 0);
+    signals[SHOW_DROP_BAR] =
+        g_signal_new ("show-drop-bar",
+                  G_TYPE_FROM_CLASS (klass),
+                  G_SIGNAL_RUN_LAST,
+                  0,
+                  NULL, NULL,
+                  g_cclosure_marshal_VOID__VOID,
+                  G_TYPE_NONE, 0);
 
 	klass->get_selected_icon_locations = real_get_selected_icon_locations;
 	klass->is_read_only = real_is_read_only;

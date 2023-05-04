@@ -1771,11 +1771,18 @@ get_file_for_path_callback (NemoTreeViewDragDest *dest,
 			    GtkTreePath *path,
 			    gpointer user_data)
 {
-	NemoListView *view;
+    NemoListView *view;
+    NemoFile *file;
 
-	view = NEMO_LIST_VIEW (user_data);
+    view = NEMO_LIST_VIEW (user_data);
 
-	return nemo_list_model_file_for_path (view->details->model, path);
+    file = nemo_list_model_file_for_path (view->details->model, path);
+
+    if (!view->details->drag_started) {
+        g_signal_emit_by_name (NEMO_VIEW (view), "show-drop-bar");
+    }
+
+    return file;
 }
 
 /* Handles an URL received from Mozilla */
@@ -3944,6 +3951,32 @@ nemo_list_view_click_policy_changed (NemoView *directory_view)
 	}
 }
 
+static gboolean
+nemo_list_view_contains_pointer (NemoView *view)
+{
+    NemoListView *list_view = NEMO_LIST_VIEW (view);
+    GdkWindow *bin_window;
+    GdkSeat *seat;
+    GdkDevice *device;
+
+    bin_window = gtk_tree_view_get_bin_window (list_view->details->tree_view);
+    seat = gdk_display_get_default_seat (gdk_display_get_default ());
+
+    if (seat != NULL) {
+        device = gdk_seat_get_pointer (seat);
+
+        if (device != NULL) {
+            gint x, y;
+            // During a drag, the returned window here will be the drag window, not the view's, but the position
+            // will be correct relative to bin_window.
+            gdk_window_get_device_position (bin_window, device, &x, &y, NULL);
+            return  (gdk_window_get_width (bin_window) > x && x > 0) && (gdk_window_get_height (bin_window) > y && y > 0); 
+        }
+    }
+
+    return FALSE;
+}
+
 static void
 default_sort_order_changed_callback (gpointer callback_data)
 {
@@ -4278,6 +4311,7 @@ nemo_list_view_class_init (NemoListViewClass *class)
 	nemo_view_class->get_first_visible_file = nemo_list_view_get_first_visible_file;
 	nemo_view_class->scroll_to_file = list_view_scroll_to_file;
     nemo_view_class->click_to_rename_mode_changed = nemo_list_view_click_to_rename_mode_changed;
+    nemo_view_class->contains_pointer = nemo_list_view_contains_pointer;
 }
 
 static void

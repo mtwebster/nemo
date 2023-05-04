@@ -1636,6 +1636,12 @@ nemo_icon_view_widget_to_file_operation_position (NemoView *view,
 		(get_icon_container (NEMO_ICON_VIEW (view)), position);
 }
 
+static gboolean
+nemo_icon_view_contains_pointer (NemoView *view)
+{
+    return FALSE;
+}
+
 static void
 icon_container_activate_callback (NemoIconContainer *container,
 				  GList *file_list,
@@ -2240,7 +2246,6 @@ nemo_icon_view_update_click_to_rename_mode (NemoIconView *icon_view)
                                                      enabled);
 }
 
-
 static gboolean
 get_stored_layout_timestamp (NemoIconContainer *container,
 			     NemoIconData *icon_data,
@@ -2738,6 +2743,7 @@ nemo_icon_view_class_init (NemoIconViewClass *klass)
 	nemo_view_class->get_view_id = nemo_icon_view_get_id;
 	nemo_view_class->get_first_visible_file = icon_view_get_first_visible_file;
 	nemo_view_class->scroll_to_file = icon_view_scroll_to_file;
+    nemo_view_class->contains_pointer = nemo_icon_view_contains_pointer;
 
 	properties[PROP_COMPACT] =
 		g_param_spec_boolean ("compact",

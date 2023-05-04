@@ -312,6 +312,9 @@ struct NemoViewClass {
 	void           (* scroll_to_file)	  (NemoView          *view,
 						   const char            *uri);
 
+    gboolean (* contains_pointer)             (NemoView *view);
+
+
         /* Signals used only for keybindings */
         gboolean (* trash)                         (NemoView *view);
         gboolean (* delete)                        (NemoView *view);
@@ -435,5 +438,5 @@ void              nemo_view_pop_up_location_context_menu (NemoView    *view,
 void              nemo_view_grab_focus                 (NemoView      *view);
 void              nemo_view_update_menus               (NemoView      *view);
 void              nemo_view_new_folder                 (NemoView      *view);
-
+gboolean          nemo_view_contains_pointer           (NemoView      *view);
 #endif /* NEMO_VIEW_H */

@@ -29,7 +29,7 @@
 G_DEFINE_TYPE (NemoActionManager, nemo_action_manager, G_TYPE_OBJECT);
 
 static void     refresh_actions                 (NemoActionManager *action_manager, NemoDirectory *directory);
-static void     add_action_to_action_list       (NemoActionManager *action_manager, NemoFile *file);
+static void     add_action_to_action_list       (NemoActionManager *action_manager, NemoFile *file, const gchar *relative_path);
 
 static gpointer parent_class;
 
@@ -179,27 +179,56 @@ sort_file_list_cb (gconstpointer a, gconstpointer b)
 }
 
 static void
-process_directory_actions (NemoActionManager *action_manager,
-                           NemoDirectory     *directory)
+process_one_directory (NemoActionManager *action_manager,
+                       NemoDirectory     *directory,
+                       NemoDirectory     *starting_dir)
 {
+    GFile *toplevel_gf, *current_dir_gf;
     GList *file_list, *node;
-
-    gchar *uri = nemo_directory_get_uri (directory);
-    DEBUG ("Processing directory: %s", uri);
-    g_free (uri);
+    gchar *relative_path;
 
     file_list = nemo_directory_get_file_list (directory);
     file_list = g_list_sort (file_list, sort_file_list_cb);
     for (node = file_list; node != NULL; node = node->next) {
         NemoFile *file = node->data;
+        g_printerr ("before skip: %s\n", nemo_file_peek_name (file));
+        if (nemo_file_is_directory (file)) {
+            g_printerr ("is dir\n");
+            NemoDirectory *subdir = nemo_directory_get_for_file (file);
+            process_one_directory (action_manager, subdir, starting_dir);
+            add_directory_to_actions_directory_list (action_manager, subdir);
+            nemo_directory_unref (subdir);
+            continue;
+        }
+
         if (!g_str_has_suffix (nemo_file_peek_name (file), ".nemo_action") ||
             !nemo_global_preferences_should_load_plugin (nemo_file_peek_name (file), NEMO_PLUGIN_PREFERENCES_DISABLED_ACTIONS))
             continue;
 
-        DEBUG ("Found: %s", nemo_file_peek_name (file));
-        add_action_to_action_list (action_manager, file);
+        g_printerr ("Found to add: %s\n", nemo_file_peek_name (file));
+
+        toplevel_gf = nemo_directory_get_location (starting_dir);
+        current_dir_gf = nemo_directory_get_location (directory);
+        relative_path = g_file_get_relative_path (toplevel_gf, current_dir_gf);
+
+        add_action_to_action_list (action_manager, file, relative_path);
+
+        g_object_unref (toplevel_gf);
+        g_object_unref (current_dir_gf);
+        g_free (relative_path);
     }
     nemo_file_list_free (file_list);
+}
+
+static void
+process_directory_actions (NemoActionManager *action_manager,
+                           NemoDirectory     *directory)
+{
+    gchar *uri = nemo_directory_get_uri (directory);
+    DEBUG ("Processing directory: %s", uri);
+    g_free (uri);
+
+    process_one_directory (action_manager, directory, directory);
 }
 
 static void
@@ -294,7 +323,9 @@ on_action_condition_changed (NemoActionManager *action_manager)
 }
 
 static void
-add_action_to_action_list (NemoActionManager *action_manager, NemoFile *file)
+add_action_to_action_list (NemoActionManager *action_manager,
+                           NemoFile          *file,
+                           const gchar       *relative_path)
 {
     gchar *uri;
     gchar *action_name;
@@ -305,7 +336,7 @@ add_action_to_action_list (NemoActionManager *action_manager, NemoFile *file)
     action_name = escape_action_name (uri, "action_");
     gchar *path = g_filename_from_uri (uri, NULL, NULL);
 
-    action = nemo_action_new (action_name, path);
+    action = nemo_action_new (action_name, path, relative_path);
 
     g_free (path);
     g_free (uri);

@@ -6440,9 +6440,20 @@ update_actions (NemoView *view)
 
     for (node = action_list; node != NULL; node = node->next) {
         action = node->data;
-        add_action_to_action_menus (view, action, NEMO_VIEW_MENU_PATH_ACTIONS_PLACEHOLDER,
-                                                  NEMO_VIEW_POPUP_PATH_ACTIONS_PLACEHOLDER,
-                                                  NEMO_VIEW_POPUP_PATH_BACKGROUND_ACTIONS_PLACEHOLDER);
+
+        g_printerr ("rel is '%s'\n", action->relative_ui_path);
+        gchar *menubar_full_path = g_strconcat (NEMO_VIEW_MENU_PATH_ACTIONS_PLACEHOLDER, "/", action->relative_ui_path, NULL);
+        gchar *popup_full_path = g_strconcat (NEMO_VIEW_POPUP_PATH_ACTIONS_PLACEHOLDER, "/", action->relative_ui_path, NULL);
+        gchar *popup_bg_full_path = g_strconcat (NEMO_VIEW_POPUP_PATH_BACKGROUND_ACTIONS_PLACEHOLDER, "/", action->relative_ui_path, NULL);
+
+        g_printerr ("%s\n%s\n%s\n", menubar_full_path, popup_full_path, popup_bg_full_path);
+
+        add_action_to_action_menus (view, action, menubar_full_path, popup_full_path, popup_bg_full_path);
+
+        g_free (menubar_full_path);
+        g_free (popup_full_path);
+        g_free (popup_bg_full_path);
+
     }
 }
 

@@ -135,6 +135,8 @@ struct _NemoAction {
     gboolean run_in_terminal;
     gchar *uri_scheme;
 
+    gchar *relative_ui_path; // For constructing menu hierarchy
+
     gboolean constructing;
 };
 
@@ -143,7 +145,7 @@ struct _NemoActionClass {
 };
 
 GType         nemo_action_get_type             (void);
-NemoAction   *nemo_action_new                  (const gchar *name, const gchar *path);
+NemoAction   *nemo_action_new                  (const gchar *name, const gchar *path, const gchar *relative_ui_path);
 void          nemo_action_activate             (NemoAction *action, GList *selection, NemoFile *parent, GtkWindow *window);
 
 const gchar  *nemo_action_get_orig_label       (NemoAction *action);

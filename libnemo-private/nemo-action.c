@@ -69,6 +69,7 @@ enum
   PROP_RUN_IN_TERMINAL,
   PROP_CONDITIONS,
   PROP_URI_SCHEME,
+  PROP_RELATIVE_UI_PATH,
   PROP_LAST
 };
 
@@ -285,6 +286,15 @@ nemo_action_class_init (NemoActionClass *klass)
                                      g_param_spec_string ("uri-scheme",
                                                           "Limit selection by uri scheme (like file, sftp, etc...)",
                                                           "Limit selection by uri scheme (like file, sftp, etc...)",
+                                                          NULL,
+                                                          G_PARAM_READWRITE)
+                                     );
+
+    g_object_class_install_property (object_class,
+                                     PROP_RELATIVE_UI_PATH,
+                                     g_param_spec_string ("relative-ui-path",
+                                                          "Path of action's parent directory, relative to the base actions directory.",
+                                                          "Path of action's parent directory, relative to the base actions directory.",
                                                           NULL,
                                                           G_PARAM_READWRITE)
                                      );
@@ -873,7 +883,8 @@ nemo_action_constructed (GObject *object)
 
 NemoAction *
 nemo_action_new (const gchar *name, 
-                 const gchar *path)
+                 const gchar *path,
+                 const gchar *relative_ui_path)
 {
     GKeyFile *key_file = g_key_file_new();
 
@@ -985,6 +996,7 @@ nemo_action_new (const gchar *name,
     return finish ? g_object_new (NEMO_TYPE_ACTION,
                                   "name", name,
                                   "key-file-path", path,
+                                  "relative-ui-path", relative_ui_path,
                                   NULL): NULL;
 }
 
@@ -1003,6 +1015,7 @@ nemo_action_finalize (GObject *object)
     g_free (action->orig_tt);
     g_free (action->separator);
     g_free (action->uri_scheme);
+    g_free (action->relative_ui_path);
 
     if (action->dbus) {
         g_list_free_full (action->dbus, (GDestroyNotify) dbus_condition_free);
@@ -1085,6 +1098,9 @@ nemo_action_set_property (GObject         *object,
     case PROP_URI_SCHEME:
       action->uri_scheme = g_strdup (g_value_get_string (value));
       break;
+    case PROP_RELATIVE_UI_PATH:
+      action->relative_ui_path = g_strdup (g_value_get_string (value));
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -1147,6 +1163,9 @@ nemo_action_get_property (GObject    *object,
       break;
     case PROP_URI_SCHEME:
       g_value_set_string (value, action->uri_scheme);
+      break;
+    case PROP_RELATIVE_UI_PATH:
+      g_value_set_string (value, action->relative_ui_path);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);

@@ -23,4 +23,5 @@ jobs:
       ############################## Comma separated list - like 'linuxmint/xapp, linuxmint/cinnamon-desktop'
       dependencies: linuxmint/xapp, linuxmint/cinnamon-desktop, linuxmint/cinnamon-translations
       ##############################
+      skip_builds: mint21
 

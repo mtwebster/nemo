@@ -1730,6 +1730,18 @@ cell_renderer_editing_started_cb (GtkCellRenderer *renderer,
 
 	list_view->details->original_name = g_strdup (gtk_entry_get_text (entry));
 
+	/* GtkCellRendererText installs a focus-out-event handler that
+	 * unconditionally sets "editing-canceled" to TRUE, which reverts
+	 * the rename whenever the entry briefly loses focus — e.g. when
+	 * ibus-gtk3 steals focus for the keyboard layout switch shortcut.
+	 * Block that handler; Escape still cancels via the entry's own
+	 * key-press handler. Issue #3697. */
+	g_signal_handlers_block_matched (entry,
+	                                 G_SIGNAL_MATCH_ID | G_SIGNAL_MATCH_DATA,
+	                                 g_signal_lookup ("focus-out-event", GTK_TYPE_WIDGET),
+	                                 0, NULL, NULL,
+	                                 renderer);
+
 	g_signal_connect (entry, "focus-out-event",
 			  G_CALLBACK (editable_focus_out_cb), list_view);
 

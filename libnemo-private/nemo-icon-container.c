@@ -4924,6 +4924,18 @@ handle_focus_in_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_da
 static gboolean
 handle_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data)
 {
+	GtkWidget *toplevel;
+
+	toplevel = gtk_widget_get_toplevel (widget);
+	if (GTK_IS_WINDOW (toplevel) && gtk_window_is_active (GTK_WINDOW (toplevel))) {
+		/* Our window still has WM focus, so focus was stolen by a
+		 * transient (e.g. an input-method popup triggered by the
+		 * keyboard layout switch shortcut with ibus-gtk3). Don't
+		 * commit the rename here; let the user confirm with Enter or
+		 * cancel with Escape. Issue #3697. */
+		return FALSE;
+	}
+
 	/* End renaming and commit change. */
 	nemo_icon_container_end_renaming_mode (NEMO_ICON_CONTAINER (widget), TRUE);
 	update_selected (NEMO_ICON_CONTAINER (widget));

@@ -376,6 +376,10 @@ void                nemo_view_unfreeze_updates                 (NemoView  *view)
 gboolean            nemo_view_get_is_renaming                  (NemoView  *view);
 void                nemo_view_set_is_renaming                  (NemoView  *view,
 								    gboolean       renaming);
+void                nemo_view_queue_rename_next                (NemoView  *view,
+								    NemoFile      *next_file);
+void                nemo_view_consume_queued_rename            (NemoView  *view);
+void                nemo_view_clear_queued_rename              (NemoView  *view);
 void                nemo_view_add_subdirectory                (NemoView  *view,
 								   NemoDirectory*directory);
 void                nemo_view_remove_subdirectory             (NemoView  *view,

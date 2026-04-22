@@ -1966,6 +1966,23 @@ icon_position_changed_callback (NemoIconContainer *container,
 	nemo_file_set_metadata (file, NEMO_METADATA_KEY_ICON_SCALE, "1.0", scale_string);
 }
 
+static void
+nemo_icon_view_rename_callback (NemoFile *file,
+				GFile *result_location,
+				GError *error,
+				gpointer callback_data)
+{
+	NemoIconView *icon_view = NEMO_ICON_VIEW (callback_data);
+
+	if (error == NULL) {
+		nemo_view_consume_queued_rename (NEMO_VIEW (icon_view));
+	} else {
+		nemo_view_clear_queued_rename (NEMO_VIEW (icon_view));
+	}
+
+	g_object_unref (icon_view);
+}
+
 /* Attempt to change the filename to the new text.  Notify user if operation fails. */
 static void
 icon_rename_ended_cb (NemoIconContainer *container,
@@ -1973,18 +1990,33 @@ icon_rename_ended_cb (NemoIconContainer *container,
 		      const char *new_name,
 		      NemoIconView *icon_view)
 {
+	NemoFile *next;
+
 	g_assert (NEMO_IS_FILE (file));
 
 	nemo_view_set_is_renaming (NEMO_VIEW (icon_view), FALSE);
+
+	next = nemo_icon_container_take_pending_tab_advance (container);
+	if (next != NULL) {
+		nemo_view_queue_rename_next (NEMO_VIEW (icon_view), next);
+		nemo_file_unref (next);
+	}
 
 	/* Don't allow a rename with an empty string. Revert to original
 	 * without notifying the user.
 	 */
 	if ((new_name == NULL) || (new_name[0] == '\0')) {
+		if (new_name == NULL && next != NULL) {
+			/* Tab on unchanged name: no async rename fires, so consume now. */
+			nemo_view_consume_queued_rename (NEMO_VIEW (icon_view));
+		} else {
+			nemo_view_clear_queued_rename (NEMO_VIEW (icon_view));
+		}
 		return;
 	}
 
-	nemo_rename_file (file, new_name, NULL, NULL);
+	nemo_rename_file (file, new_name,
+			  nemo_icon_view_rename_callback, g_object_ref (icon_view));
 }
 
 static void

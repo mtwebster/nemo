@@ -234,6 +234,8 @@ struct NemoViewDetails
 
 	guint delayed_rename_file_id;
 
+	NemoFile *pending_rename_tab_file;
+
 	GList *new_added_files;
 	GList *new_changed_files;
 
@@ -1855,6 +1857,41 @@ delayed_rename_file_hack_removed (RenameData *data)
 }
 
 
+static void rename_file (NemoView *view, NemoFile *new_file);
+
+void
+nemo_view_queue_rename_next (NemoView *view, NemoFile *next_file)
+{
+	g_return_if_fail (NEMO_IS_VIEW (view));
+
+	g_clear_pointer (&view->details->pending_rename_tab_file, nemo_file_unref);
+	if (next_file != NULL) {
+		view->details->pending_rename_tab_file = nemo_file_ref (next_file);
+	}
+}
+
+void
+nemo_view_consume_queued_rename (NemoView *view)
+{
+	NemoFile *next;
+
+	g_return_if_fail (NEMO_IS_VIEW (view));
+
+	next = g_steal_pointer (&view->details->pending_rename_tab_file);
+	if (next != NULL) {
+		rename_file (view, next);
+		nemo_file_unref (next);
+	}
+}
+
+void
+nemo_view_clear_queued_rename (NemoView *view)
+{
+	g_return_if_fail (NEMO_IS_VIEW (view));
+
+	g_clear_pointer (&view->details->pending_rename_tab_file, nemo_file_unref);
+}
+
 static void
 rename_file (NemoView *view, NemoFile *new_file)
 {
@@ -2953,6 +2990,8 @@ nemo_view_destroy (GtkWidget *object)
 		g_source_remove (view->details->delayed_rename_file_id);
 		view->details->delayed_rename_file_id = 0;
 	}
+
+	g_clear_pointer (&view->details->pending_rename_tab_file, nemo_file_unref);
 
 	if (view->details->model) {
 		nemo_directory_unref (view->details->model);

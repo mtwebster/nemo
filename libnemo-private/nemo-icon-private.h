@@ -26,6 +26,7 @@
 #define NEMO_ICON_CONTAINER_PRIVATE_H
 
 #include <eel/eel-glib-extensions.h>
+#include <libnemo-private/nemo-file.h>
 #include <libnemo-private/nemo-icon-canvas-item.h>
 #include <libnemo-private/nemo-icon-container.h>
 #include <libnemo-private/nemo-icon-dnd.h>
@@ -190,6 +191,7 @@ struct NemoIconContainerDetails {
 
 	GtkWidget *rename_widget;	/* Editable text item */
 	char *original_text;			/* Copy of editable text for later compare */
+	NemoFile *pending_tab_advance_file;	/* Next file to rename after Tab-commit */
 
 	char *font; 	/* specific fonts used to draw labels */
         gboolean renaming;
@@ -352,6 +354,7 @@ double        nemo_icon_container_get_mirror_x_position (NemoIconContainer *cont
 void          nemo_icon_container_set_rtl_positions (NemoIconContainer *container);
 void          nemo_icon_container_end_renaming_mode (NemoIconContainer *container, gboolean commit);
 NemoIcon     *nemo_icon_container_get_icon_being_renamed (NemoIconContainer *container);
+NemoFile     *nemo_icon_container_take_pending_tab_advance (NemoIconContainer *container);
 
 void              nemo_icon_container_icon_set_position (NemoIconContainer *container,
                                                          NemoIcon          *icon,

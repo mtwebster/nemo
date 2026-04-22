@@ -1714,6 +1714,72 @@ editable_focus_out_cb (GtkWidget *widget,
     return GDK_EVENT_PROPAGATE;
 }
 
+static NemoFile *
+find_next_renameable_file_list_view (NemoListView *view, gboolean forward)
+{
+	GtkTreePath *path = NULL;
+	NemoFile *result = NULL;
+
+	gtk_tree_view_get_cursor (view->details->tree_view, &path, NULL);
+	if (path == NULL) {
+		return NULL;
+	}
+
+	while (TRUE) {
+		NemoFile *file;
+
+		if (forward) {
+			gtk_tree_path_next (path);
+		} else {
+			if (!gtk_tree_path_prev (path)) {
+				break;
+			}
+		}
+
+		file = nemo_list_model_file_for_path (view->details->model, path);
+		if (file == NULL) {
+			break;
+		}
+
+		if (nemo_file_can_rename (file)) {
+			result = file;
+			break;
+		}
+		nemo_file_unref (file);
+	}
+
+	gtk_tree_path_free (path);
+	return result;
+}
+
+static gboolean
+editable_key_press_cb (GtkWidget *widget, GdkEventKey *event, NemoListView *list_view)
+{
+	gboolean forward;
+	NemoFile *next;
+
+	if (event->keyval != GDK_KEY_Tab &&
+	    event->keyval != GDK_KEY_ISO_Left_Tab) {
+		return GDK_EVENT_PROPAGATE;
+	}
+
+	forward = (event->keyval == GDK_KEY_Tab) && !(event->state & GDK_SHIFT_MASK);
+	next = find_next_renameable_file_list_view (list_view, forward);
+
+	if (next == NULL) {
+		gtk_widget_error_bell (widget);
+		return GDK_EVENT_STOP;
+	}
+
+	nemo_view_queue_rename_next (NEMO_VIEW (list_view), next);
+	nemo_file_unref (next);
+
+	gtk_cell_editable_editing_done (GTK_CELL_EDITABLE (widget));
+	gtk_cell_editable_remove_widget (GTK_CELL_EDITABLE (widget));
+
+	return GDK_EVENT_STOP;
+}
+
 static void
 cell_renderer_editing_started_cb (GtkCellRenderer *renderer,
 				  GtkCellEditable *editable,
@@ -1745,6 +1811,9 @@ cell_renderer_editing_started_cb (GtkCellRenderer *renderer,
 	g_signal_connect (entry, "focus-out-event",
 			  G_CALLBACK (editable_focus_out_cb), list_view);
 
+	g_signal_connect (entry, "key-press-event",
+			  G_CALLBACK (editable_key_press_cb), list_view);
+
 	nemo_clipboard_set_up_editable
 		(GTK_EDITABLE (entry),
 		 nemo_view_get_ui_manager (NEMO_VIEW (list_view)),
@@ -1757,6 +1826,7 @@ cell_renderer_editing_canceled (GtkCellRendererText *cell,
 {
     view->details->editable_widget = NULL;
 	nemo_view_set_is_renaming (NEMO_VIEW (view), FALSE);
+	nemo_view_clear_queued_rename (NEMO_VIEW (view));
 	nemo_view_unfreeze_updates (NEMO_VIEW (view));
 }
 
@@ -1780,6 +1850,7 @@ cell_renderer_edited (GtkCellRendererText *cell,
 		g_object_set (G_OBJECT (view->details->file_name_cell),
 			      "editable", FALSE,
 			      NULL);
+		nemo_view_clear_queued_rename (NEMO_VIEW (view));
 		nemo_view_unfreeze_updates (NEMO_VIEW (view));
 		return;
 	}
@@ -1803,6 +1874,9 @@ cell_renderer_edited (GtkCellRendererText *cell,
 		nemo_rename_file (file, new_text, nemo_list_view_rename_callback, g_object_ref (view));
 		g_free (view->details->original_name);
 		view->details->original_name = g_strdup (new_text);
+	} else {
+		/* Name unchanged — no async rename fires, so consume any Tab-queued advance now. */
+		nemo_view_consume_queued_rename (NEMO_VIEW (view));
 	}
 
 	nemo_file_unref (file);
@@ -3168,6 +3242,12 @@ nemo_list_view_rename_callback (NemoFile *file,
 			nemo_file_unref (view->details->renaming_file);
 			view->details->renaming_file = NULL;
 		}
+	}
+
+	if (error == NULL) {
+		nemo_view_consume_queued_rename (NEMO_VIEW (view));
+	} else {
+		nemo_view_clear_queued_rename (NEMO_VIEW (view));
 	}
 
 	g_object_unref (view);

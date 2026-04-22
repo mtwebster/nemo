@@ -2783,6 +2783,8 @@ finalize (GObject *object)
 
     g_free (details->view_constants);
 
+    g_clear_pointer (&details->pending_tab_advance_file, nemo_file_unref);
+
     g_list_free (details->current_selection);
     g_free(details);
 
@@ -6896,6 +6898,73 @@ is_renaming (NemoIconContainer *container)
 	return container->details->renaming;
 }
 
+static NemoFile *
+find_next_renameable_icon_file (NemoIconContainer *container,
+                                NemoIcon *current,
+                                gboolean forward)
+{
+	GList *item;
+
+	item = g_list_find (container->details->icons, current);
+	if (item == NULL) {
+		return NULL;
+	}
+
+	for (item = forward ? item->next : item->prev;
+	     item != NULL;
+	     item = forward ? item->next : item->prev) {
+		NemoIcon *icon = item->data;
+		NemoFile *file = NEMO_FILE (icon->data);
+
+		if (file != NULL && nemo_file_can_rename (file)) {
+			return file;
+		}
+	}
+	return NULL;
+}
+
+static gboolean
+rename_widget_key_press_cb (GtkWidget *widget,
+                            GdkEventKey *event,
+                            NemoIconContainer *container)
+{
+	NemoIcon *current;
+	NemoFile *next;
+	gboolean forward;
+
+	if (event->keyval != GDK_KEY_Tab &&
+	    event->keyval != GDK_KEY_ISO_Left_Tab) {
+		return GDK_EVENT_PROPAGATE;
+	}
+
+	if (!is_renaming (container)) {
+		return GDK_EVENT_PROPAGATE;
+	}
+
+	forward = (event->keyval == GDK_KEY_Tab) && !(event->state & GDK_SHIFT_MASK);
+	current = nemo_icon_container_get_icon_being_renamed (container);
+	next = (current != NULL) ? find_next_renameable_icon_file (container, current, forward) : NULL;
+
+	if (next == NULL) {
+		gtk_widget_error_bell (widget);
+		return GDK_EVENT_STOP;
+	}
+
+	g_clear_pointer (&container->details->pending_tab_advance_file, nemo_file_unref);
+	container->details->pending_tab_advance_file = nemo_file_ref (next);
+
+	nemo_icon_container_end_renaming_mode (container, TRUE);
+	return GDK_EVENT_STOP;
+}
+
+NemoFile *
+nemo_icon_container_take_pending_tab_advance (NemoIconContainer *container)
+{
+	g_return_val_if_fail (NEMO_IS_ICON_CONTAINER (container), NULL);
+
+	return g_steal_pointer (&container->details->pending_tab_advance_file);
+}
+
 /**
  * nemo_icon_container_start_renaming_selected_item
  * @container: An icon container widget.
@@ -6973,6 +7042,9 @@ nemo_icon_container_start_renaming_selected_item (NemoIconContainer *container,
 		gtk_misc_set_padding (GTK_MISC (details->rename_widget), 1, 1);
 		gtk_layout_put (GTK_LAYOUT (container),
 				details->rename_widget, 0, 0);
+
+		g_signal_connect (details->rename_widget, "key-press-event",
+				  G_CALLBACK (rename_widget_key_press_cb), container);
 	}
 
 	/* Set the right font */

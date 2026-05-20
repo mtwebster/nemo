@@ -29,6 +29,7 @@
 #include "nemo-file-attributes.h"
 #include "nemo-file-private.h"
 #include "nemo-file-utilities.h"
+#include "nemo-archive-directory.h"
 #include "nemo-search-directory.h"
 #include "nemo-global-preferences.h"
 #include "nemo-lib-self-check-functions.h"
@@ -455,7 +456,22 @@ nemo_directory_get_name_for_self_as_new_file (NemoDirectory *directory)
 {
 	char *directory_uri;
 	char *name, *colon;
-	
+
+	/* Archive root: the file that represents the archive's directory is
+	 * actually the archive file itself — use its on-disk basename so the
+	 * pathbar and selection both look sensible. */
+	if (NEMO_IS_ARCHIVE_DIRECTORY (directory)) {
+		char *uri = nemo_directory_get_uri (directory);
+		char *archive_path = NULL;
+		eel_archive_uri_parse (uri, &archive_path, NULL);
+		g_free (uri);
+		if (archive_path != NULL) {
+			name = g_path_get_basename (archive_path);
+			g_free (archive_path);
+			return name;
+		}
+	}
+
 	directory_uri = nemo_directory_get_uri (directory);
 
 	colon = strchr (directory_uri, ':');
@@ -465,7 +481,7 @@ nemo_directory_get_name_for_self_as_new_file (NemoDirectory *directory)
 		name = g_strndup (directory_uri, colon - directory_uri);
 	}
 	g_free (directory_uri);
-	
+
 	return name;
 }
 
@@ -497,6 +513,8 @@ nemo_directory_new (GFile *location)
 		directory = NEMO_DIRECTORY (g_object_new (NEMO_TYPE_DESKTOP_DIRECTORY, NULL));
 	} else if (eel_uri_is_search (uri)) {
 		directory = NEMO_DIRECTORY (g_object_new (NEMO_TYPE_SEARCH_DIRECTORY, NULL));
+	} else if (eel_uri_is_archive (uri)) {
+		directory = NEMO_DIRECTORY (g_object_new (NEMO_TYPE_ARCHIVE_DIRECTORY, NULL));
 	} else {
 		directory = NEMO_DIRECTORY (g_object_new (NEMO_TYPE_VFS_DIRECTORY, NULL));
 	}

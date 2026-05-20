@@ -83,6 +83,130 @@ eel_uri_is_computer (const char *uri)
 }
 
 gboolean
+eel_uri_is_archive (const char *uri)
+{
+	return g_str_has_prefix (uri, EEL_ARCHIVE_URI);
+}
+
+/* Builds x-nemo-archive://<escaped-archive-path>/<inside-path>
+ *
+ * Putting the archive path in the URI authority (host) component lets GIO's
+ * g_file_get_parent() walk inside-paths naturally without crossing the
+ * archive boundary, and yields parent=NULL at the archive root for the
+ * self-owned-file semantics nemo_file_get_internal expects.
+ *
+ * archive_path must be an absolute filesystem path. inside may be NULL or "" for
+ * the archive root; otherwise it's a relative path inside the archive (no
+ * leading slash).
+ */
+char *
+eel_archive_uri_new (const char *archive_path,
+		     const char *inside)
+{
+	char *escaped_path;
+	char *escaped_inside;
+	char *uri;
+
+	g_return_val_if_fail (archive_path != NULL, NULL);
+	g_return_val_if_fail (archive_path[0] == '/', NULL);
+
+	/* Escape every character that's special in URI hosts/paths so the
+	 * archive path is opaque to GIO's parser. The empty allow list ensures
+	 * '/' becomes %2F. */
+	escaped_path = g_uri_escape_string (archive_path, NULL, FALSE);
+
+	if (inside == NULL || inside[0] == '\0') {
+		uri = g_strconcat (EEL_ARCHIVE_URI, "//", escaped_path, "/", NULL);
+	} else {
+		const char *trimmed = inside;
+		while (*trimmed == '/') trimmed++;
+		escaped_inside = g_uri_escape_string (trimmed, "/", FALSE);
+		uri = g_strconcat (EEL_ARCHIVE_URI, "//", escaped_path, "/",
+				   escaped_inside, NULL);
+		g_free (escaped_inside);
+	}
+
+	g_free (escaped_path);
+	return uri;
+}
+
+/* Splits an x-nemo-archive: URI back into archive path and inside path.
+ * Both out params receive newly-allocated strings the caller must free.
+ * *inside is set to g_strdup("") for archive-root URIs (never NULL on success).
+ * Returns FALSE if uri is not a well-formed archive URI.
+ */
+gboolean
+eel_archive_uri_parse (const char  *uri,
+		       char       **archive_path,
+		       char       **inside)
+{
+	const char *after_scheme;
+	const char *host_start;
+	const char *path_start;
+	char *host_part;
+	char *path_part;
+	gsize host_len;
+
+	if (archive_path != NULL) {
+		*archive_path = NULL;
+	}
+	if (inside != NULL) {
+		*inside = NULL;
+	}
+
+	if (uri == NULL || !eel_uri_is_archive (uri)) {
+		return FALSE;
+	}
+
+	after_scheme = uri + strlen (EEL_ARCHIVE_URI);
+	if (after_scheme[0] != '/' || after_scheme[1] != '/') {
+		return FALSE;
+	}
+	host_start = after_scheme + 2;
+
+	path_start = strchr (host_start, '/');
+	if (path_start != NULL) {
+		host_len = (gsize) (path_start - host_start);
+		path_part = g_uri_unescape_string (path_start + 1, NULL);
+	} else {
+		host_len = strlen (host_start);
+		path_part = g_strdup ("");
+	}
+
+	if (host_len == 0) {
+		g_free (path_part);
+		return FALSE;
+	}
+
+	host_part = g_uri_unescape_segment (host_start, host_start + host_len, NULL);
+	if (host_part == NULL || host_part[0] != '/') {
+		g_free (host_part);
+		g_free (path_part);
+		return FALSE;
+	}
+
+	/* Trim trailing slashes from inside path; archive root is "". */
+	{
+		gsize plen = strlen (path_part);
+		while (plen > 0 && path_part[plen - 1] == '/') {
+			path_part[--plen] = '\0';
+		}
+	}
+
+	if (archive_path != NULL) {
+		*archive_path = host_part;
+	} else {
+		g_free (host_part);
+	}
+	if (inside != NULL) {
+		*inside = path_part;
+	} else {
+		g_free (path_part);
+	}
+	return TRUE;
+}
+
+gboolean
 eel_vfs_supports_uri_scheme (const gchar *scheme)
 {
    const gchar * const *supported;

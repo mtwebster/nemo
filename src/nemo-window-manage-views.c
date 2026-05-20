@@ -35,6 +35,7 @@
 #include "nemo-pathbar.h"
 #include "nemo-window-private.h"
 #include "nemo-window-slot.h"
+#include "nemo-archive-bar.h"
 #include "nemo-trash-bar.h"
 #include "nemo-view-factory.h"
 #include "nemo-x-content-bar.h"
@@ -1387,6 +1388,19 @@ nemo_window_slot_show_trash_bar (NemoWindowSlot *slot)
 }
 
 static void
+nemo_window_slot_show_archive_bar (NemoWindowSlot *slot)
+{
+	GtkWidget *bar;
+	NemoView *view;
+
+	view = nemo_window_slot_get_current_view (slot);
+	bar = nemo_archive_bar_new (view);
+	gtk_widget_show (bar);
+
+	nemo_window_slot_add_extra_location_widget (slot, bar);
+}
+
+static void
 maybe_show_interesting_folder_bar (NemoWindowSlot *slot)
 {
     GtkWidget *bar = nemo_interesting_folder_bar_new_for_location (nemo_window_slot_get_current_view(slot),
@@ -1527,6 +1541,12 @@ update_for_new_location (NemoWindowSlot *slot)
 
 		if (nemo_directory_is_in_trash (directory)) {
 			nemo_window_slot_show_trash_bar (slot);
+		} else {
+			char *current_uri = g_file_get_uri (slot->location);
+			if (eel_uri_is_archive (current_uri)) {
+				nemo_window_slot_show_archive_bar (slot);
+			}
+			g_free (current_uri);
 		}
 
         maybe_show_interesting_folder_bar (slot);

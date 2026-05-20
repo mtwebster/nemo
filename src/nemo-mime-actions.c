@@ -33,6 +33,7 @@
 #include <eel/eel-glib-extensions.h>
 #include <eel/eel-stock-dialogs.h>
 #include <eel/eel-string.h>
+#include <eel/eel-vfs-extensions.h>
 #include <glib/gi18n.h>
 #include <glib/gstdio.h>
 #include <string.h>
@@ -816,7 +817,14 @@ get_activation_action (NemoFile *file, gboolean is_desktop)
 	}
 
 	if (action == ACTIVATION_ACTION_DO_NOTHING) {
-		if (nemo_mime_file_opens_in_view (file) && !is_desktop) {
+		gboolean opens_in_view = nemo_mime_file_opens_in_view (file);
+		/* nemo_mime_file_opens_in_view only checks the file's own type. For an
+		 * archive whose activation URI has been redirected to x-nemo-archive://,
+		 * the original file is a regular file but navigation belongs in-view. */
+		if (!opens_in_view && eel_uri_is_archive (activation_uri)) {
+			opens_in_view = TRUE;
+		}
+		if (opens_in_view && !is_desktop) {
 			action = ACTIVATION_ACTION_OPEN_IN_VIEW;
 		} else {
 			action = ACTIVATION_ACTION_OPEN_IN_APPLICATION;

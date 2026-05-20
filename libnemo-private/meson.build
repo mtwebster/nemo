@@ -10,6 +10,9 @@ nemo_private_sources = [
   dbusBuiltSources,
   'nemo-action-manager.c',
   'nemo-action.c',
+  'nemo-archive-directory-file.c',
+  'nemo-archive-directory.c',
+  'nemo-archive.c',
   'nemo-bookmark.c',
   'nemo-cell-renderer-disk.c',
   'nemo-centered-placement-grid.c',
@@ -84,7 +87,7 @@ nemo_private_sources = [
 ]
 
 nemo_private_deps = [
-  cinnamon, eel, gail, gio_unix, glib, gmodule, gtk, json, math, nemo_extension, x11, xapp
+  archive, cinnamon, eel, gail, gio_unix, glib, gmodule, gtk, json, math, nemo_extension, x11, xapp
 ]
 
 if libexif_enabled

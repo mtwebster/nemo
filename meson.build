@@ -75,6 +75,7 @@ glib_version = '>=2.45.7'
 
 math    = cc.find_library('m', required: true)
 
+archive = dependency('libarchive',                  version: '>=3.0')
 gtk     = dependency('gtk+-3.0',                    version: '>=3.10.0')
 gio     = dependency('gio-2.0',                     version: glib_version)
 gio_unix= dependency('gio-unix-2.0',                version: glib_version)

@@ -19,6 +19,7 @@ nemoCommon_sources = [
   nemoBuiltSources,
   'nemo-action-config-widget.c',
   'nemo-application.c',
+  'nemo-archive-bar.c',
   'nemo-blank-desktop-window.c',
   'nemo-bookmark-list.c',
   'nemo-bookmarks-window.c',

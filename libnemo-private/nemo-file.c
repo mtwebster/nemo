@@ -41,6 +41,9 @@
 #include "nemo-link.h"
 #include "nemo-metadata.h"
 #include "nemo-module.h"
+#include "nemo-archive-directory.h"
+#include "nemo-archive-directory-file.h"
+#include "nemo-archive.h"
 #include "nemo-search-directory.h"
 #include "nemo-search-engine.h"
 #include "nemo-search-directory-file.h"
@@ -548,6 +551,8 @@ nemo_file_new_from_filename (NemoDirectory *directory,
 			 * that references a file like this. (See #349840) */
 			file = NEMO_FILE (g_object_new (NEMO_TYPE_VFS_FILE, NULL));
 		}
+	} else if (NEMO_IS_ARCHIVE_DIRECTORY (directory)) {
+		file = NEMO_FILE (g_object_new (NEMO_TYPE_ARCHIVE_DIRECTORY_FILE, NULL));
 	} else {
 		file = NEMO_FILE (g_object_new (NEMO_TYPE_VFS_FILE, NULL));
 	}
@@ -4264,6 +4269,31 @@ nemo_file_get_activation_uri (NemoFile *file)
 		return g_strdup (file->details->activation_uri);
 	}
 
+	/* Reroute native archive files into x-nemo-archive:// so double-clicking
+	 * one navigates into the archive instead of launching file-roller.
+	 * Only triggers when:
+	 *   - file is a regular VFS file (not already inside an archive)
+	 *   - its MIME type matches the archive candidate list
+	 *   - the file is on a native filesystem (libarchive needs a real path)
+	 * "Open With" still works because it bypasses activation URI handling. */
+	if (file->details->type != G_FILE_TYPE_DIRECTORY &&
+	    file->details->mime_type != NULL &&
+	    !NEMO_IS_ARCHIVE_DIRECTORY_FILE (file)) {
+		if (nemo_archive_mime_type_is_candidate (file->details->mime_type)) {
+			GFile *loc = nemo_file_get_location (file);
+			if (loc != NULL && g_file_is_native (loc)) {
+				char *path = g_file_get_path (loc);
+				if (path != NULL) {
+					char *archive_uri = eel_archive_uri_new (path, NULL);
+					g_free (path);
+					g_object_unref (loc);
+					return archive_uri;
+				}
+			}
+			g_clear_object (&loc);
+		}
+	}
+
 	return nemo_file_get_uri (file);
 }
 
@@ -4445,6 +4475,12 @@ nemo_file_should_show_thumbnail (NemoFile *file)
     char* metadata_str = NULL;
 
     if (!NEMO_IS_FILE (file)) {
+        return FALSE;
+    }
+
+    /* Archive entries are synthetic — no on-disk file to thumbnail, and any
+     * thumbnailer would either fail or extract behind our back. */
+    if (NEMO_IS_ARCHIVE_DIRECTORY_FILE (file)) {
         return FALSE;
     }
 

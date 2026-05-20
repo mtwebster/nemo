@@ -36,6 +36,7 @@ G_BEGIN_DECLS
 #define	EEL_TRASH_URI "trash:"
 #define EEL_DESKTOP_URI "x-nemo-desktop:"
 #define EEL_SEARCH_URI "x-nemo-search:"
+#define EEL_ARCHIVE_URI "x-nemo-archive:"
 
 gboolean           eel_uri_is_trash                      (const char           *uri);
 gboolean           eel_uri_is_trash_folder               (const char           *uri);
@@ -46,7 +47,14 @@ gboolean           eel_uri_is_recent                     (const char           *
 gboolean           eel_uri_is_favorite                   (const char           *uri);
 gboolean           eel_uri_is_network                    (const char           *uri);
 gboolean           eel_uri_is_computer                   (const char           *uri);
+gboolean           eel_uri_is_archive                    (const char           *uri);
 gboolean           eel_vfs_supports_uri_scheme           (const gchar       *scheme);
+
+char *             eel_archive_uri_new                   (const char           *archive_path,
+							  const char           *inside);
+gboolean           eel_archive_uri_parse                 (const char           *uri,
+							  char                **archive_path,
+							  char                **inside);
 
 char *             eel_make_valid_utf8                   (const char           *name);
 

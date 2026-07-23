@@ -8885,7 +8885,9 @@ file_should_show_foreach (NemoFile        *file,
 	*show_stop = FALSE;
 	*show_poll = FALSE;
 
-	if (nemo_file_can_eject (file)) {
+	/* Prefer "Safely Remove Drive" (stop) over a plain "Eject" when both
+	 * are possible, to avoid confusing duplicate menu entries. */
+	if (nemo_file_can_eject (file) && !nemo_file_can_stop (file)) {
 		*show_eject = TRUE;
 	}
 
@@ -8948,7 +8950,9 @@ file_should_show_self (NemoFile        *file,
 		return;
 	}
 
-	if (nemo_file_can_eject (file)) {
+	/* Prefer "Safely Remove Drive" (stop) over a plain "Eject" when both
+	 * are possible, to avoid confusing duplicate menu entries. */
+	if (nemo_file_can_eject (file) && !nemo_file_can_stop (file)) {
 		*show_eject = TRUE;
 	}
 

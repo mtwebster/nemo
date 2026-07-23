@@ -217,6 +217,8 @@ static void  nemo_places_sidebar_style_set         (GtkWidget                   
 static gboolean eject_or_unmount_bookmark              (NemoPlacesSidebar *sidebar,
 							GtkTreePath *path);
 static gboolean eject_or_unmount_selection             (NemoPlacesSidebar *sidebar);
+static void  do_stop                                   (GDrive *drive,
+							NemoPlacesSidebar *sidebar);
 static void  check_unmount_and_eject                   (GMount *mount,
 							GVolume *volume,
 							GDrive *drive,
@@ -2257,8 +2259,11 @@ check_visibility (GMount           *mount,
 		*show_start = g_drive_can_start (drive) || g_drive_can_start_degraded (drive);
 		*show_stop  = g_drive_can_stop (drive);
 
-		if (*show_stop)
+		/* Prefer "Safely Remove Drive" (stop) over a plain eject/unmount */
+		if (*show_stop) {
 			*show_unmount = FALSE;
+			*show_eject = FALSE;
+		}
 	}
 
 	if (volume != NULL) {
@@ -2992,8 +2997,13 @@ eject_or_unmount_bookmark (NemoPlacesSidebar *sidebar,
 	ret = FALSE;
 
 	check_unmount_and_eject (mount, volume, drive, &can_unmount, &can_eject);
-	/* if we can eject, it has priority over unmount */
-	if (can_eject) {
+	/* Safely removing (powering off) a drive has priority over a plain
+	 * eject, which in turn has priority over unmount. */
+	if (drive != NULL && g_drive_can_stop (drive) &&
+	    g_drive_get_start_stop_type (drive) == G_DRIVE_START_STOP_TYPE_SHUTDOWN) {
+		do_stop (drive, sidebar);
+		ret = TRUE;
+	} else if (can_eject) {
 		do_eject (mount, volume, drive, sidebar);
 		ret = TRUE;
 	} else if (can_unmount) {
@@ -3152,6 +3162,16 @@ drive_stop_cb (GObject *source_object,
 }
 
 static void
+do_stop (GDrive            *drive,
+	 NemoPlacesSidebar *sidebar)
+{
+	GMountOperation *mount_op = get_unmount_operation (sidebar);
+	g_drive_stop (drive, G_MOUNT_UNMOUNT_NONE, mount_op, NULL, drive_stop_cb,
+		      g_object_ref (sidebar->window));
+	g_object_unref (mount_op);
+}
+
+static void
 stop_shortcut_cb (GtkAction           *item,
 		  NemoPlacesSidebar *sidebar)
 {
@@ -3167,11 +3187,8 @@ stop_shortcut_cb (GtkAction           *item,
 			    -1);
 
 	if (drive != NULL) {
-        GMountOperation *mount_op = get_unmount_operation (sidebar);
-		g_drive_stop (drive, G_MOUNT_UNMOUNT_NONE, mount_op, NULL, drive_stop_cb,
-			      g_object_ref (sidebar->window));
-		g_object_unref (mount_op);
-        g_object_unref (drive);
+		do_stop (drive, sidebar);
+		g_object_unref (drive);
 	}
 }
 

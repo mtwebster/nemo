@@ -2355,6 +2355,7 @@ nemo_file_operations_delete (GList                  *files,
 typedef struct {
 	gboolean eject;
 	GMount *mount;
+    GDrive *stop_drive;
     GMountOperation *mount_operation;
 	GtkWindow *parent_window;
 	NemoUnmountCallback callback;
@@ -2370,6 +2371,7 @@ unmount_data_free (UnmountData *data)
     }
 
     g_clear_object (&data->mount_operation);
+    g_clear_object (&data->stop_drive);
     g_object_unref (data->mount);
     g_free (data);
 }
@@ -2385,7 +2387,10 @@ unmount_mount_callback (GObject *source_object,
 	gboolean unmounted;
 
 	error = NULL;
-	if (data->eject) {
+	if (data->stop_drive != NULL) {
+		unmounted = g_drive_stop_finish (G_DRIVE (source_object),
+						 res, &error);
+	} else if (data->eject) {
 		unmounted = g_mount_eject_with_operation_finish (G_MOUNT (source_object),
 								 res, &error);
 	} else {
@@ -2395,7 +2400,9 @@ unmount_mount_callback (GObject *source_object,
 
 	if (! unmounted) {
 		if (error->code != G_IO_ERROR_FAILED_HANDLED) {
-			if (data->eject) {
+			if (data->stop_drive != NULL) {
+				primary = f (_("Unable to stop %V"), data->mount);
+			} else if (data->eject) {
 				primary = f (_("Unable to eject %V"), source_object);
 			} else {
 				primary = f (_("Unable to unmount %V"), source_object);
@@ -2428,7 +2435,14 @@ do_unmount (UnmountData *data)
     } else {
         mount_op = gtk_mount_operation_new (data->parent_window);
     }
-	if (data->eject) {
+	if (data->stop_drive != NULL) {
+		g_drive_stop (data->stop_drive,
+			      G_MOUNT_UNMOUNT_NONE,
+			      mount_op,
+			      NULL,
+			      unmount_mount_callback,
+			      data);
+	} else if (data->eject) {
 		g_mount_eject_with_operation (data->mount,
 					      0,
 					      mount_op,
@@ -2623,6 +2637,22 @@ nemo_file_operations_unmount_mount_full (GtkWindow                      *parent_
     }
 	data->eject = eject;
 	data->mount = g_object_ref (mount);
+
+	/* When removal (eject) is requested, prefer safely removing (powering
+	 * off) the drive over a plain eject whenever the drive supports it, per
+	 * the udisks2/gvfs contract. */
+	if (eject) {
+		GDrive *drive = g_mount_get_drive (mount);
+
+		if (drive != NULL) {
+			if (g_drive_can_stop (drive) &&
+			    g_drive_get_start_stop_type (drive) == G_DRIVE_START_STOP_TYPE_SHUTDOWN) {
+				data->stop_drive = drive;
+			} else {
+				g_object_unref (drive);
+			}
+		}
+	}
 
 	if (check_trash && has_trash_files (mount)) {
 		response = prompt_empty_trash (parent_window);
